@@ -1,0 +1,126 @@
+name: Build and Deploy
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+    branches: [master, main]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          # Increase timeout for GitHub API token requests
+          fetch-depth: 1
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Authenticate to GitHub Container Registry
+        id: auth
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Retry GitHub API authentication with exponential backoff
+          # to handle transient connection timeouts (cURL error 28)
+          MAX_RETRIES=5
+          RETRY_DELAY=2
+          ATTEMPT=0
+
+          while [ $ATTEMPT -lt $MAX_RETRIES ]; do
+            ATTEMPT=$((ATTEMPT + 1))
+            echo "Authentication attempt $ATTEMPT of $MAX_RETRIES..."
+
+            if echo "$GITHUB_TOKEN" | docker login ghcr.io \
+                -u "${{ github.actor }}" \
+                --password-stdin 2>&1; then
+              echo "Authentication successful on attempt $ATTEMPT"
+              break
+            fi
+
+            if [ $ATTEMPT -lt $MAX_RETRIES ]; then
+              echo "Authentication failed. Retrying in ${RETRY_DELAY}s..."
+              sleep $RETRY_DELAY
+              RETRY_DELAY=$((RETRY_DELAY * 2))
+            else
+              echo "Authentication failed after $MAX_RETRIES attempts."
+              exit 1
+            fi
+          done
+
+      - name: Build Docker image
+        id: build
+        run: |
+          IMAGE_NAME="ghcr.io/${{ github.repository_owner }}/npups:${{ github.sha }}"
+          IMAGE_LATEST="ghcr.io/${{ github.repository_owner }}/npups:latest"
+
+          # Build with retry logic
+          MAX_RETRIES=3
+          RETRY_DELAY=4
+          ATTEMPT=0
+
+          while [ $ATTEMPT -lt $MAX_RETRIES ]; do
+            ATTEMPT=$((ATTEMPT + 1))
+            echo "Build attempt $ATTEMPT of $MAX_RETRIES..."
+
+            if docker build \
+                --tag "$IMAGE_NAME" \
+                --tag "$IMAGE_LATEST" \
+                --cache-from "type=gha" \
+                --build-arg BUILDKIT_INLINE_CACHE=1 \
+                . 2>&1; then
+              echo "Build successful on attempt $ATTEMPT"
+              echo "image_name=$IMAGE_NAME" >> "$GITHUB_OUTPUT"
+              echo "image_latest=$IMAGE_LATEST" >> "$GITHUB_OUTPUT"
+              break
+            fi
+
+            if [ $ATTEMPT -lt $MAX_RETRIES ]; then
+              echo "Build failed. Retrying in ${RETRY_DELAY}s..."
+              sleep $RETRY_DELAY
+              RETRY_DELAY=$((RETRY_DELAY * 2))
+            else
+              echo "Build failed after $MAX_RETRIES attempts."
+              exit 1
+            fi
+          done
+
+      - name: Push Docker image
+        if: github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main'
+        run: |
+          IMAGE_NAME="${{ steps.build.outputs.image_name }}"
+          IMAGE_LATEST="${{ steps.build.outputs.image_latest }}"
+
+          # Push with retry logic for network timeouts
+          MAX_RETRIES=5
+          RETRY_DELAY=2
+          ATTEMPT=0
+
+          for TAG in "$IMAGE_NAME" "$IMAGE_LATEST"; do
+            ATTEMPT=0
+            RETRY_DELAY=2
+
+            while [ $ATTEMPT -lt $MAX_RETRIES ]; do
+              ATTEMPT=$((ATTEMPT + 1))
+              echo "Push attempt $ATTEMPT of $MAX_RETRIES for $TAG..."
+
+              if docker push "$TAG" 2>&1; then
+                echo "Push successful for $TAG on attempt $ATTEMPT"
+                break
+              fi
+
+              if [ $ATTEMPT -lt $MAX_RETRIES ]; then
+                echo "Push failed. Retrying in ${RETRY_DELAY}s..."
+                sleep $RETRY_DELAY
+                RETRY_DELAY=$((RETRY_DELAY * 2))
+              else
+                echo "Push failed after $MAX_RETRIES attempts for $TAG."
+                exit 1
+              fi
+            done
+          done
