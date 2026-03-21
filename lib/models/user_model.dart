@@ -1,18 +1,18 @@
 // ──────────────────────────────────────────────────────────────────────────────
 // NPUPS User Model
-// Roles aligned with §9.1 Authentication & Authorization:
-//   PS, DMCR, Regional Coordinator, HR, Sub-Accounts Clerk,
-//   Main Accounts Clerk, System Admin
+// Roles aligned with the timesheet approval pipeline:
+//   Worker, Regional Coordinator, HR, Sub-Accounts, Main Accounts, PS, Admin
 // ──────────────────────────────────────────────────────────────────────────────
 
 enum UserRole {
   systemAdmin('System Admin', 'Full system access and user management'),
   ps('Permanent Secretary', 'Programme approval and oversight'),
   dmcr('DMCR', 'Worker data compilation and coordination'),
-  regionalCoordinator('Regional Coordinator', 'Field operations and timesheet entry'),
-  hr('HR Department', 'Employment processing and payroll'),
-  subAccounts('Sub-Accounts Clerk', 'Payroll processing and voucher certification'),
-  mainAccounts('Main Accounts Clerk', 'Payment authorisation and cheque management');
+  regionalCoordinator('Regional Coordinator', 'Field operations and timesheet review'),
+  hr('HR Department', 'Employment processing, compliance, and leave verification'),
+  subAccounts('Sub-Accounts Clerk', 'Payroll processing, pay verification, and export'),
+  mainAccounts('Main Accounts Clerk', 'Payment authorisation and cheque management'),
+  worker('Worker', 'Timesheet entry and submission');
 
   const UserRole(this.displayName, this.description);
   final String displayName;

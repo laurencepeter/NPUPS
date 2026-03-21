@@ -3,11 +3,10 @@ import '../models/user_model.dart';
 
 // ──────────────────────────────────────────────────────────────────────────────
 // NPUPS Authentication Service — Demo Implementation
-// Provides 3 demo accounts per §5.1 requirements:
-//   1. Admin account (System Admin role)
-//   2. Regional Coordinator test user
-//   3. HR Department test user
+// 7 demo accounts covering all roles for the timesheet approval pipeline:
+//   Worker, Regional Coordinator, HR, Sub-Accounts, Main Accounts, PS, Admin
 //
+// Includes role switcher for demo purposes.
 // Production: Replace with Supabase GoTrue (§2.3, §3.2)
 // ──────────────────────────────────────────────────────────────────────────────
 
@@ -37,7 +36,7 @@ class AuthService extends ChangeNotifier {
   bool get isAuthenticated => _currentUser != null;
   bool get isLoading => _isLoading;
 
-  // Demo credentials — 1 admin + 2 test users
+  // Demo credentials — all roles for pipeline demo
   static final Map<String, _DemoCredential> _demoAccounts = {
     'admin@npups.gov.tt': _DemoCredential(
       password: 'admin123',
@@ -71,15 +70,54 @@ class AuthService extends ChangeNotifier {
         corporationName: 'Chaguanas Borough Corporation',
       ),
     ),
+    'worker@npups.gov.tt': _DemoCredential(
+      password: 'test123',
+      user: const NpupsUser(
+        id: 'USR-004',
+        email: 'worker@npups.gov.tt',
+        fullName: 'Kevin Rampersad',
+        role: UserRole.worker,
+        corporationId: '8',
+        corporationName: 'Port of Spain City Corporation',
+      ),
+    ),
+    'accounts@npups.gov.tt': _DemoCredential(
+      password: 'test123',
+      user: const NpupsUser(
+        id: 'USR-005',
+        email: 'accounts@npups.gov.tt',
+        fullName: 'James Roberts',
+        role: UserRole.subAccounts,
+        corporationName: 'All Corporations',
+      ),
+    ),
+    'ps@npups.gov.tt': _DemoCredential(
+      password: 'test123',
+      user: const NpupsUser(
+        id: 'USR-006',
+        email: 'ps@npups.gov.tt',
+        fullName: 'Dr. Sharon Rowley',
+        role: UserRole.ps,
+        corporationName: 'All Corporations',
+      ),
+    ),
+    'mainaccounts@npups.gov.tt': _DemoCredential(
+      password: 'test123',
+      user: const NpupsUser(
+        id: 'USR-007',
+        email: 'mainaccounts@npups.gov.tt',
+        fullName: 'Catherine Williams',
+        role: UserRole.mainAccounts,
+        corporationName: 'All Corporations',
+      ),
+    ),
   };
 
   /// Authenticate with email and password.
-  /// Simulates network latency for realistic UX.
   Future<AuthResult> signIn(String email, String password) async {
     _isLoading = true;
     notifyListeners();
 
-    // Simulate network call (JWT token exchange per §9.1)
     await Future.delayed(const Duration(milliseconds: 1500));
 
     final credential = _demoAccounts[email.toLowerCase().trim()];
@@ -108,7 +146,17 @@ class AuthService extends ChangeNotifier {
     return AuthResult.ok(credential.user);
   }
 
-  /// Sign out the current user and invalidate session.
+  /// Switch role instantly (demo only) — no re-login needed.
+  void switchRole(UserRole role) {
+    final account = _demoAccounts.values.firstWhere(
+      (c) => c.user.role == role,
+      orElse: () => _demoAccounts.values.first,
+    );
+    _currentUser = account.user;
+    notifyListeners();
+  }
+
+  /// Sign out the current user.
   Future<void> signOut() async {
     _isLoading = true;
     notifyListeners();
@@ -129,6 +177,10 @@ class AuthService extends ChangeNotifier {
       );
     }).toList();
   }
+
+  /// Get all available roles for the switcher.
+  static List<UserRole> get availableRoles =>
+      _demoAccounts.values.map((c) => c.user.role).toSet().toList();
 }
 
 class _DemoCredential {
