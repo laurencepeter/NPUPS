@@ -158,7 +158,7 @@ class _DashboardScreenState extends State<DashboardScreen>
               ),
             ),
           ),
-          itemBuilder: (ctx) => [
+          itemBuilder: (ctx) => <PopupMenuEntry<dynamic>>[
             PopupMenuItem(
               enabled: false,
               child: Column(
