@@ -113,7 +113,7 @@ class _DashboardScreenState extends State<DashboardScreen>
               _user.role.displayName,
               style: TextStyle(
                 fontSize: 10,
-                color: Colors.white.withOpacity(0.7),
+                color: Colors.white.withValues(alpha: 0.7),
                 letterSpacing: 0.5,
               ),
             ),
@@ -198,14 +198,14 @@ class _DashboardScreenState extends State<DashboardScreen>
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [NpupsColors.accent, NpupsColors.accent.withOpacity(0.8)],
+            colors: [NpupsColors.accent, NpupsColors.accent.withValues(alpha: 0.8)],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: NpupsColors.accent.withOpacity(0.3),
+              color: NpupsColors.accent.withValues(alpha: 0.3),
               blurRadius: 12,
               offset: const Offset(0, 4),
             ),
@@ -228,7 +228,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                   const SizedBox(height: 6),
                   Text(
                     _getRoleGreeting(),
-                    style: TextStyle(fontSize: 13, color: Colors.white.withOpacity(0.85)),
+                    style: TextStyle(fontSize: 13, color: Colors.white.withValues(alpha: 0.85)),
                   ),
                 ],
               ),
@@ -237,7 +237,7 @@ class _DashboardScreenState extends State<DashboardScreen>
               width: 56,
               height: 56,
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.15),
+                color: Colors.white.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(14),
               ),
               child: const Icon(Icons.dashboard_outlined, color: Colors.white, size: 28),
@@ -326,7 +326,7 @@ class _DashboardScreenState extends State<DashboardScreen>
         borderRadius: BorderRadius.circular(14),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -342,7 +342,7 @@ class _DashboardScreenState extends State<DashboardScreen>
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: kpi.color.withOpacity(0.1),
+                  color: kpi.color.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Icon(kpi.icon, size: 18, color: kpi.color),
@@ -350,7 +350,7 @@ class _DashboardScreenState extends State<DashboardScreen>
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
-                  color: kpi.color.withOpacity(0.08),
+                  color: kpi.color.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: Text(
@@ -474,7 +474,7 @@ class _DashboardScreenState extends State<DashboardScreen>
               color: Colors.white,
               borderRadius: BorderRadius.circular(14),
               boxShadow: [
-                BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8, offset: const Offset(0, 2)),
+                BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 8, offset: const Offset(0, 2)),
               ],
             ),
             child: Column(
@@ -522,7 +522,7 @@ class _DashboardScreenState extends State<DashboardScreen>
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
+              color: color.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Icon(icon, size: 16, color: color),

@@ -10,12 +10,14 @@ jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          # Increase timeout for GitHub API token requests
           fetch-depth: 1
 
       - name: Set up Docker Buildx
@@ -26,8 +28,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # Retry GitHub API authentication with exponential backoff
-          # to handle transient connection timeouts (cURL error 28)
           MAX_RETRIES=5
           RETRY_DELAY=2
           ATTEMPT=0
@@ -59,7 +59,6 @@ jobs:
           IMAGE_NAME="ghcr.io/${{ github.repository_owner }}/npups:${{ github.sha }}"
           IMAGE_LATEST="ghcr.io/${{ github.repository_owner }}/npups:latest"
 
-          # Build with retry logic
           MAX_RETRIES=3
           RETRY_DELAY=4
           ATTEMPT=0
@@ -68,11 +67,12 @@ jobs:
             ATTEMPT=$((ATTEMPT + 1))
             echo "Build attempt $ATTEMPT of $MAX_RETRIES..."
 
-            if docker build \
+            if docker buildx build \
                 --tag "$IMAGE_NAME" \
                 --tag "$IMAGE_LATEST" \
                 --cache-from "type=gha" \
-                --build-arg BUILDKIT_INLINE_CACHE=1 \
+                --cache-to "type=gha,mode=max" \
+                --load \
                 . 2>&1; then
               echo "Build successful on attempt $ATTEMPT"
               echo "image_name=$IMAGE_NAME" >> "$GITHUB_OUTPUT"
@@ -96,10 +96,8 @@ jobs:
           IMAGE_NAME="${{ steps.build.outputs.image_name }}"
           IMAGE_LATEST="${{ steps.build.outputs.image_latest }}"
 
-          # Push with retry logic for network timeouts
           MAX_RETRIES=5
           RETRY_DELAY=2
-          ATTEMPT=0
 
           for TAG in "$IMAGE_NAME" "$IMAGE_LATEST"; do
             ATTEMPT=0

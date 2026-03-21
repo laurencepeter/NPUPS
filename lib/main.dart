@@ -49,9 +49,6 @@ class NpupsApp extends StatefulWidget {
 class _NpupsAppState extends State<NpupsApp> {
   final AuthService _authService = AuthService();
 
-  // Simple navigator key for page transitions
-  final _navigatorKey = GlobalKey<NavigatorState>();
-
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -194,7 +191,7 @@ class _AuthenticatedShellState extends State<_AuthenticatedShell>
         backgroundColor: Colors.white,
         elevation: 8,
         shadowColor: Colors.black26,
-        indicatorColor: NpupsColors.accent.withOpacity(0.12),
+        indicatorColor: NpupsColors.accent.withValues(alpha: 0.12),
         labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
         animationDuration: const Duration(milliseconds: 400),
         destinations: const [
