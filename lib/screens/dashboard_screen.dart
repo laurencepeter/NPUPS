@@ -15,12 +15,16 @@ class DashboardScreen extends StatefulWidget {
   final AuthService authService;
   final VoidCallback onLogout;
   final VoidCallback onNavigateToTimesheet;
+  final VoidCallback onNavigateToWorkers;
+  final VoidCallback onNavigateToExport;
 
   const DashboardScreen({
     super.key,
     required this.authService,
     required this.onLogout,
     required this.onNavigateToTimesheet,
+    required this.onNavigateToWorkers,
+    required this.onNavigateToExport,
   });
 
   @override
@@ -404,23 +408,23 @@ class _DashboardScreenState extends State<DashboardScreen>
 
   List<_ActionData> _getActionsForRole() {
     final common = [
-      _ActionData('View Workers', Icons.people_outline, () => _showSnack('Worker list coming soon.')),
-      _ActionData('Reports', Icons.bar_chart, () => _showSnack('Reports module coming soon.')),
+      _ActionData('View Workers', Icons.people_outline, widget.onNavigateToWorkers),
+      _ActionData('Export Timesheet', Icons.download, widget.onNavigateToExport),
     ];
 
     return switch (_user.role) {
       UserRole.systemAdmin => [
-        _ActionData('Manage Users', Icons.admin_panel_settings, () => _showSnack('User management coming soon.')),
+        _ActionData('Manage Users', Icons.admin_panel_settings, widget.onNavigateToWorkers),
         _ActionData('Enter Timesheet', Icons.edit_calendar, widget.onNavigateToTimesheet),
         ...common,
       ],
       UserRole.regionalCoordinator => [
         _ActionData('Enter Timesheet', Icons.edit_calendar, widget.onNavigateToTimesheet),
-        _ActionData('Upload Documents', Icons.upload_file, () => _showSnack('Document upload coming soon.')),
+        _ActionData('Upload Documents', Icons.upload_file, widget.onNavigateToWorkers),
         ...common,
       ],
       UserRole.hr => [
-        _ActionData('Payroll Packages', Icons.receipt_long, () => _showSnack('Payroll builder coming soon.')),
+        _ActionData('Payroll Packages', Icons.receipt_long, widget.onNavigateToExport),
         _ActionData('Employment Notes', Icons.description, () => _showSnack('Employment notes coming soon.')),
         ...common,
       ],

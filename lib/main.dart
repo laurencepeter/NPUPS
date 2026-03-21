@@ -5,6 +5,8 @@ import 'services/auth_service.dart';
 import 'screens/login_screen.dart';
 import 'screens/dashboard_screen.dart';
 import 'screens/timesheet_screen.dart';
+import 'screens/worker_list_screen.dart';
+import 'screens/export_screen.dart';
 
 // ──────────────────────────────────────────────────────────────────────────────
 // NPUPS Digital System — Entry Point
@@ -97,7 +99,7 @@ class _NpupsAppState extends State<NpupsApp> {
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
-// Authenticated Shell — Bottom navigation between Dashboard and Timesheet
+// Authenticated Shell — Bottom navigation with 4 tabs
 // ──────────────────────────────────────────────────────────────────────────────
 
 class _AuthenticatedShell extends StatefulWidget {
@@ -167,6 +169,23 @@ class _AuthenticatedShellState extends State<_AuthenticatedShell>
     }
   }
 
+  Widget _buildPage() {
+    return switch (_currentIndex) {
+      0 => DashboardScreen(
+          key: const ValueKey('dashboard'),
+          authService: widget.authService,
+          onLogout: _handleLogout,
+          onNavigateToTimesheet: () => _onTabChanged(1),
+          onNavigateToWorkers: () => _onTabChanged(2),
+          onNavigateToExport: () => _onTabChanged(3),
+        ),
+      1 => const TimesheetEntryScreen(key: ValueKey('timesheet')),
+      2 => const WorkerListScreen(key: ValueKey('workers')),
+      3 => const ExportScreen(key: ValueKey('export')),
+      _ => const SizedBox(),
+    };
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -176,14 +195,7 @@ class _AuthenticatedShellState extends State<_AuthenticatedShell>
         transitionBuilder: (child, animation) {
           return FadeTransition(opacity: animation, child: child);
         },
-        child: _currentIndex == 0
-            ? DashboardScreen(
-                key: const ValueKey('dashboard'),
-                authService: widget.authService,
-                onLogout: _handleLogout,
-                onNavigateToTimesheet: () => _onTabChanged(1),
-              )
-            : const TimesheetEntryScreen(key: ValueKey('timesheet')),
+        child: _buildPage(),
       ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _currentIndex,
@@ -204,6 +216,16 @@ class _AuthenticatedShellState extends State<_AuthenticatedShell>
             icon: Icon(Icons.edit_calendar_outlined),
             selectedIcon: Icon(Icons.edit_calendar, color: NpupsColors.accent),
             label: 'Timesheet',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.people_outlined),
+            selectedIcon: Icon(Icons.people, color: NpupsColors.accent),
+            label: 'Workers',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.download_outlined),
+            selectedIcon: Icon(Icons.download, color: NpupsColors.accent),
+            label: 'Export',
           ),
         ],
       ),
