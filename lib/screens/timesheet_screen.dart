@@ -457,7 +457,7 @@ class _TimesheetEntryScreenState extends State<TimesheetEntryScreen>
             if (entry.worker != null)
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                decoration: BoxDecoration(color: NpupsColors.success.withOpacity(0.1), borderRadius: BorderRadius.circular(4)),
+                decoration: BoxDecoration(color: NpupsColors.success.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(4)),
                 child: Text('${entry.daysWorked}d | ${_formatCurrency(entry.grandTotal)}', style: const TextStyle(fontSize: 12, color: NpupsColors.success, fontWeight: FontWeight.w600)),
               ),
             if (_workerEntries.length > 1)
@@ -536,9 +536,9 @@ class _TimesheetEntryScreenState extends State<TimesheetEntryScreen>
             margin: const EdgeInsets.only(right: 4),
             padding: const EdgeInsets.all(6),
             decoration: BoxDecoration(
-              color: att.isPresent ? NpupsColors.success.withOpacity(0.08) : isWeekend ? Colors.grey.withOpacity(0.05) : Colors.white,
+              color: att.isPresent ? NpupsColors.success.withValues(alpha: 0.08) : isWeekend ? Colors.grey.withValues(alpha: 0.05) : Colors.white,
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: att.isPresent ? NpupsColors.success.withOpacity(0.3) : NpupsColors.border),
+              border: Border.all(color: att.isPresent ? NpupsColors.success.withValues(alpha: 0.3) : NpupsColors.border),
             ),
             child: Column(
               children: [
@@ -577,9 +577,9 @@ class _TimesheetEntryScreenState extends State<TimesheetEntryScreen>
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: NpupsColors.primary.withOpacity(0.04),
+        color: NpupsColors.primary.withValues(alpha: 0.04),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: NpupsColors.primary.withOpacity(0.15)),
+        border: Border.all(color: NpupsColors.primary.withValues(alpha: 0.15)),
       ),
       child: Column(
         children: [
@@ -693,7 +693,7 @@ class _TimesheetEntryScreenState extends State<TimesheetEntryScreen>
               subtitle: const Text('Auto-captured from your login session', style: TextStyle(fontSize: 12)),
               trailing: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(color: NpupsColors.success.withOpacity(0.1), borderRadius: BorderRadius.circular(4)),
+                decoration: BoxDecoration(color: NpupsColors.success.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(4)),
                 child: const Text('Authenticated', style: TextStyle(fontSize: 11, color: NpupsColors.success)),
               ),
             ),
@@ -712,7 +712,7 @@ class _TimesheetEntryScreenState extends State<TimesheetEntryScreen>
       label: Text('Add Worker (${_workerEntries.length}/12)'),
       style: OutlinedButton.styleFrom(
         foregroundColor: NpupsColors.accent,
-        side: BorderSide(color: NpupsColors.accent.withOpacity(0.4)),
+        side: BorderSide(color: NpupsColors.accent.withValues(alpha: 0.4)),
         padding: const EdgeInsets.symmetric(vertical: 14),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),

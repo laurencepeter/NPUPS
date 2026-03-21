@@ -105,11 +105,6 @@ class _LoginScreenState extends State<LoginScreen>
       duration: const Duration(milliseconds: 1400),
     );
 
-    final curve = CurvedAnimation(
-      parent: _entranceController,
-      curve: Curves.easeOutCubic,
-    );
-
     // Logo: 0–400ms
     _logoSlide = Tween<double>(begin: -40, end: 0).animate(
       CurvedAnimation(parent: _entranceController, curve: const Interval(0.0, 0.35, curve: Curves.easeOutCubic)),
@@ -309,11 +304,11 @@ class _LoginScreenState extends State<LoginScreen>
           height: 80,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: Colors.white.withOpacity(0.1),
-            border: Border.all(color: Colors.white.withOpacity(0.2), width: 2),
+            color: Colors.white.withValues(alpha: 0.1),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.2), width: 2),
             boxShadow: [
               BoxShadow(
-                color: NpupsColors.accent.withOpacity(0.3),
+                color: NpupsColors.accent.withValues(alpha: 0.3),
                 blurRadius: 30,
                 spreadRadius: 2,
               ),
@@ -354,7 +349,7 @@ class _LoginScreenState extends State<LoginScreen>
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w400,
-                color: Colors.white.withOpacity(0.7),
+                color: Colors.white.withValues(alpha: 0.7),
                 letterSpacing: 3,
               ),
             ),
@@ -373,7 +368,7 @@ class _LoginScreenState extends State<LoginScreen>
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 11,
-                color: Colors.white.withOpacity(0.5),
+                color: Colors.white.withValues(alpha: 0.5),
                 height: 1.4,
               ),
             ),
@@ -407,12 +402,12 @@ class _LoginScreenState extends State<LoginScreen>
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.15),
+              color: Colors.black.withValues(alpha: 0.15),
               blurRadius: 30,
               offset: const Offset(0, 10),
             ),
             BoxShadow(
-              color: NpupsColors.accent.withOpacity(0.08),
+              color: NpupsColors.accent.withValues(alpha: 0.08),
               blurRadius: 60,
               offset: const Offset(0, 20),
             ),
@@ -449,10 +444,10 @@ class _LoginScreenState extends State<LoginScreen>
                     // Demo accounts button
                     TextButton.icon(
                       onPressed: _showDemoAccounts,
-                      icon: Icon(Icons.info_outline, size: 16, color: NpupsColors.accent.withOpacity(0.8)),
+                      icon: Icon(Icons.info_outline, size: 16, color: NpupsColors.accent.withValues(alpha: 0.8)),
                       label: Text(
                         'Demo',
-                        style: TextStyle(fontSize: 12, color: NpupsColors.accent.withOpacity(0.8)),
+                        style: TextStyle(fontSize: 12, color: NpupsColors.accent.withValues(alpha: 0.8)),
                       ),
                       style: TextButton.styleFrom(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -465,7 +460,7 @@ class _LoginScreenState extends State<LoginScreen>
                 const SizedBox(height: 6),
                 Text(
                   'Access your NPUPS dashboard',
-                  style: TextStyle(fontSize: 13, color: NpupsColors.textSecondary.withOpacity(0.8)),
+                  style: TextStyle(fontSize: 13, color: NpupsColors.textSecondary.withValues(alpha: 0.8)),
                 ),
                 const SizedBox(height: 24),
 
@@ -487,9 +482,9 @@ class _LoginScreenState extends State<LoginScreen>
                           margin: const EdgeInsets.only(bottom: 16),
                           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                           decoration: BoxDecoration(
-                            color: NpupsColors.error.withOpacity(0.08),
+                            color: NpupsColors.error.withValues(alpha: 0.08),
                             borderRadius: BorderRadius.circular(10),
-                            border: Border.all(color: NpupsColors.error.withOpacity(0.2)),
+                            border: Border.all(color: NpupsColors.error.withValues(alpha: 0.2)),
                           ),
                           child: Row(
                             children: [
@@ -589,7 +584,7 @@ class _LoginScreenState extends State<LoginScreen>
                       'Forgot password?',
                       style: TextStyle(
                         fontSize: 12,
-                        color: NpupsColors.accent.withOpacity(0.8),
+                        color: NpupsColors.accent.withValues(alpha: 0.8),
                       ),
                     ),
                   ),
@@ -607,7 +602,7 @@ class _LoginScreenState extends State<LoginScreen>
                             ? null
                             : [
                                 BoxShadow(
-                                  color: NpupsColors.accent.withOpacity(0.15 + _pulseAnimation.value * 0.15),
+                                  color: NpupsColors.accent.withValues(alpha: 0.15 + _pulseAnimation.value * 0.15),
                                   blurRadius: 12 + _pulseAnimation.value * 8,
                                   offset: const Offset(0, 4),
                                 ),
@@ -623,7 +618,7 @@ class _LoginScreenState extends State<LoginScreen>
                       style: ElevatedButton.styleFrom(
                         backgroundColor: NpupsColors.accent,
                         foregroundColor: Colors.white,
-                        disabledBackgroundColor: NpupsColors.accent.withOpacity(0.6),
+                        disabledBackgroundColor: NpupsColors.accent.withValues(alpha: 0.6),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         elevation: 0,
                       ),
@@ -726,7 +721,7 @@ class _LoginScreenState extends State<LoginScreen>
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 11,
-                color: Colors.white.withOpacity(0.4),
+                color: Colors.white.withValues(alpha: 0.4),
               ),
             ),
             const SizedBox(height: 4),
@@ -735,7 +730,7 @@ class _LoginScreenState extends State<LoginScreen>
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 11,
-                color: Colors.white.withOpacity(0.3),
+                color: Colors.white.withValues(alpha: 0.3),
               ),
             ),
             const SizedBox(height: 8),
@@ -743,7 +738,7 @@ class _LoginScreenState extends State<LoginScreen>
               'v1.0.0 — ISO 5807 Compliant',
               style: TextStyle(
                 fontSize: 10,
-                color: Colors.white.withOpacity(0.2),
+                color: Colors.white.withValues(alpha: 0.2),
                 letterSpacing: 1,
               ),
             ),
@@ -791,7 +786,7 @@ class _ParticlePainter extends CustomPainter {
           math.cos(animationValue * math.pi * 2 * p.speed * 0.7 + p.phase) * 20;
 
       final paint = Paint()
-        ..color = Colors.white.withOpacity(p.opacity)
+        ..color = Colors.white.withValues(alpha: p.opacity)
         ..maskFilter = MaskFilter.blur(BlurStyle.normal, p.radius * 0.5);
 
       canvas.drawCircle(Offset(dx, dy), p.radius, paint);
@@ -917,7 +912,7 @@ class _DemoAccountsSheet extends StatelessWidget {
               width: 44,
               height: 44,
               decoration: BoxDecoration(
-                color: roleColor.withOpacity(0.1),
+                color: roleColor.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(iconData, color: roleColor, size: 22),
@@ -946,7 +941,7 @@ class _DemoAccountsSheet extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
-                color: roleColor.withOpacity(0.08),
+                color: roleColor.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(6),
               ),
               child: Text(
