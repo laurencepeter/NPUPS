@@ -13,6 +13,7 @@ import 'screens/coordinator_review_screen.dart';
 import 'screens/hr_review_screen.dart';
 import 'screens/accounts_review_screen.dart';
 import 'screens/ps_dashboard_screen.dart';
+import 'screens/locksync_screen.dart';
 
 // ──────────────────────────────────────────────────────────────────────────────
 // NPUPS Digital System — Entry Point
@@ -172,6 +173,8 @@ class _AuthenticatedShellState extends State<_AuthenticatedShell> {
             WorkerTimesheetScreen(key: const ValueKey('worker-ts'), user: _user)),
         _TabConfig('Workers', Icons.people_outlined, Icons.people, () =>
             const WorkerListScreen(key: ValueKey('workers'))),
+        _TabConfig('LockSync', Icons.lock_outlined, Icons.lock, () =>
+            const LockSyncScreen(key: ValueKey('locksync'))),
       ],
       UserRole.regionalCoordinator => [
         _TabConfig('Dashboard', Icons.dashboard_outlined, Icons.dashboard, () =>
@@ -189,6 +192,8 @@ class _AuthenticatedShellState extends State<_AuthenticatedShell> {
             const TimesheetEntryScreen(key: ValueKey('timesheet'))),
         _TabConfig('Workers', Icons.people_outlined, Icons.people, () =>
             const WorkerListScreen(key: ValueKey('workers'))),
+        _TabConfig('LockSync', Icons.lock_outlined, Icons.lock, () =>
+            const LockSyncScreen(key: ValueKey('locksync'))),
       ],
       UserRole.hr => [
         _TabConfig('Dashboard', Icons.dashboard_outlined, Icons.dashboard, () =>
@@ -204,6 +209,8 @@ class _AuthenticatedShellState extends State<_AuthenticatedShell> {
             HrReviewScreen(key: const ValueKey('hr-review'), user: _user)),
         _TabConfig('Workers', Icons.people_outlined, Icons.people, () =>
             const WorkerListScreen(key: ValueKey('workers'))),
+        _TabConfig('LockSync', Icons.lock_outlined, Icons.lock, () =>
+            const LockSyncScreen(key: ValueKey('locksync'))),
       ],
       UserRole.subAccounts || UserRole.mainAccounts => [
         _TabConfig('Dashboard', Icons.dashboard_outlined, Icons.dashboard, () =>
@@ -219,6 +226,8 @@ class _AuthenticatedShellState extends State<_AuthenticatedShell> {
             AccountsReviewScreen(key: const ValueKey('accounts-review'), user: _user)),
         _TabConfig('Export', Icons.download_outlined, Icons.download, () =>
             const ExportScreen(key: ValueKey('export'))),
+        _TabConfig('LockSync', Icons.lock_outlined, Icons.lock, () =>
+            const LockSyncScreen(key: ValueKey('locksync'))),
       ],
       UserRole.ps => [
         _TabConfig('Pipeline', Icons.dashboard_outlined, Icons.dashboard, () =>
@@ -227,6 +236,8 @@ class _AuthenticatedShellState extends State<_AuthenticatedShell> {
             const WorkerListScreen(key: ValueKey('workers'))),
         _TabConfig('Export', Icons.download_outlined, Icons.download, () =>
             const ExportScreen(key: ValueKey('export'))),
+        _TabConfig('LockSync', Icons.lock_outlined, Icons.lock, () =>
+            const LockSyncScreen(key: ValueKey('locksync'))),
       ],
       UserRole.systemAdmin || UserRole.dmcr => [
         _TabConfig('Dashboard', Icons.dashboard_outlined, Icons.dashboard, () =>
@@ -244,6 +255,8 @@ class _AuthenticatedShellState extends State<_AuthenticatedShell> {
             const WorkerListScreen(key: ValueKey('workers'))),
         _TabConfig('Export', Icons.download_outlined, Icons.download, () =>
             const ExportScreen(key: ValueKey('export'))),
+        _TabConfig('LockSync', Icons.lock_outlined, Icons.lock, () =>
+            const LockSyncScreen(key: ValueKey('locksync'))),
       ],
     };
   }
