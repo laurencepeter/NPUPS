@@ -261,6 +261,7 @@ class _DashboardScreenState extends State<DashboardScreen>
       UserRole.dmcr => 'Coordinate worker data across Corporations.',
       UserRole.subAccounts => 'Process pay sheets and vouchers.',
       UserRole.mainAccounts => 'Authorise payments and manage cheques.',
+      UserRole.worker => 'Submit your timesheet and track progress.',
     };
   }
 
