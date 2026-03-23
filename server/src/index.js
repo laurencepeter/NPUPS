@@ -1,5 +1,5 @@
 /**
- * LockSync WebSocket Relay Server
+ * NPUPS WebSocket Relay Server
  *
  * Architecture: Thin relay — the server exists ONLY to:
  *   1. Generate & validate 6-digit pairing codes
@@ -468,6 +468,6 @@ setInterval(() => {
 
 // ─── Start ───────────────────────────────────────────────────────────
 server.listen(PORT, () => {
-  console.log(`[LockSync] WebSocket relay server running on port ${PORT}`);
-  console.log(`[LockSync] Health check: http://localhost:${PORT}/health`);
+  console.log(`[NPUPS] WebSocket relay server running on port ${PORT}`);
+  console.log(`[NPUPS] Health check: http://localhost:${PORT}/health`);
 });
