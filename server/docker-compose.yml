@@ -1,15 +1,15 @@
 version: "3.8"
 
-# LockSync relay server — deploy via Coolify or standalone.
+# NPUPS WebSocket relay server — deploy via Coolify or standalone.
 # Coolify: point to this file and set env vars in the Coolify dashboard.
 # Standalone: cp .env.example .env && edit .env && docker compose up -d
 
 services:
-  locksync-server:
+  npups-ws-server:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: locksync-server
+    container_name: npups-ws-server
     restart: unless-stopped
     ports:
       - "8080:8080"

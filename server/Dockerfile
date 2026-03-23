@@ -8,9 +8,9 @@ RUN npm ci --omit=dev
 COPY src/ src/
 
 # Non-root user for security
-RUN addgroup -g 1001 -S locksync && \
-    adduser -S locksync -u 1001 -G locksync
-USER locksync
+RUN addgroup -g 1001 -S npups && \
+    adduser -S npups -u 1001 -G npups
+USER npups
 
 EXPOSE 8080
 
