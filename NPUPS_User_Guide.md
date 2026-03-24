@@ -69,7 +69,7 @@ The login screen displays:
 
 ### How to Log In
 
-1. Enter your assigned government email address (e.g., `firstname.lastname@npups.gov.tt`)
+1. Enter your assigned government email address (e.g., `firstname.lastname@gov.tt`)
 2. Enter your password
 3. Click **Login**
 
