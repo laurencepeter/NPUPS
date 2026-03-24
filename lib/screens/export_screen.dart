@@ -4,6 +4,7 @@ import '../theme/npups_theme.dart';
 import '../models/worker_model.dart';
 import '../services/worker_data_store.dart';
 import '../services/excel_export_service.dart';
+import 'dart:typed_data';
 import 'dart:html' as html;
 
 // ──────────────────────────────────────────────────────────────────────────────
