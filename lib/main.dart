@@ -9,6 +9,7 @@ import 'screens/timesheet_screen.dart';
 import 'screens/worker_list_screen.dart';
 import 'screens/export_screen.dart';
 import 'screens/worker_timesheet_screen.dart';
+import 'screens/worker_detail_screen.dart';
 import 'screens/coordinator_review_screen.dart';
 import 'screens/hr_review_screen.dart';
 import 'screens/accounts_review_screen.dart';
@@ -170,8 +171,11 @@ class _AuthenticatedShellState extends State<_AuthenticatedShell> {
       UserRole.worker => [
         _TabConfig('Timesheet', Icons.edit_calendar_outlined, Icons.edit_calendar, () =>
             WorkerTimesheetScreen(key: const ValueKey('worker-ts'), user: _user)),
-        _TabConfig('Workers', Icons.people_outlined, Icons.people, () =>
-            const WorkerListScreen(key: ValueKey('workers'))),
+        _TabConfig('My Documents', Icons.folder_outlined, Icons.folder, () =>
+            WorkerDetailScreen(
+              key: const ValueKey('worker-docs'),
+              workerId: _user.fullName == 'Kevin Rampersad' ? 'WRK-001' : _user.id,
+            )),
       ],
       UserRole.regionalCoordinator => [
         _TabConfig('Dashboard', Icons.dashboard_outlined, Icons.dashboard, () =>

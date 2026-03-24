@@ -268,29 +268,37 @@ class _DashboardScreenState extends State<DashboardScreen>
   // ── KPI Grid ───────────────────────────────────────────────────────────────
   Widget _buildKpiGrid() {
     final kpis = _getKpisForRole();
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Overview',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: NpupsColors.textPrimary),
-        ),
-        const SizedBox(height: 12),
-        GridView.count(
-          crossAxisCount: 2,
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          crossAxisSpacing: 12,
-          mainAxisSpacing: 12,
-          childAspectRatio: 1.6,
-          children: kpis.asMap().entries.map((entry) {
-            return _animatedCard(
-              (entry.key + 1).clamp(0, 5),
-              _buildKpiCard(entry.value),
-            );
-          }).toList(),
-        ),
-      ],
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isDesktop = constraints.maxWidth > 600;
+        final crossAxisCount = isDesktop ? 4 : 2;
+        final aspectRatio = isDesktop ? 2.0 : 1.6;
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Overview',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: NpupsColors.textPrimary),
+            ),
+            const SizedBox(height: 12),
+            GridView.count(
+              crossAxisCount: crossAxisCount,
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              crossAxisSpacing: isDesktop ? 10 : 12,
+              mainAxisSpacing: isDesktop ? 10 : 12,
+              childAspectRatio: aspectRatio,
+              children: kpis.asMap().entries.map((entry) {
+                return _animatedCard(
+                  (entry.key + 1).clamp(0, 5),
+                  _buildKpiCard(entry.value, compact: isDesktop),
+                );
+              }).toList(),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -323,12 +331,12 @@ class _DashboardScreenState extends State<DashboardScreen>
     };
   }
 
-  Widget _buildKpiCard(_KpiData kpi) {
+  Widget _buildKpiCard(_KpiData kpi, {bool compact = false}) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(compact ? 10 : 16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(compact ? 10 : 14),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.04),
@@ -345,22 +353,22 @@ class _DashboardScreenState extends State<DashboardScreen>
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Container(
-                padding: const EdgeInsets.all(8),
+                padding: EdgeInsets.all(compact ? 5 : 8),
                 decoration: BoxDecoration(
                   color: kpi.color.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(compact ? 6 : 8),
                 ),
-                child: Icon(kpi.icon, size: 18, color: kpi.color),
+                child: Icon(kpi.icon, size: compact ? 14 : 18, color: kpi.color),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                padding: EdgeInsets.symmetric(horizontal: compact ? 4 : 6, vertical: 2),
                 decoration: BoxDecoration(
                   color: kpi.color.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: Text(
                   kpi.badge,
-                  style: TextStyle(fontSize: 9, fontWeight: FontWeight.w600, color: kpi.color),
+                  style: TextStyle(fontSize: compact ? 8 : 9, fontWeight: FontWeight.w600, color: kpi.color),
                 ),
               ),
             ],
@@ -370,11 +378,12 @@ class _DashboardScreenState extends State<DashboardScreen>
             children: [
               Text(
                 kpi.value,
-                style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: NpupsColors.textPrimary),
+                style: TextStyle(fontSize: compact ? 16 : 22, fontWeight: FontWeight.w800, color: NpupsColors.textPrimary),
               ),
               Text(
                 kpi.label,
-                style: const TextStyle(fontSize: 11, color: NpupsColors.textSecondary),
+                style: TextStyle(fontSize: compact ? 10 : 11, color: NpupsColors.textSecondary),
+                overflow: TextOverflow.ellipsis,
               ),
             ],
           ),
