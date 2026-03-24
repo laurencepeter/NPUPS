@@ -365,7 +365,7 @@ class _AccountsReviewScreenState extends State<AccountsReviewScreen>
       dateRegistered: DateTime.now(),
     )).toList();
 
-    final bytes = ExcelExportService.generateTimesheet(
+    final bytes = ExcelExportService.generateBatchTimesheet(
       workers: workers,
       groupNumber: timesheets.first.groupNumber,
       corporationName: timesheets.first.corporationName,
