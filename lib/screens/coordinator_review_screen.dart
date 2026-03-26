@@ -23,13 +23,19 @@ class CoordinatorReviewScreen extends StatefulWidget {
 class _CoordinatorReviewScreenState extends State<CoordinatorReviewScreen> {
   final TimesheetDataStore _store = TimesheetDataStore();
   final Set<String> _selectedIds = {};
+  List<Timesheet>? _cachedQueue;
+  int _lastTimesheetVersion = -1;
 
   List<Timesheet> get _queue {
-    // Coordinator sees submitted + coordinatorReview for their corporation
-    return _store.timesheets.where((t) =>
-      (t.stage == TimesheetStage.submitted || t.stage == TimesheetStage.coordinatorReview) &&
-      (widget.user.corporationId == null || t.corporationId == widget.user.corporationId)
-    ).toList();
+    final currentVersion = _store.timesheets.length;
+    if (_cachedQueue == null || _lastTimesheetVersion != currentVersion) {
+      _lastTimesheetVersion = currentVersion;
+      _cachedQueue = _store.timesheets.where((t) =>
+        (t.stage == TimesheetStage.submitted || t.stage == TimesheetStage.coordinatorReview) &&
+        (widget.user.corporationId == null || t.corporationId == widget.user.corporationId)
+      ).toList();
+    }
+    return _cachedQueue!;
   }
 
   @override
@@ -319,6 +325,6 @@ class _CoordinatorReviewScreenState extends State<CoordinatorReviewScreen> {
           ),
         ],
       ),
-    );
+    ).then((_) => controller.dispose());
   }
 }
