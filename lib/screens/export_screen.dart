@@ -1,11 +1,12 @@
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:file_saver/file_saver.dart';
 import '../theme/npups_theme.dart';
 import '../models/worker_model.dart';
 import '../services/worker_data_store.dart';
 import '../services/excel_export_service.dart';
-import 'dart:typed_data';
-import 'dart:html' as html;
+import '../services/security_utils.dart';
 
 // ──────────────────────────────────────────────────────────────────────────────
 // NPUPS Excel Timesheet Export Screen
@@ -100,8 +101,10 @@ class _ExportScreenState extends State<ExportScreen> {
           corporationName: corpName,
           fortnightStart: _fortnightStart,
         );
-        final safeName = worker.fullName.replaceAll(' ', '_');
-        fileName = 'NPUPS_Timesheet_${safeName}_$dateStr.xlsx';
+        final safeName = SecurityUtils.sanitizeFileName(
+          worker.fullName.replaceAll(' ', '_'),
+        );
+        fileName = 'NPUPS_Timesheet_${safeName}_$dateStr';
       } else {
         bytes = ExcelExportService.generateBatchTimesheet(
           workers: _corpWorkers,
@@ -109,17 +112,20 @@ class _ExportScreenState extends State<ExportScreen> {
           corporationName: corpName,
           fortnightStart: _fortnightStart,
         );
-        final safeCorpName = corpName.replaceAll(' ', '_');
-        fileName = 'NPUPS_Timesheet_Batch_${safeCorpName}_Group${_groupNumber}_$dateStr.xlsx';
+        final safeCorpName = SecurityUtils.sanitizeFileName(
+          corpName.replaceAll(' ', '_'),
+        );
+        final safeGroup = SecurityUtils.sanitizeFileName(_groupNumber);
+        fileName = 'NPUPS_Timesheet_Batch_${safeCorpName}_Group${safeGroup}_$dateStr';
       }
 
-      // Download via browser
-      final blob = html.Blob([bytes], 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-      final url = html.Url.createObjectUrlFromBlob(blob);
-      html.AnchorElement(href: url)
-        ..setAttribute('download', fileName)
-        ..click();
-      html.Url.revokeObjectUrl(url);
+      // Cross-platform download via file_saver
+      await FileSaver.instance.saveFile(
+        name: fileName,
+        bytes: bytes,
+        ext: 'xlsx',
+        mimeType: MimeType.microsoftExcel,
+      );
 
       setState(() {
         _exporting = false;
@@ -130,7 +136,7 @@ class _ExportScreenState extends State<ExportScreen> {
       final workerCount = _exportMode == ExportMode.singleWorker ? 1 : _corpWorkers.length;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Exported $workerCount timesheet${workerCount > 1 ? 's' : ''} successfully'),
+          content: Text('Exported $workerCount timesheet${workerCount > 1 ? 's' : ''} to $fileName.xlsx'),
           backgroundColor: NpupsColors.success,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),

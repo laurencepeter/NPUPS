@@ -11,6 +11,7 @@ import '../theme/npups_theme.dart';
 import '../models/timesheet_model.dart';
 import '../models/user_model.dart';
 import '../services/timesheet_data_store.dart';
+import '../services/security_utils.dart';
 
 class WorkerTimesheetScreen extends StatefulWidget {
   final NpupsUser user;
@@ -213,8 +214,8 @@ class _WorkerTimesheetScreenState extends State<WorkerTimesheetScreen> {
             const Divider(height: 20),
             _infoRow('Name', ts.workerName),
             _infoRow('Position', ts.position),
-            _infoRow('ID#', ts.idNumber),
-            _infoRow('NIS#', ts.nisNumber),
+            _infoRow('ID#', SecurityUtils.maskIdNumber(ts.idNumber)),
+            _infoRow('NIS#', SecurityUtils.maskNisNumber(ts.nisNumber)),
             _infoRow('Corporation', ts.corporationName),
             _infoRow('District', ts.electoralDistrict),
             _infoRow('Group', ts.groupNumber),

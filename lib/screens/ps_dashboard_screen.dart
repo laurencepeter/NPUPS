@@ -15,6 +15,7 @@ import '../theme/npups_theme.dart';
 import '../models/timesheet_model.dart';
 import '../models/user_model.dart';
 import '../services/timesheet_data_store.dart';
+import '../services/security_utils.dart';
 
 class PsDashboardScreen extends StatefulWidget {
   final NpupsUser user;
@@ -741,8 +742,8 @@ class _PsDashboardScreenState extends State<PsDashboardScreen>
 
             // Details
             _detailRow('ID', ts.id),
-            _detailRow('NIS', ts.nisNumber),
-            _detailRow('ID Number', ts.idNumber),
+            _detailRow('NIS', SecurityUtils.maskNisNumber(ts.nisNumber)),
+            _detailRow('ID Number', SecurityUtils.maskIdNumber(ts.idNumber)),
             _detailRow('District', ts.electoralDistrict),
             _detailRow('Group', ts.groupNumber),
             _detailRow('Fortnight', '${DateFormat('dd/MM/yyyy').format(ts.fortnightStart)} - ${DateFormat('dd/MM/yyyy').format(ts.fortnightEnd)}'),
@@ -751,7 +752,7 @@ class _PsDashboardScreenState extends State<PsDashboardScreen>
             _detailRow('COLA', '\$${ts.colaTotal.toStringAsFixed(2)}'),
             _detailRow('Allowance', '\$${ts.allowanceTotal.toStringAsFixed(2)}'),
             _detailRow('Grand Total', '\$${ts.grandTotal.toStringAsFixed(2)}'),
-            _detailRow('Bank', '${ts.bankName} - ${ts.accountNumber}'),
+            _detailRow('Bank', '${ts.bankName} - ${SecurityUtils.maskBankAccount(ts.accountNumber)}'),
             _detailRow('Branch', ts.branchName),
             _detailRow('Current Owner', ts.stageOwner),
             const SizedBox(height: 16),

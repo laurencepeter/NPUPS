@@ -53,8 +53,28 @@ class NpupsApp extends StatefulWidget {
   State<NpupsApp> createState() => _NpupsAppState();
 }
 
-class _NpupsAppState extends State<NpupsApp> {
+class _NpupsAppState extends State<NpupsApp> with WidgetsBindingObserver {
   final AuthService _authService = AuthService();
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Check session expiry when app resumes from background
+    if (state == AppLifecycleState.resumed) {
+      _authService.checkSessionExpiry();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -116,11 +136,15 @@ class _AuthenticatedShell extends StatefulWidget {
 
 class _AuthenticatedShellState extends State<_AuthenticatedShell> {
   int _currentIndex = 0;
+  List<_TabConfig>? _cachedTabs;
+  UserRole? _cachedRole;
 
   NpupsUser get _user => widget.authService.currentUser!;
 
   void _onTabChanged(int index) {
     if (index != _currentIndex) {
+      // Touch session on navigation to keep alive
+      widget.authService.touchSession();
       setState(() => _currentIndex = index);
     }
   }
@@ -159,11 +183,20 @@ class _AuthenticatedShellState extends State<_AuthenticatedShell> {
 
   // Role-specific page builder
   Widget _buildPage() {
-    final tabs = _getTabsForRole();
+    final tabs = _getCachedTabs();
     if (_currentIndex >= tabs.length) {
       _currentIndex = 0;
     }
     return tabs[_currentIndex].builder();
+  }
+
+  /// Returns cached tabs, only rebuilding when the user role changes.
+  List<_TabConfig> _getCachedTabs() {
+    if (_cachedTabs == null || _cachedRole != _user.role) {
+      _cachedRole = _user.role;
+      _cachedTabs = _getTabsForRole();
+    }
+    return _cachedTabs!;
   }
 
   List<_TabConfig> _getTabsForRole() {
@@ -254,7 +287,7 @@ class _AuthenticatedShellState extends State<_AuthenticatedShell> {
 
   @override
   Widget build(BuildContext context) {
-    final tabs = _getTabsForRole();
+    final tabs = _getCachedTabs();
     if (_currentIndex >= tabs.length) {
       _currentIndex = 0;
     }

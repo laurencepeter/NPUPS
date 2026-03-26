@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../theme/npups_theme.dart';
 import '../models/worker_model.dart';
 import '../services/worker_data_store.dart';
+import '../services/security_utils.dart';
 import 'worker_detail_screen.dart';
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -22,7 +23,14 @@ class _WorkerListScreenState extends State<WorkerListScreen> {
   String _filterStatus = 'All';
   String _filterCorp = 'All';
 
+  // Cached filtered list — invalidated on setState
+  List<Worker>? _cachedFiltered;
+
   List<Worker> get _filteredWorkers {
+    return _cachedFiltered ??= _computeFilteredWorkers();
+  }
+
+  List<Worker> _computeFilteredWorkers() {
     var list = _store.workers;
 
     // Search
@@ -57,6 +65,13 @@ class _WorkerListScreenState extends State<WorkerListScreen> {
     return ['All', ...corps];
   }
 
+  void _invalidateAndSetState(VoidCallback fn) {
+    setState(() {
+      _cachedFiltered = null;
+      fn();
+    });
+  }
+
   @override
   void dispose() {
     _searchController.dispose();
@@ -68,6 +83,7 @@ class _WorkerListScreenState extends State<WorkerListScreen> {
     return ListenableBuilder(
       listenable: _store,
       builder: (context, _) {
+        _cachedFiltered = null; // Invalidate on store change
         final workers = _filteredWorkers;
         return Scaffold(
           backgroundColor: NpupsColors.surface,
@@ -80,7 +96,7 @@ class _WorkerListScreenState extends State<WorkerListScreen> {
                 padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
                 child: TextField(
                   controller: _searchController,
-                  onChanged: (_) => setState(() {}),
+                  onChanged: (_) => _invalidateAndSetState(() {}),
                   style: const TextStyle(color: Colors.white),
                   decoration: InputDecoration(
                     hintText: 'Search by name, NIS, or ID...',
@@ -91,7 +107,7 @@ class _WorkerListScreenState extends State<WorkerListScreen> {
                             icon: const Icon(Icons.clear, color: Colors.white70),
                             onPressed: () {
                               _searchController.clear();
-                              setState(() {});
+                              _invalidateAndSetState(() {});
                             },
                           )
                         : null,
@@ -119,13 +135,13 @@ class _WorkerListScreenState extends State<WorkerListScreen> {
                         scrollDirection: Axis.horizontal,
                         child: Row(
                           children: [
-                            _buildFilterChip('All', _filterStatus, (v) => setState(() => _filterStatus = v)),
+                            _buildFilterChip('All', _filterStatus, (v) => _invalidateAndSetState(() => _filterStatus = v)),
                             const SizedBox(width: 8),
-                            _buildFilterChip('Verified', _filterStatus, (v) => setState(() => _filterStatus = v)),
+                            _buildFilterChip('Verified', _filterStatus, (v) => _invalidateAndSetState(() => _filterStatus = v)),
                             const SizedBox(width: 8),
-                            _buildFilterChip('Partial', _filterStatus, (v) => setState(() => _filterStatus = v)),
+                            _buildFilterChip('Partial', _filterStatus, (v) => _invalidateAndSetState(() => _filterStatus = v)),
                             const SizedBox(width: 8),
-                            _buildFilterChip('Missing', _filterStatus, (v) => setState(() => _filterStatus = v)),
+                            _buildFilterChip('Missing', _filterStatus, (v) => _invalidateAndSetState(() => _filterStatus = v)),
                             const SizedBox(width: 16),
                             // Corporation dropdown
                             Container(
@@ -141,7 +157,7 @@ class _WorkerListScreenState extends State<WorkerListScreen> {
                                   isDense: true,
                                   style: const TextStyle(fontSize: 13, color: NpupsColors.textPrimary),
                                   items: _corporations.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
-                                  onChanged: (v) => setState(() => _filterCorp = v ?? 'All'),
+                                  onChanged: (v) => _invalidateAndSetState(() => _filterCorp = v ?? 'All'),
                                 ),
                               ),
                             ),
@@ -271,7 +287,7 @@ class _WorkerListScreenState extends State<WorkerListScreen> {
                   children: [
                     Text(worker.fullName, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: NpupsColors.textPrimary)),
                     const SizedBox(height: 3),
-                    Text('${worker.position}  •  ${worker.nisNumber}', style: const TextStyle(fontSize: 12, color: NpupsColors.textSecondary)),
+                    Text('${worker.position}  •  ${SecurityUtils.maskNisNumber(worker.nisNumber)}', style: const TextStyle(fontSize: 12, color: NpupsColors.textSecondary)),
                     const SizedBox(height: 3),
                     Text(worker.corporationName, style: const TextStyle(fontSize: 11, color: NpupsColors.accent)),
                   ],

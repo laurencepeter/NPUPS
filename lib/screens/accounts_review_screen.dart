@@ -13,6 +13,7 @@ import '../models/user_model.dart';
 import '../models/worker_model.dart';
 import '../services/timesheet_data_store.dart';
 import '../services/excel_export_service.dart';
+import '../services/security_utils.dart';
 import 'package:file_saver/file_saver.dart';
 
 class AccountsReviewScreen extends StatefulWidget {
@@ -147,7 +148,7 @@ class _AccountsReviewScreenState extends State<AccountsReviewScreen>
             const Text('Bank Details (Direct Deposit)', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: NpupsColors.primary)),
             const SizedBox(height: 4),
             _verifyRow('Bank', ts.bankName),
-            _verifyRow('Account #', ts.accountNumber),
+            _verifyRow('Account #', SecurityUtils.maskBankAccount(ts.accountNumber)),
             _verifyRow('Branch', ts.branchName),
             const SizedBox(height: 12),
 
@@ -372,7 +373,9 @@ class _AccountsReviewScreenState extends State<AccountsReviewScreen>
       fortnightStart: timesheets.first.fortnightStart,
     );
 
-    final fileName = 'NPUPS_Paysheet_${DateFormat('yyyyMMdd').format(DateTime.now())}';
+    final fileName = SecurityUtils.sanitizeFileName(
+      'NPUPS_Paysheet_${DateFormat('yyyyMMdd').format(DateTime.now())}',
+    );
     await FileSaver.instance.saveFile(name: fileName, bytes: bytes, ext: 'xlsx', mimeType: MimeType.microsoftExcel);
 
     // Mark all as exported

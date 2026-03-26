@@ -33,7 +33,7 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen>
-    with TickerProviderStateMixin {
+    with TickerProviderStateMixin, WidgetsBindingObserver {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
@@ -73,9 +73,23 @@ class _LoginScreenState extends State<LoginScreen>
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _initParticles();
     _initAnimations();
     _entranceController.forward();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Pause expensive continuous animations when app is backgrounded
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive) {
+      _bgController.stop();
+      _pulseController.stop();
+    } else if (state == AppLifecycleState.resumed) {
+      _bgController.repeat();
+      _pulseController.repeat(reverse: true);
+    }
   }
 
   void _initParticles() {
@@ -163,6 +177,7 @@ class _LoginScreenState extends State<LoginScreen>
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _bgController.dispose();
     _entranceController.dispose();
     _shakeController.dispose();
@@ -178,6 +193,14 @@ class _LoginScreenState extends State<LoginScreen>
   Future<void> _handleLogin() async {
     // Clear previous error
     setState(() => _errorMessage = null);
+
+    // Check rate limiting before even validating form
+    if (widget.authService.isLockedOut) {
+      _shakeController.forward(from: 0);
+      setState(() => _errorMessage =
+          'Too many failed attempts. Please wait ${widget.authService.remainingLockoutSeconds}s.');
+      return;
+    }
 
     if (!_formKey.currentState!.validate()) {
       _shakeController.forward(from: 0);
@@ -242,21 +265,25 @@ class _LoginScreenState extends State<LoginScreen>
               // Gradient background
               Container(decoration: const BoxDecoration(gradient: NpupsColors.loginGradient)),
 
-              // Floating particles
-              CustomPaint(
-                size: size,
-                painter: _ParticlePainter(
-                  particles: _particles,
-                  animationValue: _bgController.value,
+              // Floating particles — bounded to avoid full-tree repaints
+              RepaintBoundary(
+                child: CustomPaint(
+                  size: size,
+                  painter: _ParticlePainter(
+                    particles: _particles,
+                    animationValue: _bgController.value,
+                  ),
                 ),
               ),
 
-              // Subtle grid pattern overlay
-              Opacity(
-                opacity: 0.03,
-                child: CustomPaint(
-                  size: size,
-                  painter: _GridPainter(),
+              // Subtle grid pattern overlay — painted once, never repaints
+              RepaintBoundary(
+                child: Opacity(
+                  opacity: 0.03,
+                  child: CustomPaint(
+                    size: size,
+                    painter: _GridPainter(),
+                  ),
                 ),
               ),
 

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../theme/npups_theme.dart';
+import '../services/security_utils.dart';
 
 // ──────────────────────────────────────────────────────────────────────────────
 // NPUPS Timesheet Entry Screen
@@ -486,7 +487,7 @@ class _TimesheetEntryScreenState extends State<TimesheetEntryScreen>
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(color: NpupsColors.inputFill, borderRadius: BorderRadius.circular(8), border: Border.all(color: NpupsColors.border)),
-              child: Row(children: [_buildInfoChip('Position', entry.worker!.position), _buildInfoChip('ID#', entry.worker!.idNumber), _buildInfoChip('NIS#', entry.worker!.nisNumber)]),
+              child: Row(children: [_buildInfoChip('Position', entry.worker!.position), _buildInfoChip('ID#', SecurityUtils.maskIdNumber(entry.worker!.idNumber)), _buildInfoChip('NIS#', SecurityUtils.maskNisNumber(entry.worker!.nisNumber))]),
             ),
             const SizedBox(height: 16),
             Align(

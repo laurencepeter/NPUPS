@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import '../theme/npups_theme.dart';
 import '../models/worker_model.dart';
 import '../services/worker_data_store.dart';
+import '../services/security_utils.dart';
 
 // ──────────────────────────────────────────────────────────────────────────────
 // NPUPS Worker Detail & Document Status Screen
@@ -132,12 +133,12 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
                     _buildProgressCard(worker, statusColor),
                     const SizedBox(height: 16),
 
-                    // Personal info
+                    // Personal info — sensitive fields masked
                     _buildSectionCard('Personal Information', Icons.person, [
                       _infoRow('Full Name', worker.fullName),
                       _infoRow('Date of Birth', DateFormat('d MMMM yyyy').format(worker.dateOfBirth)),
-                      _infoRow('NIS Number', worker.nisNumber),
-                      _infoRow('ID Number', worker.idNumber),
+                      _infoRow('NIS Number', SecurityUtils.maskNisNumber(worker.nisNumber)),
+                      _infoRow('ID Number', SecurityUtils.maskIdNumber(worker.idNumber)),
                     ]),
                     const SizedBox(height: 12),
 
@@ -153,10 +154,10 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
                     ]),
                     const SizedBox(height: 12),
 
-                    // Bank info
+                    // Bank info — account number masked
                     _buildSectionCard('Bank Information', Icons.account_balance, [
                       _infoRow('Bank', worker.bankInfo.bankName),
-                      _infoRow('Account Number', worker.bankInfo.accountNumber),
+                      _infoRow('Account Number', SecurityUtils.maskBankAccount(worker.bankInfo.accountNumber)),
                       _infoRow('Branch', worker.bankInfo.branchName),
                     ]),
                     const SizedBox(height: 16),

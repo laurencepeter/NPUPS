@@ -32,9 +32,36 @@ class AuthService extends ChangeNotifier {
   NpupsUser? _currentUser;
   bool _isLoading = false;
 
+  // Rate limiting: track failed login attempts
+  int _failedAttempts = 0;
+  DateTime? _lockoutUntil;
+  static const int _maxFailedAttempts = 5;
+  static const Duration _lockoutDuration = Duration(minutes: 2);
+
+  // Session timeout: auto-logout after inactivity
+  DateTime? _lastActivity;
+  static const Duration sessionTimeout = Duration(minutes: 30);
+
   NpupsUser? get currentUser => _currentUser;
-  bool get isAuthenticated => _currentUser != null;
+  bool get isAuthenticated => _currentUser != null && !_isSessionExpired;
   bool get isLoading => _isLoading;
+  bool get isLockedOut =>
+      _lockoutUntil != null && DateTime.now().isBefore(_lockoutUntil!);
+  int get remainingLockoutSeconds => isLockedOut
+      ? _lockoutUntil!.difference(DateTime.now()).inSeconds
+      : 0;
+
+  bool get _isSessionExpired {
+    if (_lastActivity == null || _currentUser == null) return false;
+    return DateTime.now().difference(_lastActivity!) > sessionTimeout;
+  }
+
+  /// Call this on any user interaction to keep session alive.
+  void touchSession() {
+    if (_currentUser != null) {
+      _lastActivity = DateTime.now();
+    }
+  }
 
   // Demo credentials — all roles for pipeline demo
   static final Map<String, _DemoCredential> _demoAccounts = {
@@ -114,7 +141,15 @@ class AuthService extends ChangeNotifier {
   };
 
   /// Authenticate with email and password.
+  /// Includes rate limiting: locks out after [_maxFailedAttempts] failed attempts.
   Future<AuthResult> signIn(String email, String password) async {
+    // Check lockout
+    if (isLockedOut) {
+      return AuthResult.error(
+        'Too many failed attempts. Please wait $remainingLockoutSeconds seconds before trying again.',
+      );
+    }
+
     _isLoading = true;
     notifyListeners();
 
@@ -124,12 +159,14 @@ class AuthService extends ChangeNotifier {
 
     if (credential == null) {
       _isLoading = false;
+      _recordFailedAttempt();
       notifyListeners();
       return AuthResult.error('No account found with this email address.');
     }
 
     if (credential.password != password) {
       _isLoading = false;
+      _recordFailedAttempt();
       notifyListeners();
       return AuthResult.error('Incorrect password. Please try again.');
     }
@@ -140,10 +177,33 @@ class AuthService extends ChangeNotifier {
       return AuthResult.error('This account has been deactivated.');
     }
 
+    // Successful login — reset rate limiting and start session
+    _failedAttempts = 0;
+    _lockoutUntil = null;
+    _lastActivity = DateTime.now();
     _currentUser = credential.user;
     _isLoading = false;
     notifyListeners();
     return AuthResult.ok(credential.user);
+  }
+
+  void _recordFailedAttempt() {
+    _failedAttempts++;
+    if (_failedAttempts >= _maxFailedAttempts) {
+      _lockoutUntil = DateTime.now().add(_lockoutDuration);
+    }
+  }
+
+  /// Check if the session has expired and sign out if so.
+  /// Returns true if the session was expired and user was signed out.
+  bool checkSessionExpiry() {
+    if (_currentUser != null && _isSessionExpired) {
+      _currentUser = null;
+      _lastActivity = null;
+      notifyListeners();
+      return true;
+    }
+    return false;
   }
 
   /// Switch role instantly (demo only) — no re-login needed.
@@ -156,12 +216,13 @@ class AuthService extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Sign out the current user.
+  /// Sign out the current user and clear session.
   Future<void> signOut() async {
     _isLoading = true;
     notifyListeners();
     await Future.delayed(const Duration(milliseconds: 500));
     _currentUser = null;
+    _lastActivity = null;
     _isLoading = false;
     notifyListeners();
   }
