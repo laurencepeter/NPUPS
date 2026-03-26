@@ -11,6 +11,7 @@ import '../theme/npups_theme.dart';
 import '../models/timesheet_model.dart';
 import '../models/user_model.dart';
 import '../services/timesheet_data_store.dart';
+import '../services/security_utils.dart';
 
 class HrReviewScreen extends StatefulWidget {
   final NpupsUser user;
@@ -135,10 +136,10 @@ class _HrReviewScreenState extends State<HrReviewScreen> {
             const Text('Compliance Checks', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: NpupsColors.primary)),
             const SizedBox(height: 8),
             _checkItem('Employee Status', 'Active', true),
-            _checkItem('NIS Number', ts.nisNumber, true),
-            _checkItem('ID Verified', ts.idNumber, true),
+            _checkItem('NIS Number', SecurityUtils.maskNisNumber(ts.nisNumber), true),
+            _checkItem('ID Verified', SecurityUtils.maskIdNumber(ts.idNumber), true),
             _checkItem('Leave Balance', 'Within limits', true),
-            _checkItem('Bank Details', '${ts.bankName} - ${ts.accountNumber}', true),
+            _checkItem('Bank Details', '${ts.bankName} - ${SecurityUtils.maskBankAccount(ts.accountNumber)}', true),
             const SizedBox(height: 12),
 
             // Financials
