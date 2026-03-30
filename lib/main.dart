@@ -14,6 +14,7 @@ import 'screens/coordinator_review_screen.dart';
 import 'screens/hr_review_screen.dart';
 import 'screens/accounts_review_screen.dart';
 import 'screens/ps_dashboard_screen.dart';
+import 'screens/timesheet_upload_screen.dart';
 
 // ──────────────────────────────────────────────────────────────────────────────
 // NPUPS Digital System — Entry Point
@@ -224,6 +225,8 @@ class _AuthenticatedShellState extends State<_AuthenticatedShell> {
             CoordinatorReviewScreen(key: const ValueKey('coord-review'), user: _user)),
         _TabConfig('Timesheet', Icons.edit_calendar_outlined, Icons.edit_calendar, () =>
             const TimesheetEntryScreen(key: ValueKey('timesheet'))),
+        _TabConfig('Upload', Icons.upload_file_outlined, Icons.upload_file, () =>
+            const TimesheetUploadScreen(key: ValueKey('upload'))),
         _TabConfig('Workers', Icons.people_outlined, Icons.people, () =>
             const WorkerListScreen(key: ValueKey('workers'))),
       ],
@@ -254,6 +257,8 @@ class _AuthenticatedShellState extends State<_AuthenticatedShell> {
             )),
         _TabConfig('Accounts', Icons.account_balance_outlined, Icons.account_balance, () =>
             AccountsReviewScreen(key: const ValueKey('accounts-review'), user: _user)),
+        _TabConfig('Upload', Icons.upload_file_outlined, Icons.upload_file, () =>
+            const TimesheetUploadScreen(key: ValueKey('upload'))),
         _TabConfig('Export', Icons.download_outlined, Icons.download, () =>
             const ExportScreen(key: ValueKey('export'))),
       ],
@@ -277,6 +282,8 @@ class _AuthenticatedShellState extends State<_AuthenticatedShell> {
             )),
         _TabConfig('Timesheet', Icons.edit_calendar_outlined, Icons.edit_calendar, () =>
             const TimesheetEntryScreen(key: ValueKey('timesheet'))),
+        _TabConfig('Upload', Icons.upload_file_outlined, Icons.upload_file, () =>
+            const TimesheetUploadScreen(key: ValueKey('upload'))),
         _TabConfig('Workers', Icons.people_outlined, Icons.people, () =>
             const WorkerListScreen(key: ValueKey('workers'))),
         _TabConfig('Export', Icons.download_outlined, Icons.download, () =>
