@@ -157,18 +157,11 @@ class AuthService extends ChangeNotifier {
 
     final credential = _demoAccounts[email.toLowerCase().trim()];
 
-    if (credential == null) {
+    if (credential == null || credential.password != password) {
       _isLoading = false;
       _recordFailedAttempt();
       notifyListeners();
-      return AuthResult.error('No account found with this email address.');
-    }
-
-    if (credential.password != password) {
-      _isLoading = false;
-      _recordFailedAttempt();
-      notifyListeners();
-      return AuthResult.error('Incorrect password. Please try again.');
+      return AuthResult.error('Invalid email or password.');
     }
 
     if (!credential.user.isActive) {

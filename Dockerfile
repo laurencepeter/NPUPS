@@ -34,12 +34,17 @@ FROM nginx:alpine
 # Remove default nginx content
 RUN rm -rf /usr/share/nginx/html/*
 
-# Copy Flutter build
+# Copy Flutter build and nginx config
 COPY --from=build /app/build/web /usr/share/nginx/html
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-# Optional: copy nginx.conf if you have a custom one
-# Ensure it points root to /usr/share/nginx/html
-# COPY nginx.conf /etc/nginx/conf.d/default.conf
+# Run as non-root user
+RUN chown -R nginx:nginx /usr/share/nginx/html && \
+    chown -R nginx:nginx /var/cache/nginx && \
+    chown -R nginx:nginx /var/log/nginx && \
+    touch /var/run/nginx.pid && \
+    chown -R nginx:nginx /var/run/nginx.pid
+USER nginx
 
 EXPOSE 80
 CMD ["nginx", "-g", "daemon off;"]

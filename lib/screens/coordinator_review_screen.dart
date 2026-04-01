@@ -325,6 +325,6 @@ class _CoordinatorReviewScreenState extends State<CoordinatorReviewScreen> {
           ),
         ],
       ),
-    ).then((_) => controller.dispose());
+    ).whenComplete(() => controller.dispose());
   }
 }
