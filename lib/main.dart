@@ -15,6 +15,8 @@ import 'screens/hr_review_screen.dart';
 import 'screens/accounts_review_screen.dart';
 import 'screens/ps_dashboard_screen.dart';
 import 'screens/timesheet_upload_screen.dart';
+import 'screens/worker_registration_form.dart';
+import 'screens/ministers_department_screen.dart';
 
 // ──────────────────────────────────────────────────────────────────────────────
 // NPUPS Digital System — Entry Point
@@ -217,9 +219,9 @@ class _AuthenticatedShellState extends State<_AuthenticatedShell> {
               key: const ValueKey('dashboard'),
               authService: widget.authService,
               onLogout: _handleLogout,
-              onNavigateToTimesheet: () => _onTabChanged(1),
-              onNavigateToWorkers: () => _onTabChanged(2),
-              onNavigateToExport: () => _onTabChanged(3),
+              onNavigateToTimesheet: () => _onTabChanged(2),
+              onNavigateToWorkers: () => _onTabChanged(4),
+              onNavigateToExport: () => _onTabChanged(4),
             )),
         _TabConfig('Review', Icons.rate_review_outlined, Icons.rate_review, () =>
             CoordinatorReviewScreen(key: const ValueKey('coord-review'), user: _user)),
@@ -228,7 +230,7 @@ class _AuthenticatedShellState extends State<_AuthenticatedShell> {
         _TabConfig('Upload', Icons.upload_file_outlined, Icons.upload_file, () =>
             const TimesheetUploadScreen(key: ValueKey('upload'))),
         _TabConfig('Workers', Icons.people_outlined, Icons.people, () =>
-            const WorkerListScreen(key: ValueKey('workers'))),
+            WorkerListScreen(key: const ValueKey('workers'), currentUser: _user)),
       ],
       UserRole.hr => [
         _TabConfig('Dashboard', Icons.dashboard_outlined, Icons.dashboard, () =>
@@ -238,12 +240,12 @@ class _AuthenticatedShellState extends State<_AuthenticatedShell> {
               onLogout: _handleLogout,
               onNavigateToTimesheet: () => _onTabChanged(1),
               onNavigateToWorkers: () => _onTabChanged(2),
-              onNavigateToExport: () => _onTabChanged(3),
+              onNavigateToExport: () => _onTabChanged(2),
             )),
         _TabConfig('HR Review', Icons.badge_outlined, Icons.badge, () =>
             HrReviewScreen(key: const ValueKey('hr-review'), user: _user)),
         _TabConfig('Workers', Icons.people_outlined, Icons.people, () =>
-            const WorkerListScreen(key: ValueKey('workers'))),
+            WorkerListScreen(key: const ValueKey('workers'), currentUser: _user)),
       ],
       UserRole.subAccounts || UserRole.mainAccounts => [
         _TabConfig('Dashboard', Icons.dashboard_outlined, Icons.dashboard, () =>
@@ -252,7 +254,7 @@ class _AuthenticatedShellState extends State<_AuthenticatedShell> {
               authService: widget.authService,
               onLogout: _handleLogout,
               onNavigateToTimesheet: () => _onTabChanged(1),
-              onNavigateToWorkers: () => _onTabChanged(2),
+              onNavigateToWorkers: () => _onTabChanged(1),
               onNavigateToExport: () => _onTabChanged(3),
             )),
         _TabConfig('Accounts', Icons.account_balance_outlined, Icons.account_balance, () =>
@@ -266,9 +268,15 @@ class _AuthenticatedShellState extends State<_AuthenticatedShell> {
         _TabConfig('Pipeline', Icons.dashboard_outlined, Icons.dashboard, () =>
             PsDashboardScreen(key: const ValueKey('ps-dashboard'), user: _user)),
         _TabConfig('Workers', Icons.people_outlined, Icons.people, () =>
-            const WorkerListScreen(key: ValueKey('workers'))),
+            WorkerListScreen(key: const ValueKey('workers'), currentUser: _user)),
         _TabConfig('Export', Icons.download_outlined, Icons.download, () =>
             const ExportScreen(key: ValueKey('export'))),
+      ],
+      UserRole.ministersDepartment => [
+        _TabConfig('Workers', Icons.people_outlined, Icons.people, () =>
+            MinistersDepartmentScreen(key: const ValueKey('ministers-workers'), user: _user)),
+        _TabConfig('Registry', Icons.person_search_outlined, Icons.person_search, () =>
+            WorkerListScreen(key: const ValueKey('workers-list'), currentUser: _user)),
       ],
       UserRole.systemAdmin || UserRole.dmcr => [
         _TabConfig('Dashboard', Icons.dashboard_outlined, Icons.dashboard, () =>
@@ -277,15 +285,15 @@ class _AuthenticatedShellState extends State<_AuthenticatedShell> {
               authService: widget.authService,
               onLogout: _handleLogout,
               onNavigateToTimesheet: () => _onTabChanged(1),
-              onNavigateToWorkers: () => _onTabChanged(2),
-              onNavigateToExport: () => _onTabChanged(3),
+              onNavigateToWorkers: () => _onTabChanged(3),
+              onNavigateToExport: () => _onTabChanged(4),
             )),
         _TabConfig('Timesheet', Icons.edit_calendar_outlined, Icons.edit_calendar, () =>
             const TimesheetEntryScreen(key: ValueKey('timesheet'))),
         _TabConfig('Upload', Icons.upload_file_outlined, Icons.upload_file, () =>
             const TimesheetUploadScreen(key: ValueKey('upload'))),
         _TabConfig('Workers', Icons.people_outlined, Icons.people, () =>
-            const WorkerListScreen(key: ValueKey('workers'))),
+            WorkerListScreen(key: const ValueKey('workers'), currentUser: _user)),
         _TabConfig('Export', Icons.download_outlined, Icons.download, () =>
             const ExportScreen(key: ValueKey('export'))),
       ],
@@ -354,6 +362,7 @@ class _AuthenticatedShellState extends State<_AuthenticatedShell> {
                   _roleChip(UserRole.hr, 'HR'),
                   _roleChip(UserRole.subAccounts, 'Accounts'),
                   _roleChip(UserRole.ps, 'Perm. Sec.'),
+                  _roleChip(UserRole.ministersDepartment, 'Minister'),
                   _roleChip(UserRole.systemAdmin, 'Admin'),
                 ],
               ),
