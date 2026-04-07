@@ -37,9 +37,8 @@ RUN rm -rf /usr/share/nginx/html/*
 # Copy Flutter build
 COPY --from=build /app/build/web /usr/share/nginx/html
 
-# Optional: copy nginx.conf if you have a custom one
-# Ensure it points root to /usr/share/nginx/html
-# COPY nginx.conf /etc/nginx/conf.d/default.conf
+# Custom nginx config: Flutter routing + cache-control headers
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 EXPOSE 80
 CMD ["nginx", "-g", "daemon off;"]
