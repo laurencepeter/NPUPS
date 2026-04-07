@@ -63,6 +63,14 @@ class Worker {
   final DateTime dateRegistered;
   bool isActive;
 
+  // Extended fields for full worker profile
+  final String? contact;        // Phone number
+  final String? address;        // Home address
+  final String? birNumber;      // Board of Inland Revenue number
+  final DateTime? startDate;    // Employment start date
+  final DateTime? endDate;      // Employment end date (if terminated/replaced)
+  final String? referenceNumber; // EmployTT reference number
+
   Worker({
     required this.id,
     required this.fullName,
@@ -80,6 +88,12 @@ class Worker {
     required this.documents,
     required this.dateRegistered,
     this.isActive = true,
+    this.contact,
+    this.address,
+    this.birNumber,
+    this.startDate,
+    this.endDate,
+    this.referenceNumber,
   });
 
   String get initials {
@@ -113,4 +127,28 @@ class Worker {
     'National ID Card',
     'Police Certificate of Good Character',
   ];
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Worker Replacement
+// Tracks when a worker is replaced due to absence, misconduct, or other reasons.
+// Both the original and replacement worker are kept in the registry.
+// ──────────────────────────────────────────────────────────────────────────────
+
+class WorkerReplacement {
+  final String id;
+  final String originalWorkerId;
+  final String replacementWorkerId;
+  final int daysMissed;
+  final String reason;
+  final DateTime replacedAt;
+
+  WorkerReplacement({
+    required this.id,
+    required this.originalWorkerId,
+    required this.replacementWorkerId,
+    required this.daysMissed,
+    required this.reason,
+    required this.replacedAt,
+  });
 }

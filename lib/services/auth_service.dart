@@ -3,8 +3,9 @@ import '../models/user_model.dart';
 
 // ──────────────────────────────────────────────────────────────────────────────
 // NPUPS Authentication Service — Demo Implementation
-// 7 demo accounts covering all roles for the timesheet approval pipeline:
-//   Worker, Regional Coordinator, HR, Sub-Accounts, Main Accounts, PS, Admin
+// 8 demo accounts covering all roles for the timesheet approval pipeline:
+//   Worker, Regional Coordinator, HR, Sub-Accounts, Main Accounts, PS, Admin,
+//   Minister's Department
 //
 // Includes role switcher for demo purposes.
 // Production: Replace with Supabase GoTrue (§2.3, §3.2)
@@ -135,6 +136,16 @@ class AuthService extends ChangeNotifier {
         email: 'mainaccounts@npups.gov.tt',
         fullName: 'Catherine Williams',
         role: UserRole.mainAccounts,
+        corporationName: 'All Corporations',
+      ),
+    ),
+    'minister@npups.gov.tt': _DemoCredential(
+      password: 'test123',
+      user: const NpupsUser(
+        id: 'USR-008',
+        email: 'minister@npups.gov.tt',
+        fullName: 'Hon. Raymond Ali',
+        role: UserRole.ministersDepartment,
         corporationName: 'All Corporations',
       ),
     ),

@@ -1,7 +1,8 @@
 // ──────────────────────────────────────────────────────────────────────────────
 // NPUPS User Model
 // Roles aligned with the timesheet approval pipeline:
-//   Worker, Regional Coordinator, HR, Sub-Accounts, Main Accounts, PS, Admin
+//   Worker, Regional Coordinator, HR, Sub-Accounts, Main Accounts, PS, Admin,
+//   Minister's Department
 // ──────────────────────────────────────────────────────────────────────────────
 
 enum UserRole {
@@ -12,6 +13,7 @@ enum UserRole {
   hr('HR Department', 'Employment processing, compliance, and leave verification'),
   subAccounts('Sub-Accounts Clerk', 'Payroll processing, pay verification, and export'),
   mainAccounts('Main Accounts Clerk', 'Payment authorisation and cheque management'),
+  ministersDepartment('Minister\'s Department', 'Worker registry oversight, edit workers, and export by corporation'),
   worker('Worker', 'Timesheet entry and submission');
 
   const UserRole(this.displayName, this.description);

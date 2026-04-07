@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../theme/npups_theme.dart';
 import '../services/security_utils.dart';
+import '../services/worker_data_store.dart';
 
 // ──────────────────────────────────────────────────────────────────────────────
 // NPUPS Timesheet Entry Screen
@@ -115,13 +116,24 @@ class _TimesheetEntryScreenState extends State<TimesheetEntryScreen>
     Corporation(id: '14', name: 'Tunapuna-Piarco Regional Corporation', electoralDistricts: ['Tunapuna', 'Piarco', 'St. Augustine', 'Curepe']),
   ];
 
-  final List<RegisteredWorker> _registeredWorkers = [
-    RegisteredWorker(id: 'W001', name: 'John Baptiste', position: 'General Worker', idNumber: 'TT-198504123', nisNumber: '***-***-4567', wageRate: 150.0, colaRate: 25.0, allowanceRate: 20.0),
-    RegisteredWorker(id: 'W002', name: 'Maria Gonzales', position: 'Maintenance Worker', idNumber: 'TT-199201456', nisNumber: '***-***-7891', wageRate: 150.0, colaRate: 25.0, allowanceRate: 20.0),
-    RegisteredWorker(id: 'W003', name: 'Kevin Rampersad', position: 'General Worker', idNumber: 'TT-198809789', nisNumber: '***-***-2345', wageRate: 150.0, colaRate: 25.0, allowanceRate: 20.0),
-    RegisteredWorker(id: 'W004', name: 'Sasha Mohammed', position: 'Supervisor', idNumber: 'TT-199505234', nisNumber: '***-***-6789', wageRate: 200.0, colaRate: 30.0, allowanceRate: 25.0),
-    RegisteredWorker(id: 'W005', name: 'David Charles', position: 'General Worker', idNumber: 'TT-199107567', nisNumber: '***-***-0123', wageRate: 150.0, colaRate: 25.0, allowanceRate: 20.0),
-  ];
+  // Workers are loaded from WorkerDataStore and filtered by selected corporation.
+  final WorkerDataStore _workerStore = WorkerDataStore();
+
+  List<RegisteredWorker> get _registeredWorkers {
+    final source = _selectedCorporation != null
+        ? _workerStore.getActiveByCorpId(_selectedCorporation!.id)
+        : _workerStore.getActiveWorkers();
+    return source.map((w) => RegisteredWorker(
+      id: w.id,
+      name: w.fullName,
+      position: w.position,
+      idNumber: w.idNumber,
+      nisNumber: w.nisNumber,
+      wageRate: w.wageRate,
+      colaRate: w.colaRate,
+      allowanceRate: w.allowanceRate,
+    )).toList();
+  }
 
   final List<String> _dayLabels = [
     'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun',
@@ -347,7 +359,12 @@ class _TimesheetEntryScreenState extends State<TimesheetEntryScreen>
               value: _selectedCorporation,
               decoration: _inputDecoration('Select Corporation'),
               items: _corporations.map((c) => DropdownMenuItem(value: c, child: Text(c.name, style: const TextStyle(fontSize: 14)))).toList(),
-              onChanged: (val) => setState(() { _selectedCorporation = val; _selectedDistrict = null; }),
+              onChanged: (val) => setState(() {
+                _selectedCorporation = val;
+                _selectedDistrict = null;
+                // Clear worker selections so stale names are removed
+                for (final e in _workerEntries) { e.worker = null; }
+              }),
               validator: (v) => v == null ? 'Required' : null,
             ),
             const SizedBox(height: 16),
