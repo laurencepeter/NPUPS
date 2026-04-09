@@ -1,14 +1,14 @@
 import 'package:flutter/foundation.dart';
 import '../models/user_model.dart';
+import 'api_client.dart';
 
 // ──────────────────────────────────────────────────────────────────────────────
-// NPUPS Authentication Service — Demo Implementation
-// 8 demo accounts covering all roles for the timesheet approval pipeline:
-//   Worker, Regional Coordinator, HR, Sub-Accounts, Main Accounts, PS, Admin,
-//   Minister's Department
+// NPUPS Authentication Service
+// Authenticates against the PostgREST /rpc/login endpoint.
+// JWT is stored in SharedPreferences (via ApiClient) and sent on every request.
 //
-// Includes role switcher for demo purposes.
-// Production: Replace with Supabase GoTrue (§2.3, §3.2)
+// Session timeout is enforced client-side (30 min inactivity).
+// Token expiry is enforced server-side (8 hours, set in 002_auth.sql).
 // ──────────────────────────────────────────────────────────────────────────────
 
 class AuthResult {
@@ -30,6 +30,8 @@ class AuthResult {
 }
 
 class AuthService extends ChangeNotifier {
+  final ApiClient _api = ApiClient();
+
   NpupsUser? _currentUser;
   bool _isLoading = false;
 
@@ -64,138 +66,71 @@ class AuthService extends ChangeNotifier {
     }
   }
 
-  // Demo credentials — all roles for pipeline demo
-  static final Map<String, _DemoCredential> _demoAccounts = {
-    'admin@npups.gov.tt': _DemoCredential(
-      password: 'admin123',
-      user: const NpupsUser(
-        id: 'USR-001',
-        email: 'admin@npups.gov.tt',
-        fullName: 'System Administrator',
-        role: UserRole.systemAdmin,
-        corporationName: 'All Corporations',
-      ),
-    ),
-    'coordinator@npups.gov.tt': _DemoCredential(
-      password: 'test123',
-      user: const NpupsUser(
-        id: 'USR-002',
-        email: 'coordinator@npups.gov.tt',
-        fullName: 'Marcus Thompson',
-        role: UserRole.regionalCoordinator,
-        corporationId: '8',
-        corporationName: 'Port of Spain City Corporation',
-      ),
-    ),
-    'hr@npups.gov.tt': _DemoCredential(
-      password: 'test123',
-      user: const NpupsUser(
-        id: 'USR-003',
-        email: 'hr@npups.gov.tt',
-        fullName: 'Priya Maharaj',
-        role: UserRole.hr,
-        corporationId: '2',
-        corporationName: 'Chaguanas Borough Corporation',
-      ),
-    ),
-    'worker@npups.gov.tt': _DemoCredential(
-      password: 'test123',
-      user: const NpupsUser(
-        id: 'USR-004',
-        email: 'worker@npups.gov.tt',
-        fullName: 'Kevin Rampersad',
-        role: UserRole.worker,
-        corporationId: '8',
-        corporationName: 'Port of Spain City Corporation',
-      ),
-    ),
-    'accounts@npups.gov.tt': _DemoCredential(
-      password: 'test123',
-      user: const NpupsUser(
-        id: 'USR-005',
-        email: 'accounts@npups.gov.tt',
-        fullName: 'James Roberts',
-        role: UserRole.subAccounts,
-        corporationName: 'All Corporations',
-      ),
-    ),
-    'ps@npups.gov.tt': _DemoCredential(
-      password: 'test123',
-      user: const NpupsUser(
-        id: 'USR-006',
-        email: 'ps@npups.gov.tt',
-        fullName: 'Dr. Sharon Rowley',
-        role: UserRole.ps,
-        corporationName: 'All Corporations',
-      ),
-    ),
-    'mainaccounts@npups.gov.tt': _DemoCredential(
-      password: 'test123',
-      user: const NpupsUser(
-        id: 'USR-007',
-        email: 'mainaccounts@npups.gov.tt',
-        fullName: 'Catherine Williams',
-        role: UserRole.mainAccounts,
-        corporationName: 'All Corporations',
-      ),
-    ),
-    'minister@npups.gov.tt': _DemoCredential(
-      password: 'test123',
-      user: const NpupsUser(
-        id: 'USR-008',
-        email: 'minister@npups.gov.tt',
-        fullName: 'Hon. Raymond Ali',
-        role: UserRole.ministersDepartment,
-        corporationName: 'All Corporations',
-      ),
-    ),
-  };
+  /// Restore session from stored JWT on app start.
+  Future<void> restoreSession() async {
+    await _api.init();
+    // We have a token but no user object yet — we can't call /users without
+    // round-tripping the server, so we rely on the JWT claims embedded in the
+    // token. For simplicity we leave _currentUser null and require a fresh
+    // login after app restart. The token is retained for API calls if the user
+    // navigates directly to an authenticated screen via deep link.
+  }
 
   /// Authenticate with email and password.
-  /// Includes rate limiting: locks out after [_maxFailedAttempts] failed attempts.
   Future<AuthResult> signIn(String email, String password) async {
-    // Check lockout
     if (isLockedOut) {
       return AuthResult.error(
-        'Too many failed attempts. Please wait $remainingLockoutSeconds seconds before trying again.',
+        'Too many failed attempts. Please wait $remainingLockoutSeconds seconds.',
       );
     }
 
     _isLoading = true;
     notifyListeners();
 
-    await Future.delayed(const Duration(milliseconds: 1500));
+    try {
+      final data = await _api.rpc('login', {
+        'p_email': email.trim().toLowerCase(),
+        'p_password': password,
+      });
 
-    final credential = _demoAccounts[email.toLowerCase().trim()];
+      final token = data['token'] as String;
+      final userJson = data['user'] as Map<String, dynamic>;
 
-    if (credential == null) {
+      await _api.setToken(token);
+
+      _currentUser = NpupsUser(
+        id:              userJson['id'] as String,
+        email:           userJson['email'] as String,
+        fullName:        userJson['fullName'] as String,
+        role:            UserRole.values.firstWhere(
+                           (r) => r.name == userJson['role'],
+                           orElse: () => UserRole.worker,
+                         ),
+        corporationId:   userJson['corporationId'] as String?,
+        corporationName: null, // fetched lazily if needed
+        isActive:        userJson['isActive'] as bool? ?? true,
+      );
+
+      _failedAttempts = 0;
+      _lockoutUntil = null;
+      _lastActivity = DateTime.now();
+      _isLoading = false;
+      notifyListeners();
+      return AuthResult.ok(_currentUser!);
+    } on ApiException catch (e) {
       _isLoading = false;
       _recordFailedAttempt();
       notifyListeners();
-      return AuthResult.error('No account found with this email address.');
-    }
-
-    if (credential.password != password) {
+      if (e.statusCode == 400 || e.statusCode == 403) {
+        return AuthResult.error('Invalid email or password.');
+      }
+      return AuthResult.error('Login failed. Please try again.');
+    } catch (_) {
       _isLoading = false;
       _recordFailedAttempt();
       notifyListeners();
-      return AuthResult.error('Incorrect password. Please try again.');
+      return AuthResult.error('Cannot reach the server. Check your connection.');
     }
-
-    if (!credential.user.isActive) {
-      _isLoading = false;
-      notifyListeners();
-      return AuthResult.error('This account has been deactivated.');
-    }
-
-    // Successful login — reset rate limiting and start session
-    _failedAttempts = 0;
-    _lockoutUntil = null;
-    _lastActivity = DateTime.now();
-    _currentUser = credential.user;
-    _isLoading = false;
-    notifyListeners();
-    return AuthResult.ok(credential.user);
   }
 
   void _recordFailedAttempt() {
@@ -206,71 +141,41 @@ class AuthService extends ChangeNotifier {
   }
 
   /// Check if the session has expired and sign out if so.
-  /// Returns true if the session was expired and user was signed out.
   bool checkSessionExpiry() {
     if (_currentUser != null && _isSessionExpired) {
       _currentUser = null;
       _lastActivity = null;
+      _api.clearToken();
       notifyListeners();
       return true;
     }
     return false;
   }
 
-  /// Switch role instantly (demo only) — no re-login needed.
-  void switchRole(UserRole role) {
-    final account = _demoAccounts.values.firstWhere(
-      (c) => c.user.role == role,
-      orElse: () => _demoAccounts.values.first,
-    );
-    _currentUser = account.user;
-    notifyListeners();
-  }
-
-  /// Sign out the current user and clear session.
+  /// Sign out the current user.
   Future<void> signOut() async {
     _isLoading = true;
     notifyListeners();
-    await Future.delayed(const Duration(milliseconds: 500));
     _currentUser = null;
     _lastActivity = null;
+    await _api.clearToken();
     _isLoading = false;
     notifyListeners();
   }
-
-  /// Get list of demo accounts for the login help sheet.
-  static List<DemoAccountInfo> get demoAccounts {
-    return _demoAccounts.entries.map((e) {
-      return DemoAccountInfo(
-        email: e.key,
-        password: e.value.password,
-        role: e.value.user.role.displayName,
-        name: e.value.user.fullName,
-      );
-    }).toList();
-  }
-
-  /// Get all available roles for the switcher.
-  static List<UserRole> get availableRoles =>
-      _demoAccounts.values.map((c) => c.user.role).toSet().toList();
 }
 
-class _DemoCredential {
-  final String password;
-  final NpupsUser user;
-
-  const _DemoCredential({required this.password, required this.user});
-}
+// ──────────────────────────────────────────────────────────────────────────────
+// DemoAccountInfo retained for the login help sheet UI (shows example emails)
+// Passwords are no longer shown — direct users to the system admin.
+// ──────────────────────────────────────────────────────────────────────────────
 
 class DemoAccountInfo {
   final String email;
-  final String password;
   final String role;
   final String name;
 
   const DemoAccountInfo({
     required this.email,
-    required this.password,
     required this.role,
     required this.name,
   });

@@ -17,6 +17,11 @@
 # Stage 1: Build Flutter Web
 FROM ghcr.io/cirruslabs/flutter:stable AS build
 
+# API_BASE_URL is injected at build time so Flutter can embed it as a
+# compile-time constant via --dart-define.
+# Pass via: docker build --build-arg API_BASE_URL=http://YOUR_SERVER:3000 .
+ARG API_BASE_URL=http://localhost:3000
+
 # Create app directory
 WORKDIR /app
 
@@ -26,7 +31,7 @@ RUN flutter pub get
 
 # Copy full project and build web
 COPY . .
-RUN flutter build web --release
+RUN flutter build web --release --dart-define=API_BASE_URL=${API_BASE_URL}
 
 # Stage 2: Serve with nginx
 FROM nginx:alpine

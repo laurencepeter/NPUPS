@@ -19,6 +19,8 @@ dependencies:
   file_saver: ^0.2.14
   file_picker: ^8.0.0
   path_provider: ^2.1.4
+  http: ^1.2.0
+  shared_preferences: ^2.3.0
 
 dev_dependencies:
   flutter_test:

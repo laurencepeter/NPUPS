@@ -316,98 +316,24 @@ class _AuthenticatedShellState extends State<_AuthenticatedShell> {
         },
         child: _buildPage(),
       ),
-      bottomNavigationBar: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Role Switcher Banner
-          _buildRoleSwitcher(),
-          // Navigation Bar
-          NavigationBar(
-            selectedIndex: _currentIndex.clamp(0, tabs.length - 1),
-            onDestinationSelected: _onTabChanged,
-            backgroundColor: Colors.white,
-            elevation: 8,
-            shadowColor: Colors.black26,
-            indicatorColor: NpupsColors.accent.withValues(alpha: 0.12),
-            labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
-            animationDuration: const Duration(milliseconds: 400),
-            destinations: tabs.map((tab) => NavigationDestination(
-              icon: Icon(tab.icon),
-              selectedIcon: Icon(tab.selectedIcon, color: NpupsColors.accent),
-              label: tab.label,
-            )).toList(),
-          ),
-        ],
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: _currentIndex.clamp(0, tabs.length - 1),
+        onDestinationSelected: _onTabChanged,
+        backgroundColor: Colors.white,
+        elevation: 8,
+        shadowColor: Colors.black26,
+        indicatorColor: NpupsColors.accent.withValues(alpha: 0.12),
+        labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+        animationDuration: const Duration(milliseconds: 400),
+        destinations: tabs.map((tab) => NavigationDestination(
+          icon: Icon(tab.icon),
+          selectedIcon: Icon(tab.selectedIcon, color: NpupsColors.accent),
+          label: tab.label,
+        )).toList(),
       ),
     );
   }
 
-  Widget _buildRoleSwitcher() {
-    return Container(
-      color: NpupsColors.primaryDark,
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      child: Row(
-        children: [
-          const Icon(Icons.swap_horiz, color: Colors.white60, size: 16),
-          const SizedBox(width: 6),
-          const Text('DEMO:', style: TextStyle(color: Colors.white60, fontSize: 11, fontWeight: FontWeight.bold)),
-          const SizedBox(width: 6),
-          Expanded(
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: [
-                  _roleChip(UserRole.worker, 'Worker'),
-                  _roleChip(UserRole.regionalCoordinator, 'Coordinator'),
-                  _roleChip(UserRole.hr, 'HR'),
-                  _roleChip(UserRole.subAccounts, 'Accounts'),
-                  _roleChip(UserRole.ps, 'Perm. Sec.'),
-                  _roleChip(UserRole.ministersDepartment, 'Minister'),
-                  _roleChip(UserRole.systemAdmin, 'Admin'),
-                ],
-              ),
-            ),
-          ),
-          IconButton(
-            icon: const Icon(Icons.logout, color: Colors.white60, size: 18),
-            onPressed: _handleLogout,
-            tooltip: 'Sign Out',
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _roleChip(UserRole role, String label) {
-    final isActive = _user.role == role;
-    return Padding(
-      padding: const EdgeInsets.only(right: 4),
-      child: InkWell(
-        onTap: () {
-          widget.authService.switchRole(role);
-          setState(() => _currentIndex = 0);
-        },
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          decoration: BoxDecoration(
-            color: isActive ? NpupsColors.accent : Colors.white.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(12),
-            border: isActive ? null : Border.all(color: Colors.white24),
-          ),
-          child: Text(
-            label,
-            style: TextStyle(
-              color: isActive ? Colors.white : Colors.white70,
-              fontSize: 11,
-              fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
 }
 
 class _TabConfig {
