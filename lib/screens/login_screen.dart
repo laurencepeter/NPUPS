@@ -362,7 +362,7 @@ class _LoginScreenState extends State<LoginScreen>
         child: Column(
           children: [
             const Text(
-              'NPUPS',
+              'NUPS',
               style: TextStyle(
                 fontSize: 32,
                 fontWeight: FontWeight.w800,
@@ -372,7 +372,7 @@ class _LoginScreenState extends State<LoginScreen>
             ),
             const SizedBox(height: 6),
             Text(
-              'Digital System',
+              'National Upkeep Programme System',
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w400,
@@ -486,7 +486,7 @@ class _LoginScreenState extends State<LoginScreen>
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  'Access your NPUPS dashboard',
+                  'Access your NUPS dashboard',
                   style: TextStyle(fontSize: 13, color: NpupsColors.textSecondary.withValues(alpha: 0.8)),
                 ),
                 const SizedBox(height: 24),
@@ -744,7 +744,7 @@ class _LoginScreenState extends State<LoginScreen>
         child: Column(
           children: [
             Text(
-              'Ministry of Rural Development & Local Government',
+              'Developed by Laurence Peter',
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 11,
@@ -753,7 +753,7 @@ class _LoginScreenState extends State<LoginScreen>
             ),
             const SizedBox(height: 4),
             Text(
-              'Republic of Trinidad and Tobago',
+              'Built with AI support',
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 11,

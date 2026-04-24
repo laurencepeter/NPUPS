@@ -1,8 +1,7 @@
 name: npups
 description: >
-  National Programme for the Upkeep of Public Spaces (NPUPS) Digital System.
-  Worker Registration & Payroll — Ministry of Rural Development & Local Government,
-  Republic of Trinidad and Tobago.
+  National Upkeep Programme System (NUPS) — Worker Registration & Payroll Management.
+  Developed by Laurence Peter. Built with AI support.
 publish_to: 'none'
 version: 1.0.0+1
 

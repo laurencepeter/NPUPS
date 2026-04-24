@@ -1,8 +1,7 @@
-# NPUPS Platform — User Guide
+# NUPS Platform — User Guide
 
-**National Programme for the Upkeep of Public Spaces**
-Ministry of Rural Development & Local Government
-Republic of Trinidad and Tobago
+**National Upkeep Programme System**
+Developed by Laurence Peter · Built with AI support
 
 ---
 
@@ -29,7 +28,7 @@ Republic of Trinidad and Tobago
 
 ## 1. Platform Overview
 
-NPUPS is a web-based digital system for managing worker registration, fortnightly timesheet submission, and payroll processing for public space workers under the National Programme for the Upkeep of Public Spaces.
+NUPS is a web-based digital system for managing worker registration, fortnightly timesheet submission, and payroll processing for public space workers under the National Upkeep Programme.
 
 The platform enforces a structured, multi-stage approval workflow ensuring timesheets pass through Worker → Coordinator → HR → Accounts before payment is authorised and exported for payroll processing.
 
@@ -39,7 +38,7 @@ The platform enforces a structured, multi-stage approval workflow ensuring times
 - Role-based access control with 8 distinct user roles
 - Worker profile management with document verification tracking
 - Payroll calculation (Wage + COLA + Allowance)
-- Excel export matching the official NPUPS timesheet template
+- Excel export matching the official NUPS timesheet template
 - Executive pipeline oversight for the Permanent Secretary
 
 ---
@@ -495,4 +494,4 @@ Configure Nginx to use the certificate in the server block listening on port 443
 ---
 
 *Document Version: 1.0 — March 2026*
-*Prepared for: Ministry of Rural Development & Local Government, Republic of Trinidad and Tobago*
+*Developed by Laurence Peter · Built with AI support*

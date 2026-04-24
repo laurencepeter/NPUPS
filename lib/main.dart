@@ -19,11 +19,10 @@ import 'screens/worker_registration_form.dart';
 import 'screens/ministers_department_screen.dart';
 
 // ──────────────────────────────────────────────────────────────────────────────
-// NPUPS Digital System — Entry Point
-// National Programme for the Upkeep of Public Spaces
-// Ministry of Rural Development & Local Government
-// Republic of Trinidad and Tobago
+// NUPS — National Upkeep Programme System
+// Worker Registration & Payroll Management Platform
 //
+// Developed by Laurence Peter · Built with AI support
 // Tech: Flutter (Mobile + Web) · Supabase (Dockerized)
 // Version: 1.0.0 — March 2026
 // ──────────────────────────────────────────────────────────────────────────────

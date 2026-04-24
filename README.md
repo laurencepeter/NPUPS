@@ -1,8 +1,9 @@
-# National Programme for the Upkeep of Public Spaces (NPUPS) 
+# National Upkeep Programme System (NUPS)
 
+**Developed by Laurence Peter · Built with AI support**
 
-Worker Registration and Payroll process. The system will serve all 14 Municipal Corporations across Trinidad and Tobago, replacing the current paper-based workflow with an end-to-end digital platform built on Flutter and self-hosted Supabase.
-The project covers the complete 6-phase lifecycle as defined in the NPUPS Process Map (ISO 5807 Swimlane Flowchart, Draft 1.0): Programme Initiation, Worker Data Compilation, Employment Processing, Payroll Processing, Payment Authorisation & Disbursement, and Fortnightly Recurring Cycle.
+Worker Registration and Payroll management platform serving all 14 Municipal Corporations across Trinidad and Tobago. Replaces the current paper-based workflow with an end-to-end digital platform built on Flutter and self-hosted Supabase.
+The project covers the complete 6-phase lifecycle as defined in the NUPS Process Map (ISO 5807 Swimlane Flowchart, Draft 1.0): Programme Initiation, Worker Data Compilation, Employment Processing, Payroll Processing, Payment Authorisation & Disbursement, and Fortnightly Recurring Cycle.
 Primary Objectives:
 •	Eliminate paper forms from worker registration through payment
 •	Provide real-time visibility into worker file status across all 6 departments
@@ -28,7 +29,6 @@ Employment Processing — HR dashboard with payroll queue and employment notes
 Payroll Processing — Sub-Accounts KPIs (pay sheets, vouchers)
 Payment & Disbursement — Main Accounts cheque tracking
 Fortnightly Cycle — Full timesheet entry screen with 14-day attendance grid, auto-calculations, and sign-off workflow
-The background explorer confirmed the repo was empty before my changes — everything is now in place. The commit has been pushed to claude/create-npups-login-template-sWcJb.
 
 
 # Demo Accounts
