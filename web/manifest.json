@@ -1,11 +1,11 @@
 {
-    "name": "NPUPS",
-    "short_name": "NPUPS",
+    "name": "NUPS",
+    "short_name": "NUPS",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "National Programme for the Upkeep of Public Spaces (NPUPS) Digital System.",
+    "description": "National Upkeep Programme System (NUPS) — Worker Registration & Payroll Management.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [
