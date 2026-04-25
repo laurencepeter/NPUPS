@@ -1,11 +1,14 @@
 // ──────────────────────────────────────────────────────────────────────────────
-// NPUPS Simulated Data Store
+// NPUPS Worker Data Store
 // In-memory store with demo workers across multiple corporations.
-// Supports full CRUD for worker registration plus replacement tracking.
+// All mutations emit audit events via the AuditService when an actor is supplied.
 // ──────────────────────────────────────────────────────────────────────────────
 
 import 'package:flutter/foundation.dart';
 import '../models/worker_model.dart';
+import '../models/audit_model.dart';
+import '../models/user_model.dart';
+import 'audit_service.dart';
 
 class WorkerDataStore extends ChangeNotifier {
   static final WorkerDataStore _instance = WorkerDataStore._internal();
@@ -13,6 +16,8 @@ class WorkerDataStore extends ChangeNotifier {
   WorkerDataStore._internal() {
     _initializeData();
   }
+
+  final AuditService _audit = AuditService();
 
   final List<Worker> _workers = [];
   final List<WorkerReplacement> _replacements = [];
@@ -39,67 +44,180 @@ class WorkerDataStore extends ChangeNotifier {
   List<Worker> getActiveByCorpId(String corpId) =>
       _workers.where((w) => w.corporationId == corpId && w.isActive).toList();
 
-  /// Returns the replacement record for an original worker, if any.
   WorkerReplacement? getReplacementFor(String originalWorkerId) {
     try {
-      return _replacements.firstWhere((r) => r.originalWorkerId == originalWorkerId);
+      return _replacements
+          .firstWhere((r) => r.originalWorkerId == originalWorkerId);
     } catch (_) {
       return null;
     }
   }
 
-  /// Returns the replacement record where this worker is the replacement, if any.
-  WorkerReplacement? getReplacementRecordAsReplacement(String replacementWorkerId) {
+  WorkerReplacement? getReplacementRecordAsReplacement(
+      String replacementWorkerId) {
     try {
-      return _replacements.firstWhere((r) => r.replacementWorkerId == replacementWorkerId);
+      return _replacements
+          .firstWhere((r) => r.replacementWorkerId == replacementWorkerId);
     } catch (_) {
       return null;
     }
   }
 
-  /// Returns all workers that have been replaced.
   List<Worker> getReplacedWorkers() {
-    final replacedIds = _replacements.map((r) => r.originalWorkerId).toSet();
+    final replacedIds =
+        _replacements.map((r) => r.originalWorkerId).toSet();
     return _workers.where((w) => replacedIds.contains(w.id)).toList();
   }
 
   // ── Mutations ──────────────────────────────────────────────────────────────
 
-  void addWorker(Worker worker) {
+  void addWorker(Worker worker, {NpupsUser? actor}) {
     _workers.add(worker);
+    if (actor != null) {
+      _audit.log(
+        actor: actor,
+        action: AuditAction.create,
+        entityType: AuditEntityType.worker,
+        entityId: worker.id,
+        entityDisplayName: worker.fullName,
+        fieldChanges: [
+          AuditFieldChange(fieldName: 'Full Name', newValue: worker.fullName),
+          AuditFieldChange(
+              fieldName: 'NIS Number', newValue: worker.nisNumber),
+          AuditFieldChange(fieldName: 'Position', newValue: worker.position),
+          AuditFieldChange(
+              fieldName: 'Corporation', newValue: worker.corporationName),
+          AuditFieldChange(
+              fieldName: 'Wage Rate', newValue: '${worker.wageRate}'),
+        ],
+      );
+    }
     notifyListeners();
   }
 
-  void updateWorker(Worker updated) {
+  void updateWorker(Worker updated, {NpupsUser? actor}) {
     final index = _workers.indexWhere((w) => w.id == updated.id);
     if (index == -1) return;
+
+    if (actor != null) {
+      final old = _workers[index];
+      final changes = _diffWorker(old, updated);
+      if (changes.isNotEmpty) {
+        _audit.log(
+          actor: actor,
+          action: AuditAction.update,
+          entityType: AuditEntityType.worker,
+          entityId: updated.id,
+          entityDisplayName: updated.fullName,
+          fieldChanges: changes,
+        );
+      }
+    }
+
     _workers[index] = updated;
     notifyListeners();
   }
 
-  void deactivateWorker(String workerId) {
+  void deactivateWorker(String workerId, {NpupsUser? actor}) {
     final worker = getById(workerId);
     if (worker == null) return;
+
+    if (actor != null) {
+      _audit.log(
+        actor: actor,
+        action: AuditAction.deactivate,
+        entityType: AuditEntityType.worker,
+        entityId: workerId,
+        entityDisplayName: worker.fullName,
+        fieldChanges: [
+          const AuditFieldChange(
+              fieldName: 'Status', oldValue: 'Active', newValue: 'Inactive'),
+        ],
+      );
+    }
+
     worker.isActive = false;
     notifyListeners();
   }
 
-  void updateDocumentStatus(String workerId, String docName, DocumentStatus status, {String? fileName}) {
+  void updateDocumentStatus(
+    String workerId,
+    String docName,
+    DocumentStatus status, {
+    String? fileName,
+    NpupsUser? actor,
+  }) {
     final worker = getById(workerId);
     if (worker == null) return;
     final doc = worker.documents[docName];
     if (doc == null) return;
+
+    final oldStatus = doc.status;
     doc.status = status;
     doc.fileName = fileName;
-    doc.uploadedAt = status == DocumentStatus.uploaded ? DateTime.now() : null;
+    doc.uploadedAt =
+        status == DocumentStatus.uploaded ? DateTime.now() : null;
+
+    if (actor != null) {
+      _audit.log(
+        actor: actor,
+        action: status == DocumentStatus.uploaded
+            ? AuditAction.documentUpload
+            : (status == DocumentStatus.missing
+                ? AuditAction.documentReject
+                : AuditAction.documentUpload),
+        entityType: AuditEntityType.document,
+        entityId: '$workerId-$docName',
+        entityDisplayName: '${worker.fullName} – $docName',
+        fieldChanges: [
+          AuditFieldChange(
+              fieldName: 'Status',
+              oldValue: oldStatus.name,
+              newValue: status.name),
+          if (fileName != null)
+            AuditFieldChange(
+                fieldName: 'File Name',
+                oldValue: doc.fileName,
+                newValue: fileName),
+        ],
+      );
+    }
+
     notifyListeners();
   }
 
-  void addReplacement(WorkerReplacement replacement) {
-    // Remove any existing replacement record for this original worker
-    _replacements.removeWhere((r) => r.originalWorkerId == replacement.originalWorkerId);
+  void addReplacement(WorkerReplacement replacement, {NpupsUser? actor}) {
+    _replacements.removeWhere(
+        (r) => r.originalWorkerId == replacement.originalWorkerId);
     _replacements.add(replacement);
-    // Deactivate the original worker
+
+    final original = getById(replacement.originalWorkerId);
+    final replacement_ = getById(replacement.replacementWorkerId);
+
+    if (actor != null && original != null) {
+      _audit.log(
+        actor: actor,
+        action: AuditAction.replacementAdded,
+        entityType: AuditEntityType.worker,
+        entityId: replacement.originalWorkerId,
+        entityDisplayName:
+            '${original.fullName} replaced by ${replacement_?.fullName ?? replacement.replacementWorkerId}',
+        fieldChanges: [
+          const AuditFieldChange(
+              fieldName: 'Status', oldValue: 'Active', newValue: 'Replaced'),
+          AuditFieldChange(
+              fieldName: 'Replacement Worker',
+              newValue:
+                  '${replacement_?.fullName ?? replacement.replacementWorkerId} (${replacement.replacementWorkerId})'),
+          AuditFieldChange(
+              fieldName: 'Reason', newValue: replacement.reason),
+          AuditFieldChange(
+              fieldName: 'Days Missed',
+              newValue: '${replacement.daysMissed}'),
+        ],
+      );
+    }
+
     deactivateWorker(replacement.originalWorkerId);
     notifyListeners();
   }
@@ -119,11 +237,45 @@ class WorkerDataStore extends ChangeNotifier {
     return 'REP-${(_replacements.length + 1).toString().padLeft(3, '0')}';
   }
 
+  // ── Field Diff ─────────────────────────────────────────────────────────────
+
+  static List<AuditFieldChange> _diffWorker(Worker old, Worker updated) {
+    final changes = <AuditFieldChange>[];
+
+    void check(String field, dynamic a, dynamic b) {
+      if (a.toString() != b.toString()) {
+        changes.add(AuditFieldChange(
+            fieldName: field,
+            oldValue: a.toString(),
+            newValue: b.toString()));
+      }
+    }
+
+    check('Full Name', old.fullName, updated.fullName);
+    check('NIS Number', old.nisNumber, updated.nisNumber);
+    check('Position', old.position, updated.position);
+    check('Corporation', old.corporationName, updated.corporationName);
+    check('Electoral District', old.electoralDistrict,
+        updated.electoralDistrict);
+    check('Wage Rate', old.wageRate, updated.wageRate);
+    check('COLA Rate', old.colaRate, updated.colaRate);
+    check('Allowance Rate', old.allowanceRate, updated.allowanceRate);
+    check('Phone', old.contact ?? '', updated.contact ?? '');
+    check('Address', old.address ?? '', updated.address ?? '');
+    check('BIR Number', old.birNumber ?? '', updated.birNumber ?? '');
+    check('Status', old.isActive ? 'Active' : 'Inactive',
+        updated.isActive ? 'Active' : 'Inactive');
+    check('Bank Name', old.bankInfo.bankName, updated.bankInfo.bankName);
+    check('Account Number', old.bankInfo.accountNumber,
+        updated.bankInfo.accountNumber);
+
+    return changes;
+  }
+
   // ── Demo Data ──────────────────────────────────────────────────────────────
 
   void _initializeData() {
     _workers.addAll([
-      // ── Fully Verified Workers ─────────────────────────────────────────────
       Worker(
         id: 'WRK-001',
         fullName: 'Kevin Rampersad',
@@ -137,7 +289,10 @@ class WorkerDataStore extends ChangeNotifier {
         wageRate: 150.0,
         colaRate: 25.0,
         allowanceRate: 40.0,
-        bankInfo: const BankInfo(bankName: 'Republic Bank', accountNumber: '1102-4587-6321', branchName: 'Independence Square'),
+        bankInfo: const BankInfo(
+            bankName: 'Republic Bank',
+            accountNumber: '1102-4587-6321',
+            branchName: 'Independence Square'),
         dateRegistered: DateTime(2024, 1, 10),
         documents: _allUploaded(),
         contact: '868-555-0101',
@@ -159,7 +314,10 @@ class WorkerDataStore extends ChangeNotifier {
         wageRate: 150.0,
         colaRate: 25.0,
         allowanceRate: 40.0,
-        bankInfo: const BankInfo(bankName: 'First Citizens Bank', accountNumber: '2203-8765-1234', branchName: 'Park Street'),
+        bankInfo: const BankInfo(
+            bankName: 'First Citizens Bank',
+            accountNumber: '2203-8765-1234',
+            branchName: 'Park Street'),
         dateRegistered: DateTime(2024, 2, 5),
         documents: _allUploaded(),
         contact: '868-555-0202',
@@ -181,7 +339,10 @@ class WorkerDataStore extends ChangeNotifier {
         wageRate: 150.0,
         colaRate: 25.0,
         allowanceRate: 40.0,
-        bankInfo: const BankInfo(bankName: 'Scotiabank', accountNumber: '3301-2244-5566', branchName: 'Chaguanas Main'),
+        bankInfo: const BankInfo(
+            bankName: 'Scotiabank',
+            accountNumber: '3301-2244-5566',
+            branchName: 'Chaguanas Main'),
         dateRegistered: DateTime(2023, 11, 20),
         documents: _allUploaded(),
         contact: '868-555-0303',
@@ -203,7 +364,10 @@ class WorkerDataStore extends ChangeNotifier {
         wageRate: 150.0,
         colaRate: 25.0,
         allowanceRate: 40.0,
-        bankInfo: const BankInfo(bankName: 'Republic Bank', accountNumber: '1104-9876-5432', branchName: 'Chaguanas'),
+        bankInfo: const BankInfo(
+            bankName: 'Republic Bank',
+            accountNumber: '1104-9876-5432',
+            branchName: 'Chaguanas'),
         dateRegistered: DateTime(2024, 3, 1),
         documents: _allUploaded(),
         contact: '868-555-0404',
@@ -212,8 +376,6 @@ class WorkerDataStore extends ChangeNotifier {
         startDate: DateTime(2024, 3, 10),
         referenceNumber: 'ETT-2024-00489',
       ),
-
-      // ── Partially Verified Workers ─────────────────────────────────────────
       Worker(
         id: 'WRK-005',
         fullName: 'Ravi Doobay',
@@ -227,7 +389,10 @@ class WorkerDataStore extends ChangeNotifier {
         wageRate: 150.0,
         colaRate: 25.0,
         allowanceRate: 40.0,
-        bankInfo: const BankInfo(bankName: 'JMMB Bank', accountNumber: '5501-3322-1144', branchName: 'Ariapita Avenue'),
+        bankInfo: const BankInfo(
+            bankName: 'JMMB Bank',
+            accountNumber: '5501-3322-1144',
+            branchName: 'Ariapita Avenue'),
         dateRegistered: DateTime(2024, 4, 12),
         documents: _partialDocs(['NIS Registration', 'National ID Card']),
         contact: '868-555-0505',
@@ -249,15 +414,19 @@ class WorkerDataStore extends ChangeNotifier {
         wageRate: 150.0,
         colaRate: 25.0,
         allowanceRate: 40.0,
-        bankInfo: const BankInfo(bankName: 'First Citizens Bank', accountNumber: '2205-6677-8899', branchName: 'High Street'),
+        bankInfo: const BankInfo(
+            bankName: 'First Citizens Bank',
+            accountNumber: '2205-6677-8899',
+            branchName: 'High Street'),
         dateRegistered: DateTime(2024, 5, 8),
-        documents: _partialDocs(['NIS Registration', 'Birth Certificate', 'National ID Card']),
+        documents:
+            _partialDocs(['NIS Registration', 'Birth Certificate', 'National ID Card']),
         contact: '868-555-0606',
         address: '9 Coffee Street, San Fernando',
         birNumber: 'BIR-2024-00788',
         startDate: DateTime(2024, 5, 15),
         referenceNumber: 'ETT-2024-00788',
-        isActive: false, // Replaced by WRK-011
+        isActive: false,
         endDate: DateTime(2025, 1, 15),
       ),
       Worker(
@@ -273,7 +442,10 @@ class WorkerDataStore extends ChangeNotifier {
         wageRate: 150.0,
         colaRate: 25.0,
         allowanceRate: 40.0,
-        bankInfo: const BankInfo(bankName: 'Republic Bank', accountNumber: '1106-1122-3344', branchName: 'San Fernando'),
+        bankInfo: const BankInfo(
+            bankName: 'Republic Bank',
+            accountNumber: '1106-1122-3344',
+            branchName: 'San Fernando'),
         dateRegistered: DateTime(2024, 6, 1),
         documents: _partialDocs(['Birth Certificate']),
         contact: '868-555-0707',
@@ -282,8 +454,6 @@ class WorkerDataStore extends ChangeNotifier {
         startDate: DateTime(2024, 6, 10),
         referenceNumber: 'ETT-2024-00912',
       ),
-
-      // ── No Documents Submitted ─────────────────────────────────────────────
       Worker(
         id: 'WRK-008',
         fullName: 'Terrence Charles',
@@ -297,14 +467,17 @@ class WorkerDataStore extends ChangeNotifier {
         wageRate: 150.0,
         colaRate: 25.0,
         allowanceRate: 40.0,
-        bankInfo: const BankInfo(bankName: 'Scotiabank', accountNumber: '3303-5544-6677', branchName: 'Frederick Street'),
+        bankInfo: const BankInfo(
+            bankName: 'Scotiabank',
+            accountNumber: '3303-5544-6677',
+            branchName: 'Frederick Street'),
         dateRegistered: DateTime(2024, 7, 15),
         documents: _noDocs(),
         contact: '868-555-0808',
         address: '3 Observatory Street, Port of Spain',
         startDate: DateTime(2024, 7, 22),
         referenceNumber: 'ETT-2024-01055',
-        isActive: false, // Replaced by WRK-012
+        isActive: false,
         endDate: DateTime(2025, 2, 1),
       ),
       Worker(
@@ -320,7 +493,10 @@ class WorkerDataStore extends ChangeNotifier {
         wageRate: 150.0,
         colaRate: 25.0,
         allowanceRate: 40.0,
-        bankInfo: const BankInfo(bankName: 'JMMB Bank', accountNumber: '5502-7788-9900', branchName: 'Endeavour Road'),
+        bankInfo: const BankInfo(
+            bankName: 'JMMB Bank',
+            accountNumber: '5502-7788-9900',
+            branchName: 'Endeavour Road'),
         dateRegistered: DateTime(2024, 8, 3),
         documents: _noDocs(),
         contact: '868-555-0909',
@@ -341,7 +517,10 @@ class WorkerDataStore extends ChangeNotifier {
         wageRate: 150.0,
         colaRate: 25.0,
         allowanceRate: 40.0,
-        bankInfo: const BankInfo(bankName: 'Republic Bank', accountNumber: '1108-2233-4455', branchName: 'Coffee Street'),
+        bankInfo: const BankInfo(
+            bankName: 'Republic Bank',
+            accountNumber: '1108-2233-4455',
+            branchName: 'Coffee Street'),
         dateRegistered: DateTime(2024, 9, 10),
         documents: _noDocs(),
         contact: '868-555-1010',
@@ -349,8 +528,6 @@ class WorkerDataStore extends ChangeNotifier {
         startDate: DateTime(2024, 9, 20),
         referenceNumber: 'ETT-2024-01342',
       ),
-
-      // ── Replacement Workers ────────────────────────────────────────────────
       Worker(
         id: 'WRK-011',
         fullName: 'Patricia Hernandez',
@@ -364,7 +541,10 @@ class WorkerDataStore extends ChangeNotifier {
         wageRate: 150.0,
         colaRate: 25.0,
         allowanceRate: 40.0,
-        bankInfo: const BankInfo(bankName: 'Republic Bank', accountNumber: '1109-3344-5566', branchName: 'Coffee Street'),
+        bankInfo: const BankInfo(
+            bankName: 'Republic Bank',
+            accountNumber: '1109-3344-5566',
+            branchName: 'Coffee Street'),
         dateRegistered: DateTime(2025, 1, 20),
         documents: _allUploaded(),
         contact: '868-555-1101',
@@ -386,9 +566,13 @@ class WorkerDataStore extends ChangeNotifier {
         wageRate: 150.0,
         colaRate: 25.0,
         allowanceRate: 40.0,
-        bankInfo: const BankInfo(bankName: 'Scotiabank', accountNumber: '3306-7788-9900', branchName: 'Frederick Street'),
+        bankInfo: const BankInfo(
+            bankName: 'Scotiabank',
+            accountNumber: '3306-7788-9900',
+            branchName: 'Frederick Street'),
         dateRegistered: DateTime(2025, 2, 5),
-        documents: _partialDocs(['NIS Registration', 'National ID Card', 'Birth Certificate']),
+        documents: _partialDocs(
+            ['NIS Registration', 'National ID Card', 'Birth Certificate']),
         contact: '868-555-1202',
         address: '56 Laventille Road, Laventille',
         birNumber: 'BIR-2025-00218',
@@ -397,7 +581,6 @@ class WorkerDataStore extends ChangeNotifier {
       ),
     ]);
 
-    // ── Demo Replacement Records ───────────────────────────────────────────────
     _replacements.addAll([
       WorkerReplacement(
         id: 'REP-001',
@@ -430,14 +613,20 @@ class WorkerDataStore extends ChangeNotifier {
     };
   }
 
-  static Map<String, WorkerDocument> _partialDocs(List<String> uploadedNames) {
+  static Map<String, WorkerDocument> _partialDocs(
+      List<String> uploadedNames) {
     return {
       for (final name in Worker.requiredDocumentNames)
         name: WorkerDocument(
           name: name,
-          status: uploadedNames.contains(name) ? DocumentStatus.uploaded : DocumentStatus.missing,
-          fileName: uploadedNames.contains(name) ? '${name.toLowerCase().replaceAll(' ', '_')}.pdf' : null,
-          uploadedAt: uploadedNames.contains(name) ? DateTime(2024, 3, 15) : null,
+          status: uploadedNames.contains(name)
+              ? DocumentStatus.uploaded
+              : DocumentStatus.missing,
+          fileName: uploadedNames.contains(name)
+              ? '${name.toLowerCase().replaceAll(' ', '_')}.pdf'
+              : null,
+          uploadedAt:
+              uploadedNames.contains(name) ? DateTime(2024, 3, 15) : null,
         ),
     };
   }
