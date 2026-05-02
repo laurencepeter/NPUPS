@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../theme/npups_theme.dart';
+import '../theme/app_theme.dart';
 import '../models/worker_model.dart';
 import '../models/user_model.dart';
 import '../services/worker_data_store.dart';
@@ -9,13 +9,13 @@ import 'worker_registration_form.dart';
 import 'worker_replacement_screen.dart';
 
 // ──────────────────────────────────────────────────────────────────────────────
-// NPUPS Worker Registry Screen
+// WorkForce
 // Browse all registered workers, search/filter, view document status at a glance.
 // Admins can register new workers; any authorised user can view replacement records.
 // ──────────────────────────────────────────────────────────────────────────────
 
 class WorkerListScreen extends StatefulWidget {
-  final NpupsUser? currentUser;
+  final AppUser? currentUser;
 
   const WorkerListScreen({super.key, this.currentUser});
 
@@ -118,9 +118,9 @@ class _WorkerListScreenState extends State<WorkerListScreen> {
         _cachedFiltered = null; // Invalidate on store change
         final workers = _filteredWorkers;
         return Scaffold(
-          backgroundColor: NpupsColors.surface,
+          backgroundColor: AppColors.surface,
           appBar: AppBar(
-            backgroundColor: NpupsColors.primary,
+            backgroundColor: AppColors.primary,
             title: const Text('Worker Registry', style: TextStyle(fontWeight: FontWeight.w700)),
             actions: [
               if (_isAdmin)
@@ -166,7 +166,7 @@ class _WorkerListScreenState extends State<WorkerListScreen> {
           floatingActionButton: _isAdmin
               ? FloatingActionButton.extended(
                   onPressed: () => _openRegistrationForm(),
-                  backgroundColor: NpupsColors.accent,
+                  backgroundColor: AppColors.accent,
                   icon: const Icon(Icons.person_add),
                   label: const Text('Register Worker'),
                 )
@@ -197,13 +197,13 @@ class _WorkerListScreenState extends State<WorkerListScreen> {
                               decoration: BoxDecoration(
                                 color: Colors.white,
                                 borderRadius: BorderRadius.circular(20),
-                                border: Border.all(color: NpupsColors.border),
+                                border: Border.all(color: AppColors.border),
                               ),
                               child: DropdownButtonHideUnderline(
                                 child: DropdownButton<String>(
                                   value: _filterCorp,
                                   isDense: true,
-                                  style: const TextStyle(fontSize: 13, color: NpupsColors.textPrimary),
+                                  style: const TextStyle(fontSize: 13, color: AppColors.textPrimary),
                                   items: _corporations.map((c) => DropdownMenuItem(value: c, child: Text(c, overflow: TextOverflow.ellipsis))).toList(),
                                   onChanged: (v) => _invalidateAndSetState(() => _filterCorp = v ?? 'All'),
                                 ),
@@ -215,9 +215,9 @@ class _WorkerListScreenState extends State<WorkerListScreen> {
                               label: const Text('Show Inactive', style: TextStyle(fontSize: 12)),
                               selected: _showInactive,
                               onSelected: (v) => _invalidateAndSetState(() => _showInactive = v),
-                              selectedColor: NpupsColors.error.withValues(alpha: 0.15),
-                              checkmarkColor: NpupsColors.error,
-                              labelStyle: TextStyle(color: _showInactive ? NpupsColors.error : NpupsColors.textSecondary),
+                              selectedColor: AppColors.error.withValues(alpha: 0.15),
+                              checkmarkColor: AppColors.error,
+                              labelStyle: TextStyle(color: _showInactive ? AppColors.error : AppColors.textSecondary),
                             ),
                           ],
                         ),
@@ -232,16 +232,16 @@ class _WorkerListScreenState extends State<WorkerListScreen> {
                 margin: const EdgeInsets.symmetric(horizontal: 16),
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: NpupsColors.accent.withValues(alpha: 0.06),
+                  color: AppColors.accent.withValues(alpha: 0.06),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
-                    _buildSummary('Total', '${workers.length}', NpupsColors.accent),
-                    _buildSummary('Verified', '${workers.where((w) => w.isFullyVerified).length}', NpupsColors.success),
-                    _buildSummary('Partial', '${workers.where((w) => w.documentsUploaded > 0 && !w.isFullyVerified).length}', NpupsColors.warning),
-                    _buildSummary('Missing', '${workers.where((w) => w.documentsUploaded == 0).length}', NpupsColors.error),
+                    _buildSummary('Total', '${workers.length}', AppColors.accent),
+                    _buildSummary('Verified', '${workers.where((w) => w.isFullyVerified).length}', AppColors.success),
+                    _buildSummary('Partial', '${workers.where((w) => w.documentsUploaded > 0 && !w.isFullyVerified).length}', AppColors.warning),
+                    _buildSummary('Missing', '${workers.where((w) => w.documentsUploaded == 0).length}', AppColors.error),
                   ],
                 ),
               ),
@@ -254,16 +254,16 @@ class _WorkerListScreenState extends State<WorkerListScreen> {
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Icons.search_off, size: 48, color: NpupsColors.textHint),
+                            Icon(Icons.search_off, size: 48, color: AppColors.textHint),
                             const SizedBox(height: 12),
-                            const Text('No workers match your filters', style: TextStyle(color: NpupsColors.textSecondary)),
+                            const Text('No workers match your filters', style: TextStyle(color: AppColors.textSecondary)),
                             if (_isAdmin) ...[
                               const SizedBox(height: 16),
                               ElevatedButton.icon(
                                 onPressed: () => _openRegistrationForm(),
                                 icon: const Icon(Icons.person_add, size: 16),
                                 label: const Text('Register First Worker'),
-                                style: ElevatedButton.styleFrom(backgroundColor: NpupsColors.accent),
+                                style: ElevatedButton.styleFrom(backgroundColor: AppColors.accent),
                               ),
                             ],
                           ],
@@ -289,16 +289,16 @@ class _WorkerListScreenState extends State<WorkerListScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? NpupsColors.accent : Colors.white,
+          color: isSelected ? AppColors.accent : Colors.white,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: isSelected ? NpupsColors.accent : NpupsColors.border),
+          border: Border.all(color: isSelected ? AppColors.accent : AppColors.border),
         ),
         child: Text(
           label,
           style: TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w500,
-            color: isSelected ? Colors.white : NpupsColors.textSecondary,
+            color: isSelected ? Colors.white : AppColors.textSecondary,
           ),
         ),
       ),
@@ -309,7 +309,7 @@ class _WorkerListScreenState extends State<WorkerListScreen> {
     return Column(
       children: [
         Text(value, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: color)),
-        Text(label, style: const TextStyle(fontSize: 11, color: NpupsColors.textSecondary)),
+        Text(label, style: const TextStyle(fontSize: 11, color: AppColors.textSecondary)),
       ],
     );
   }
@@ -317,12 +317,12 @@ class _WorkerListScreenState extends State<WorkerListScreen> {
   Widget _buildWorkerCard(Worker worker) {
     final isReplaced = _store.getReplacementFor(worker.id) != null;
     final statusColor = !worker.isActive
-        ? NpupsColors.error
+        ? AppColors.error
         : worker.isFullyVerified
-            ? NpupsColors.success
+            ? AppColors.success
             : worker.documentsUploaded > 0
-                ? NpupsColors.warning
-                : NpupsColors.error;
+                ? AppColors.warning
+                : AppColors.error;
 
     return Card(
       margin: const EdgeInsets.only(bottom: 10),
@@ -358,37 +358,37 @@ class _WorkerListScreenState extends State<WorkerListScreen> {
                     Row(
                       children: [
                         Expanded(
-                          child: Text(worker.fullName, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: NpupsColors.textPrimary)),
+                          child: Text(worker.fullName, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
                         ),
                         if (isReplaced)
                           Container(
                             margin: const EdgeInsets.only(left: 6),
                             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                             decoration: BoxDecoration(
-                              color: NpupsColors.warning.withValues(alpha: 0.15),
+                              color: AppColors.warning.withValues(alpha: 0.15),
                               borderRadius: BorderRadius.circular(6),
                             ),
-                            child: const Text('Replaced', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: NpupsColors.warning)),
+                            child: const Text('Replaced', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: AppColors.warning)),
                           ),
                         if (!worker.isActive)
                           Container(
                             margin: const EdgeInsets.only(left: 6),
                             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                             decoration: BoxDecoration(
-                              color: NpupsColors.error.withValues(alpha: 0.1),
+                              color: AppColors.error.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(6),
                             ),
-                            child: const Text('Inactive', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: NpupsColors.error)),
+                            child: const Text('Inactive', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: AppColors.error)),
                           ),
                       ],
                     ),
                     const SizedBox(height: 3),
-                    Text('${worker.position}  •  ${SecurityUtils.maskNisNumber(worker.nisNumber)}', style: const TextStyle(fontSize: 12, color: NpupsColors.textSecondary)),
+                    Text('${worker.position}  •  ${SecurityUtils.maskNisNumber(worker.nisNumber)}', style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
                     const SizedBox(height: 3),
-                    Text(worker.corporationName, style: const TextStyle(fontSize: 11, color: NpupsColors.accent)),
+                    Text(worker.corporationName, style: const TextStyle(fontSize: 11, color: AppColors.accent)),
                     if (worker.contact != null) ...[
                       const SizedBox(height: 2),
-                      Text(worker.contact!, style: const TextStyle(fontSize: 11, color: NpupsColors.textHint)),
+                      Text(worker.contact!, style: const TextStyle(fontSize: 11, color: AppColors.textHint)),
                     ],
                   ],
                 ),
@@ -418,7 +418,7 @@ class _WorkerListScreenState extends State<WorkerListScreen> {
                       borderRadius: BorderRadius.circular(2),
                       child: LinearProgressIndicator(
                         value: worker.verificationPercent,
-                        backgroundColor: NpupsColors.border,
+                        backgroundColor: AppColors.border,
                         valueColor: AlwaysStoppedAnimation(statusColor),
                       ),
                     ),
@@ -427,7 +427,7 @@ class _WorkerListScreenState extends State<WorkerListScreen> {
                   // Action menu
                   if (_canEdit || isReplaced)
                     PopupMenuButton<String>(
-                      icon: const Icon(Icons.more_vert, size: 18, color: NpupsColors.textHint),
+                      icon: const Icon(Icons.more_vert, size: 18, color: AppColors.textHint),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(minWidth: 32, minHeight: 24),
@@ -438,20 +438,20 @@ class _WorkerListScreenState extends State<WorkerListScreen> {
                       itemBuilder: (_) => [
                         if (_canEdit)
                           const PopupMenuItem(value: 'edit', child: Row(children: [
-                            Icon(Icons.edit, size: 15, color: NpupsColors.accent),
+                            Icon(Icons.edit, size: 15, color: AppColors.accent),
                             SizedBox(width: 8),
                             Text('Edit Worker', style: TextStyle(fontSize: 13)),
                           ])),
                         if (isReplaced)
                           const PopupMenuItem(value: 'replacement', child: Row(children: [
-                            Icon(Icons.swap_horiz, size: 15, color: NpupsColors.warning),
+                            Icon(Icons.swap_horiz, size: 15, color: AppColors.warning),
                             SizedBox(width: 8),
                             Text('View Replacement', style: TextStyle(fontSize: 13)),
                           ])),
                       ],
                     )
                   else
-                    Icon(Icons.chevron_right, size: 18, color: NpupsColors.textHint),
+                    Icon(Icons.chevron_right, size: 18, color: AppColors.textHint),
                 ],
               ),
             ],

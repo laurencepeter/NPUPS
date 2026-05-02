@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import '../theme/npups_theme.dart';
+import '../theme/app_theme.dart';
 import '../models/worker_model.dart';
 import '../services/worker_data_store.dart';
 import '../services/security_utils.dart';
 
 // ──────────────────────────────────────────────────────────────────────────────
-// NPUPS Worker Replacement View
+// WorkForce
 // Shows the original and replacement worker side-by-side (or stacked on small
 // screens) with full profile fields: Name, Position, Contact, Address,
 // ID number, NIS, BIR, Starting date, End date, Reference number,
@@ -28,7 +28,7 @@ class WorkerReplacementScreen extends StatelessWidget {
     if (original == null) {
       return Scaffold(
         appBar: AppBar(
-          backgroundColor: NpupsColors.primary,
+          backgroundColor: AppColors.primary,
           title: const Text('Worker Replacement'),
         ),
         body: const Center(child: Text('Worker not found.')),
@@ -36,14 +36,14 @@ class WorkerReplacementScreen extends StatelessWidget {
     }
 
     return Scaffold(
-      backgroundColor: NpupsColors.surface,
+      backgroundColor: AppColors.surface,
       appBar: AppBar(
-        backgroundColor: NpupsColors.primary,
+        backgroundColor: AppColors.primary,
         title: const Text('Worker Replacement', style: TextStyle(fontWeight: FontWeight.w700)),
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(40),
           child: Container(
-            color: NpupsColors.warning.withValues(alpha: 0.85),
+            color: AppColors.warning.withValues(alpha: 0.85),
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: Row(
               children: [
@@ -122,35 +122,35 @@ class _ReplacementSummaryBanner extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: NpupsColors.warning.withValues(alpha: 0.08),
+        color: AppColors.warning.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: NpupsColors.warning.withValues(alpha: 0.4)),
+        border: Border.all(color: AppColors.warning.withValues(alpha: 0.4)),
       ),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: NpupsColors.warning.withValues(alpha: 0.15),
+              color: AppColors.warning.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(10),
             ),
-            child: const Icon(Icons.warning_amber_rounded, color: NpupsColors.warning, size: 24),
+            child: const Icon(Icons.warning_amber_rounded, color: AppColors.warning, size: 24),
           ),
           const SizedBox(width: 14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Replacement Record', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: NpupsColors.textPrimary)),
+                const Text('Replacement Record', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
                 const SizedBox(height: 4),
                 Text(
                   'Replacement ID: ${replacement.id}  •  Days missed: ${replacement.daysMissed}',
-                  style: const TextStyle(fontSize: 12, color: NpupsColors.textSecondary),
+                  style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   'Date: ${DateFormat('d MMM yyyy').format(replacement.replacedAt)}',
-                  style: const TextStyle(fontSize: 12, color: NpupsColors.textSecondary),
+                  style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
                 ),
               ],
             ),
@@ -174,7 +174,7 @@ class _WorkerCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final headerColor = isOriginal ? NpupsColors.error : NpupsColors.success;
+    final headerColor = isOriginal ? AppColors.error : AppColors.success;
     final headerLabel = isOriginal ? 'ORIGINAL WORKER' : 'REPLACEMENT WORKER';
     final headerIcon = isOriginal ? Icons.person_off : Icons.person_add;
     final fmt = DateFormat('d MMM yyyy');
@@ -218,7 +218,7 @@ class _WorkerCard extends StatelessWidget {
                       const SizedBox(height: 2),
                       Text(
                         worker.fullName,
-                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: NpupsColors.textPrimary),
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
                       ),
                     ],
                   ),
@@ -227,7 +227,7 @@ class _WorkerCard extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
-                    color: worker.isActive ? NpupsColors.success.withValues(alpha: 0.1) : NpupsColors.error.withValues(alpha: 0.1),
+                    color: worker.isActive ? AppColors.success.withValues(alpha: 0.1) : AppColors.error.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
@@ -235,7 +235,7 @@ class _WorkerCard extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w600,
-                      color: worker.isActive ? NpupsColors.success : NpupsColors.error,
+                      color: worker.isActive ? AppColors.success : AppColors.error,
                     ),
                   ),
                 ),
@@ -259,7 +259,7 @@ class _WorkerCard extends StatelessWidget {
                 _row('EmployTT Ref.', worker.referenceNumber ?? '—', isHighlighted: true),
                 if (isOriginal && daysMissed != null) ...[
                   const Divider(height: 20),
-                  _row('Days Missed', '$daysMissed days', isHighlighted: true, highlightColor: NpupsColors.error),
+                  _row('Days Missed', '$daysMissed days', isHighlighted: true, highlightColor: AppColors.error),
                 ],
                 const Divider(height: 20),
                 _row('Corporation', worker.corporationName, wrap: true),
@@ -273,7 +273,7 @@ class _WorkerCard extends StatelessWidget {
   }
 
   Widget _row(String label, String value, {bool isHighlighted = false, Color? highlightColor, bool wrap = false}) {
-    final valueColor = isHighlighted ? (highlightColor ?? NpupsColors.accent) : NpupsColors.textPrimary;
+    final valueColor = isHighlighted ? (highlightColor ?? AppColors.accent) : AppColors.textPrimary;
     final valueFontWeight = isHighlighted ? FontWeight.w700 : FontWeight.w500;
 
     return Padding(
@@ -282,7 +282,7 @@ class _WorkerCard extends StatelessWidget {
           ? Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(label, style: const TextStyle(fontSize: 12, color: NpupsColors.textSecondary)),
+                Text(label, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
                 const SizedBox(height: 2),
                 Text(value, style: TextStyle(fontSize: 13, fontWeight: valueFontWeight, color: valueColor)),
               ],
@@ -292,7 +292,7 @@ class _WorkerCard extends StatelessWidget {
               children: [
                 SizedBox(
                   width: 120,
-                  child: Text(label, style: const TextStyle(fontSize: 12, color: NpupsColors.textSecondary)),
+                  child: Text(label, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
                 ),
                 Expanded(
                   child: Text(
@@ -319,21 +319,21 @@ class _NoReplacementCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: NpupsColors.border, width: 1.5),
+        border: Border.all(color: AppColors.border, width: 1.5),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.person_search, size: 48, color: NpupsColors.textHint),
+          Icon(Icons.person_search, size: 48, color: AppColors.textHint),
           const SizedBox(height: 12),
           const Text(
             'No Replacement Assigned',
-            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: NpupsColors.textSecondary),
+            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.textSecondary),
           ),
           const SizedBox(height: 6),
           const Text(
             'A replacement worker has not been registered for this position yet.',
-            style: TextStyle(fontSize: 12, color: NpupsColors.textHint),
+            style: TextStyle(fontSize: 12, color: AppColors.textHint),
             textAlign: TextAlign.center,
           ),
         ],

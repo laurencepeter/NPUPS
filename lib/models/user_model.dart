@@ -1,19 +1,19 @@
 // ──────────────────────────────────────────────────────────────────────────────
-// NPUPS User Model
+// WorkForce
 // Roles aligned with the timesheet approval pipeline:
 //   Worker, Regional Coordinator, HR, Sub-Accounts, Main Accounts, PS, Admin,
-//   Minister's Department
+//   Executive Department
 // ──────────────────────────────────────────────────────────────────────────────
 
 enum UserRole {
   systemAdmin('System Admin', 'Full system access and user management'),
-  ps('Permanent Secretary', 'Programme approval and oversight'),
+  ps('Director', 'Programme approval and oversight'),
   dmcr('DMCR', 'Worker data compilation and coordination'),
   regionalCoordinator('Regional Coordinator', 'Field operations and timesheet review'),
   hr('HR Department', 'Employment processing, compliance, and leave verification'),
   subAccounts('Sub-Accounts Clerk', 'Payroll processing, pay verification, and export'),
   mainAccounts('Main Accounts Clerk', 'Payment authorisation and cheque management'),
-  ministersDepartment('Minister\'s Department', 'Worker registry oversight, edit workers, and export by corporation'),
+  ministersDepartment('Executive Department', 'Worker registry oversight, edit workers, and export by corporation'),
   worker('Worker', 'Timesheet entry and submission');
 
   const UserRole(this.displayName, this.description);
@@ -21,7 +21,7 @@ enum UserRole {
   final String description;
 }
 
-class NpupsUser {
+class AppUser {
   final String id;
   final String email;
   final String fullName;
@@ -30,7 +30,7 @@ class NpupsUser {
   final String? corporationName;
   final bool isActive;
 
-  const NpupsUser({
+  const AppUser({
     required this.id,
     required this.email,
     required this.fullName,

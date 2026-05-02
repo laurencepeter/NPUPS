@@ -1,5 +1,5 @@
 // ──────────────────────────────────────────────────────────────────────────────
-// NPUPS Timesheet Model — Pipeline Stages & Approval Tracking
+// WorkForce
 // Supports multi-stage approval: Not Started → Draft → Submitted →
 //   Coordinator Review → HR Processing → Accounts Processing →
 //   Approved for Payment → Exported → Cheque/Direct Deposit

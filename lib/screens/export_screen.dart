@@ -2,14 +2,14 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:file_saver/file_saver.dart';
-import '../theme/npups_theme.dart';
+import '../theme/app_theme.dart';
 import '../models/worker_model.dart';
 import '../services/worker_data_store.dart';
 import '../services/excel_export_service.dart';
 import '../services/security_utils.dart';
 
 // ──────────────────────────────────────────────────────────────────────────────
-// NPUPS Excel Timesheet Export Screen
+// WorkForce
 // Export by individual worker or batch export by corporation.
 // Each worker gets their own full timesheet section in the document.
 // ──────────────────────────────────────────────────────────────────────────────
@@ -104,7 +104,7 @@ class _ExportScreenState extends State<ExportScreen> {
         final safeName = SecurityUtils.sanitizeFileName(
           worker.fullName.replaceAll(' ', '_'),
         );
-        fileName = 'NPUPS_Timesheet_${safeName}_$dateStr';
+        fileName = 'Timesheet_${safeName}_$dateStr';
       } else {
         bytes = ExcelExportService.generateBatchTimesheet(
           workers: _corpWorkers,
@@ -116,7 +116,7 @@ class _ExportScreenState extends State<ExportScreen> {
           corpName.replaceAll(' ', '_'),
         );
         final safeGroup = SecurityUtils.sanitizeFileName(_groupNumber);
-        fileName = 'NPUPS_Timesheet_Batch_${safeCorpName}_Group${safeGroup}_$dateStr';
+        fileName = 'Timesheet_Batch_${safeCorpName}_Group${safeGroup}_$dateStr';
       }
 
       // Cross-platform download via file_saver
@@ -137,7 +137,7 @@ class _ExportScreenState extends State<ExportScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Exported $workerCount timesheet${workerCount > 1 ? 's' : ''} to $fileName.xlsx'),
-          backgroundColor: NpupsColors.success,
+          backgroundColor: AppColors.success,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         ),
@@ -148,7 +148,7 @@ class _ExportScreenState extends State<ExportScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Export failed: $e'),
-          backgroundColor: NpupsColors.error,
+          backgroundColor: AppColors.error,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         ),
@@ -168,9 +168,9 @@ class _ExportScreenState extends State<ExportScreen> {
     final workers = _corpWorkers;
 
     return Scaffold(
-      backgroundColor: NpupsColors.surface,
+      backgroundColor: AppColors.surface,
       appBar: AppBar(
-        backgroundColor: NpupsColors.primary,
+        backgroundColor: AppColors.primary,
         title: const Text('Export Timesheet', style: TextStyle(fontWeight: FontWeight.w700)),
       ),
       body: SingleChildScrollView(
@@ -191,7 +191,7 @@ class _ExportScreenState extends State<ExportScreen> {
                 children: [
                   const Row(
                     children: [
-                      Icon(Icons.swap_horiz, color: NpupsColors.accent),
+                      Icon(Icons.swap_horiz, color: AppColors.accent),
                       SizedBox(width: 10),
                       Text('Export Mode', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
                     ],
@@ -236,7 +236,7 @@ class _ExportScreenState extends State<ExportScreen> {
                 children: [
                   const Row(
                     children: [
-                      Icon(Icons.table_chart, color: NpupsColors.accent),
+                      Icon(Icons.table_chart, color: AppColors.accent),
                       SizedBox(width: 10),
                       Text('Export Configuration', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
                     ],
@@ -244,7 +244,7 @@ class _ExportScreenState extends State<ExportScreen> {
                   const SizedBox(height: 20),
 
                   // Corporation
-                  const Text('Corporation', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: NpupsColors.textSecondary)),
+                  const Text('Corporation', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: AppColors.textSecondary)),
                   const SizedBox(height: 6),
                   DropdownButtonFormField<String>(
                     value: _selectedCorpId,
@@ -262,7 +262,7 @@ class _ExportScreenState extends State<ExportScreen> {
 
                   // Worker selector (single mode only)
                   if (_exportMode == ExportMode.singleWorker && _selectedCorpId != null) ...[
-                    const Text('Worker', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: NpupsColors.textSecondary)),
+                    const Text('Worker', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: AppColors.textSecondary)),
                     const SizedBox(height: 6),
                     DropdownButtonFormField<String>(
                       value: _selectedWorkerId,
@@ -282,7 +282,7 @@ class _ExportScreenState extends State<ExportScreen> {
                   ],
 
                   // Group Number
-                  const Text('Group Number', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: NpupsColors.textSecondary)),
+                  const Text('Group Number', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: AppColors.textSecondary)),
                   const SizedBox(height: 6),
                   TextFormField(
                     initialValue: _groupNumber,
@@ -292,7 +292,7 @@ class _ExportScreenState extends State<ExportScreen> {
                   const SizedBox(height: 16),
 
                   // Fortnight dates
-                  const Text('Fortnight Period', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: NpupsColors.textSecondary)),
+                  const Text('Fortnight Period', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: AppColors.textSecondary)),
                   const SizedBox(height: 6),
                   InkWell(
                     onTap: _pickFortnightStart,
@@ -300,20 +300,20 @@ class _ExportScreenState extends State<ExportScreen> {
                     child: Container(
                       padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
-                        color: NpupsColors.inputFill,
+                        color: AppColors.inputFill,
                         borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: NpupsColors.border),
+                        border: Border.all(color: AppColors.border),
                       ),
                       child: Row(
                         children: [
-                          const Icon(Icons.calendar_today, size: 18, color: NpupsColors.accent),
+                          const Icon(Icons.calendar_today, size: 18, color: AppColors.accent),
                           const SizedBox(width: 10),
                           Text(
                             '${DateFormat('d MMM yyyy').format(_fortnightStart)} - ${DateFormat('d MMM yyyy').format(fortnightEnd)}',
                             style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
                           ),
                           const Spacer(),
-                          const Icon(Icons.edit, size: 16, color: NpupsColors.textHint),
+                          const Icon(Icons.edit, size: 16, color: AppColors.textHint),
                         ],
                       ),
                     ),
@@ -337,7 +337,7 @@ class _ExportScreenState extends State<ExportScreen> {
                   children: [
                     Row(
                       children: [
-                        const Icon(Icons.people, color: NpupsColors.accent),
+                        const Icon(Icons.people, color: AppColors.accent),
                         const SizedBox(width: 10),
                         Text(
                           _exportMode == ExportMode.singleWorker
@@ -352,7 +352,7 @@ class _ExportScreenState extends State<ExportScreen> {
                       if (_selectedWorker == null)
                         const Padding(
                           padding: EdgeInsets.all(16),
-                          child: Text('Select a worker above to export their timesheet.', style: TextStyle(color: NpupsColors.textSecondary)),
+                          child: Text('Select a worker above to export their timesheet.', style: TextStyle(color: AppColors.textSecondary)),
                         )
                       else
                         _buildWorkerRow(_selectedWorker!),
@@ -360,7 +360,7 @@ class _ExportScreenState extends State<ExportScreen> {
                       if (workers.isEmpty)
                         const Padding(
                           padding: EdgeInsets.all(16),
-                          child: Text('No workers registered for this corporation.', style: TextStyle(color: NpupsColors.textSecondary)),
+                          child: Text('No workers registered for this corporation.', style: TextStyle(color: AppColors.textSecondary)),
                         )
                       else
                         ...workers.map((w) => _buildWorkerRow(w)),
@@ -369,12 +369,12 @@ class _ExportScreenState extends State<ExportScreen> {
                       const Divider(height: 20),
                       Row(
                         children: [
-                          const Icon(Icons.info_outline, size: 16, color: NpupsColors.accent),
+                          const Icon(Icons.info_outline, size: 16, color: AppColors.accent),
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
                               'Each worker will have their own complete timesheet section in the document for easy printing.',
-                              style: TextStyle(fontSize: 12, color: NpupsColors.textSecondary),
+                              style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
                             ),
                           ),
                         ],
@@ -406,7 +406,7 @@ class _ExportScreenState extends State<ExportScreen> {
                   style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                 ),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: _exported ? NpupsColors.success : NpupsColors.accent,
+                  backgroundColor: _exported ? AppColors.success : AppColors.accent,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                 ),
               ),
@@ -430,20 +430,20 @@ class _ExportScreenState extends State<ExportScreen> {
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: isSelected ? NpupsColors.accent.withValues(alpha: 0.08) : NpupsColors.inputFill,
+          color: isSelected ? AppColors.accent.withValues(alpha: 0.08) : AppColors.inputFill,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isSelected ? NpupsColors.accent : NpupsColors.border,
+            color: isSelected ? AppColors.accent : AppColors.border,
             width: isSelected ? 2 : 1,
           ),
         ),
         child: Column(
           children: [
-            Icon(icon, size: 28, color: isSelected ? NpupsColors.accent : NpupsColors.textSecondary),
+            Icon(icon, size: 28, color: isSelected ? AppColors.accent : AppColors.textSecondary),
             const SizedBox(height: 8),
-            Text(title, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: isSelected ? NpupsColors.accent : NpupsColors.textPrimary)),
+            Text(title, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: isSelected ? AppColors.accent : AppColors.textPrimary)),
             const SizedBox(height: 2),
-            Text(subtitle, style: const TextStyle(fontSize: 10, color: NpupsColors.textSecondary), textAlign: TextAlign.center),
+            Text(subtitle, style: const TextStyle(fontSize: 10, color: AppColors.textSecondary), textAlign: TextAlign.center),
           ],
         ),
       ),
@@ -457,8 +457,8 @@ class _ExportScreenState extends State<ExportScreen> {
         children: [
           CircleAvatar(
             radius: 16,
-            backgroundColor: NpupsColors.accent.withValues(alpha: 0.1),
-            child: Text(w.initials, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: NpupsColors.accent)),
+            backgroundColor: AppColors.accent.withValues(alpha: 0.1),
+            child: Text(w.initials, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: AppColors.accent)),
           ),
           const SizedBox(width: 10),
           Expanded(
@@ -466,11 +466,11 @@ class _ExportScreenState extends State<ExportScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(w.fullName, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
-                Text('${w.position}  •  ${w.nisNumber}', style: const TextStyle(fontSize: 11, color: NpupsColors.textSecondary)),
+                Text('${w.position}  •  ${w.nisNumber}', style: const TextStyle(fontSize: 11, color: AppColors.textSecondary)),
               ],
             ),
           ),
-          Text('\$${(10 * w.wageRate + 10 * w.colaRate).toStringAsFixed(0)}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: NpupsColors.accent)),
+          Text('\$${(10 * w.wageRate + 10 * w.colaRate).toStringAsFixed(0)}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.accent)),
         ],
       ),
     );

@@ -1,11 +1,11 @@
 {
-    "name": "NUPS",
-    "short_name": "NUPS",
+    "name": "WorkForce",
+    "short_name": "WorkForce",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "National Upkeep Programme System (NUPS) — Worker Registration & Payroll Management.",
+    "description": "WorkForce — Digital workflow for employee enrollment, payroll processing, and HR reporting.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

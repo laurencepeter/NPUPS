@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import '../theme/npups_theme.dart';
+import '../theme/app_theme.dart';
 import '../models/worker_model.dart';
 import '../services/worker_data_store.dart';
 import '../services/security_utils.dart';
 
 // ──────────────────────────────────────────────────────────────────────────────
-// NPUPS Worker Detail & Document Status Screen
+// WorkForce
 // Shows full profile, bank info, and document verification status.
 // Missing documents show an upload prompt.
 // ──────────────────────────────────────────────────────────────────────────────
@@ -41,7 +41,7 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('$docName uploaded successfully'),
-          backgroundColor: NpupsColors.success,
+          backgroundColor: AppColors.success,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         ),
@@ -63,23 +63,23 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
         }
 
         final statusColor = worker.isFullyVerified
-            ? NpupsColors.success
+            ? AppColors.success
             : worker.documentsUploaded > 0
-                ? NpupsColors.warning
-                : NpupsColors.error;
+                ? AppColors.warning
+                : AppColors.error;
 
         return Scaffold(
-          backgroundColor: NpupsColors.surface,
+          backgroundColor: AppColors.surface,
           body: CustomScrollView(
             slivers: [
               // Profile header
               SliverAppBar(
                 expandedHeight: 180,
                 pinned: true,
-                backgroundColor: NpupsColors.primary,
+                backgroundColor: AppColors.primary,
                 flexibleSpace: FlexibleSpaceBar(
                   background: Container(
-                    decoration: const BoxDecoration(gradient: NpupsColors.primaryGradient),
+                    decoration: const BoxDecoration(gradient: AppColors.primaryGradient),
                     child: SafeArea(
                       child: Padding(
                         padding: const EdgeInsets.fromLTRB(16, 60, 16, 16),
@@ -165,12 +165,12 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
                     // Documents section
                     const Text(
                       'Document Status',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: NpupsColors.textPrimary),
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       '${worker.documentsUploaded} of ${worker.totalDocuments} required documents uploaded',
-                      style: const TextStyle(fontSize: 13, color: NpupsColors.textSecondary),
+                      style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
                     ),
                     const SizedBox(height: 12),
 
@@ -214,7 +214,7 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
             child: LinearProgressIndicator(
               value: worker.verificationPercent,
               minHeight: 8,
-              backgroundColor: NpupsColors.border,
+              backgroundColor: AppColors.border,
               valueColor: AlwaysStoppedAnimation(statusColor),
             ),
           ),
@@ -237,9 +237,9 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
             padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
             child: Row(
               children: [
-                Icon(icon, size: 18, color: NpupsColors.accent),
+                Icon(icon, size: 18, color: AppColors.accent),
                 const SizedBox(width: 8),
-                Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: NpupsColors.textPrimary)),
+                Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
               ],
             ),
           ),
@@ -256,9 +256,9 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: const TextStyle(fontSize: 13, color: NpupsColors.textSecondary)),
+          Text(label, style: const TextStyle(fontSize: 13, color: AppColors.textSecondary)),
           Flexible(
-            child: Text(value, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: NpupsColors.textPrimary), textAlign: TextAlign.end),
+            child: Text(value, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: AppColors.textPrimary), textAlign: TextAlign.end),
           ),
         ],
       ),
@@ -267,7 +267,7 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
 
   Widget _buildDocumentCard(Worker worker, String docName, WorkerDocument doc) {
     final isUploaded = doc.status == DocumentStatus.uploaded;
-    final color = isUploaded ? NpupsColors.success : NpupsColors.error;
+    final color = isUploaded ? AppColors.success : AppColors.error;
     final icon = isUploaded ? Icons.check_circle : Icons.error_outline;
 
     return Card(
@@ -297,7 +297,7 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
                     isUploaded
                         ? 'Uploaded ${doc.uploadedAt != null ? DateFormat('d MMM yyyy').format(doc.uploadedAt!) : ""}'
                         : 'Required — Not yet uploaded',
-                    style: TextStyle(fontSize: 12, color: isUploaded ? NpupsColors.textSecondary : NpupsColors.error),
+                    style: TextStyle(fontSize: 12, color: isUploaded ? AppColors.textSecondary : AppColors.error),
                   ),
                 ],
               ),
@@ -308,13 +308,13 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
                 icon: const Icon(Icons.upload_file, size: 16),
                 label: const Text('Upload', style: TextStyle(fontSize: 12)),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: NpupsColors.accent,
+                  backgroundColor: AppColors.accent,
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   minimumSize: Size.zero,
                 ),
               )
             else
-              Icon(Icons.verified, size: 22, color: NpupsColors.success),
+              Icon(Icons.verified, size: 22, color: AppColors.success),
           ],
         ),
       ),
@@ -366,7 +366,7 @@ class _UploadDialogState extends State<_UploadDialog> {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       title: Row(
         children: [
-          const Icon(Icons.upload_file, color: NpupsColors.accent),
+          const Icon(Icons.upload_file, color: AppColors.accent),
           const SizedBox(width: 10),
           Expanded(child: Text('Upload ${widget.documentName}', style: const TextStyle(fontSize: 16))),
         ],
@@ -382,19 +382,19 @@ class _UploadDialogState extends State<_UploadDialog> {
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
                 border: Border.all(
-                  color: _fileSelected ? NpupsColors.success : NpupsColors.accent,
+                  color: _fileSelected ? AppColors.success : AppColors.accent,
                   width: 2,
                   style: BorderStyle.solid,
                 ),
                 borderRadius: BorderRadius.circular(12),
-                color: (_fileSelected ? NpupsColors.success : NpupsColors.accent).withValues(alpha: 0.04),
+                color: (_fileSelected ? AppColors.success : AppColors.accent).withValues(alpha: 0.04),
               ),
               child: Column(
                 children: [
                   Icon(
                     _fileSelected ? Icons.check_circle : Icons.cloud_upload_outlined,
                     size: 40,
-                    color: _fileSelected ? NpupsColors.success : NpupsColors.accent,
+                    color: _fileSelected ? AppColors.success : AppColors.accent,
                   ),
                   const SizedBox(height: 8),
                   Text(
@@ -402,12 +402,12 @@ class _UploadDialogState extends State<_UploadDialog> {
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
-                      color: _fileSelected ? NpupsColors.success : NpupsColors.textSecondary,
+                      color: _fileSelected ? AppColors.success : AppColors.textSecondary,
                     ),
                   ),
                   if (!_fileSelected) ...[
                     const SizedBox(height: 4),
-                    const Text('PDF, JPG, PNG (max 5MB)', style: TextStyle(fontSize: 11, color: NpupsColors.textHint)),
+                    const Text('PDF, JPG, PNG (max 5MB)', style: TextStyle(fontSize: 11, color: AppColors.textHint)),
                   ],
                 ],
               ),
@@ -417,7 +417,7 @@ class _UploadDialogState extends State<_UploadDialog> {
             const SizedBox(height: 16),
             const LinearProgressIndicator(),
             const SizedBox(height: 8),
-            const Text('Uploading...', style: TextStyle(fontSize: 12, color: NpupsColors.textSecondary)),
+            const Text('Uploading...', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
           ],
         ],
       ),

@@ -1,5 +1,5 @@
 // ──────────────────────────────────────────────────────────────────────────────
-// NPUPS HR Review Screen
+// WorkForce
 // Receives coordinator-approved timesheets.
 // Verifies compliance, leave, employee status.
 // Approve forward to Accounts or reject back to Coordinator.
@@ -7,14 +7,14 @@
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import '../theme/npups_theme.dart';
+import '../theme/app_theme.dart';
 import '../models/timesheet_model.dart';
 import '../models/user_model.dart';
 import '../services/timesheet_data_store.dart';
 import '../services/security_utils.dart';
 
 class HrReviewScreen extends StatefulWidget {
-  final NpupsUser user;
+  final AppUser user;
   const HrReviewScreen({super.key, required this.user});
 
   @override
@@ -30,9 +30,9 @@ class _HrReviewScreenState extends State<HrReviewScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: NpupsColors.surface,
+      backgroundColor: AppColors.surface,
       appBar: AppBar(
-        backgroundColor: NpupsColors.primary,
+        backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
         title: const Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -51,11 +51,11 @@ class _HrReviewScreenState extends State<HrReviewScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.inbox_outlined, size: 64, color: NpupsColors.border),
+                  Icon(Icons.inbox_outlined, size: 64, color: AppColors.border),
                   SizedBox(height: 16),
                   Text('No Timesheets Pending', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                   SizedBox(height: 8),
-                  Text('All coordinator-approved timesheets have been processed.', style: TextStyle(color: NpupsColors.textSecondary)),
+                  Text('All coordinator-approved timesheets have been processed.', style: TextStyle(color: AppColors.textSecondary)),
                 ],
               ),
             );
@@ -85,15 +85,15 @@ class _HrReviewScreenState extends State<HrReviewScreen> {
         children: [
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(color: NpupsColors.warning.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
-            child: Text('${queue.length} pending', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: NpupsColors.warning)),
+            decoration: BoxDecoration(color: AppColors.warning.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
+            child: Text('${queue.length} pending', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.warning)),
           ),
           const SizedBox(width: 12),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(color: NpupsColors.accent.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
+            decoration: BoxDecoration(color: AppColors.accent.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
             child: Text('Total: \$${queue.fold<double>(0, (s, t) => s + t.grandTotal).toStringAsFixed(0)}',
-                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: NpupsColors.accent)),
+                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.accent)),
           ),
         ],
       ),
@@ -115,8 +115,8 @@ class _HrReviewScreenState extends State<HrReviewScreen> {
               children: [
                 CircleAvatar(
                   radius: 20,
-                  backgroundColor: NpupsColors.warning.withValues(alpha: 0.1),
-                  child: const Icon(Icons.badge, color: NpupsColors.warning, size: 20),
+                  backgroundColor: AppColors.warning.withValues(alpha: 0.1),
+                  child: const Icon(Icons.badge, color: AppColors.warning, size: 20),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -124,7 +124,7 @@ class _HrReviewScreenState extends State<HrReviewScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(ts.workerName, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
-                      Text('${ts.position} | ${ts.corporationName}', style: const TextStyle(fontSize: 12, color: NpupsColors.textSecondary)),
+                      Text('${ts.position} | ${ts.corporationName}', style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
                     ],
                   ),
                 ),
@@ -133,7 +133,7 @@ class _HrReviewScreenState extends State<HrReviewScreen> {
             const Divider(height: 20),
 
             // Compliance checklist
-            const Text('Compliance Checks', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: NpupsColors.primary)),
+            const Text('Compliance Checks', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.primary)),
             const SizedBox(height: 8),
             _checkItem('Employee Status', 'Active', true),
             _checkItem('NIS Number', SecurityUtils.maskNisNumber(ts.nisNumber), true),
@@ -155,7 +155,7 @@ class _HrReviewScreenState extends State<HrReviewScreen> {
             ),
             const SizedBox(height: 8),
             Text('Fortnight: ${DateFormat('dd/MM').format(ts.fortnightStart)} - ${DateFormat('dd/MM').format(ts.fortnightEnd)} | Group: ${ts.groupNumber}',
-                style: const TextStyle(fontSize: 11, color: NpupsColors.textSecondary)),
+                style: const TextStyle(fontSize: 11, color: AppColors.textSecondary)),
             const SizedBox(height: 4),
 
             // Coordinator approval note
@@ -163,15 +163,15 @@ class _HrReviewScreenState extends State<HrReviewScreen> {
               const SizedBox(height: 4),
               Container(
                 padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(color: NpupsColors.success.withValues(alpha: 0.05), borderRadius: BorderRadius.circular(6)),
+                decoration: BoxDecoration(color: AppColors.success.withValues(alpha: 0.05), borderRadius: BorderRadius.circular(6)),
                 child: Row(
                   children: [
-                    const Icon(Icons.check_circle, size: 14, color: NpupsColors.success),
+                    const Icon(Icons.check_circle, size: 14, color: AppColors.success),
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(
                         'Approved by ${ts.approvalHistory.last.reviewerName} (${ts.approvalHistory.last.reviewerRole})',
-                        style: const TextStyle(fontSize: 11, color: NpupsColors.success),
+                        style: const TextStyle(fontSize: 11, color: AppColors.success),
                       ),
                     ),
                   ],
@@ -186,10 +186,10 @@ class _HrReviewScreenState extends State<HrReviewScreen> {
                 Expanded(
                   child: OutlinedButton.icon(
                     onPressed: () => _rejectTimesheet(ts),
-                    icon: const Icon(Icons.reply, size: 16, color: NpupsColors.error),
-                    label: const Text('Reject to Coordinator', style: TextStyle(color: NpupsColors.error, fontSize: 12)),
+                    icon: const Icon(Icons.reply, size: 16, color: AppColors.error),
+                    label: const Text('Reject to Coordinator', style: TextStyle(color: AppColors.error, fontSize: 12)),
                     style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: NpupsColors.error),
+                      side: const BorderSide(color: AppColors.error),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                     ),
                   ),
@@ -201,7 +201,7 @@ class _HrReviewScreenState extends State<HrReviewScreen> {
                     icon: const Icon(Icons.check, size: 16),
                     label: const Text('Forward to Accounts', style: TextStyle(fontSize: 12)),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: NpupsColors.success,
+                      backgroundColor: AppColors.success,
                       foregroundColor: Colors.white,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                     ),
@@ -220,9 +220,9 @@ class _HrReviewScreenState extends State<HrReviewScreen> {
       padding: const EdgeInsets.symmetric(vertical: 2),
       child: Row(
         children: [
-          Icon(passed ? Icons.check_circle : Icons.error, size: 14, color: passed ? NpupsColors.success : NpupsColors.error),
+          Icon(passed ? Icons.check_circle : Icons.error, size: 14, color: passed ? AppColors.success : AppColors.error),
           const SizedBox(width: 8),
-          SizedBox(width: 100, child: Text(label, style: const TextStyle(fontSize: 12, color: NpupsColors.textSecondary))),
+          SizedBox(width: 100, child: Text(label, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary))),
           Expanded(child: Text(value, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500))),
         ],
       ),
@@ -232,7 +232,7 @@ class _HrReviewScreenState extends State<HrReviewScreen> {
   Widget _detailItem(String label, String value, {bool bold = false}) {
     return Column(
       children: [
-        Text(label, style: const TextStyle(fontSize: 10, color: NpupsColors.textSecondary)),
+        Text(label, style: const TextStyle(fontSize: 10, color: AppColors.textSecondary)),
         const SizedBox(height: 2),
         Text(value, style: TextStyle(fontSize: bold ? 14 : 12, fontWeight: bold ? FontWeight.bold : FontWeight.w600)),
       ],
@@ -242,7 +242,7 @@ class _HrReviewScreenState extends State<HrReviewScreen> {
   void _approveTimesheet(Timesheet ts) {
     _store.advanceStage(ts.id, widget.user.fullName, 'HR Department', note: 'Compliance verified, leave OK');
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('${ts.workerName} forwarded to Accounts'), backgroundColor: NpupsColors.success),
+      SnackBar(content: Text('${ts.workerName} forwarded to Accounts'), backgroundColor: AppColors.success),
     );
   }
 
@@ -273,10 +273,10 @@ class _HrReviewScreenState extends State<HrReviewScreen> {
               _store.rejectTimesheet(ts.id, widget.user.fullName, 'HR Department', controller.text.trim());
               Navigator.pop(ctx);
               ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('${ts.workerName}\'s timesheet rejected to Coordinator'), backgroundColor: NpupsColors.warning),
+                SnackBar(content: Text('${ts.workerName}\'s timesheet rejected to Coordinator'), backgroundColor: AppColors.warning),
               );
             },
-            style: ElevatedButton.styleFrom(backgroundColor: NpupsColors.error),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
             child: const Text('Reject'),
           ),
         ],

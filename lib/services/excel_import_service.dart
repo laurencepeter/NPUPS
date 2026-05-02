@@ -1,8 +1,8 @@
 // ──────────────────────────────────────────────────────────────────────────────
-// NPUPS Excel Timesheet Import Service
+// WorkForce
 // Parses .xlsx files (generated from the template) back into timesheet data.
 // Reads worker details, time-in/time-out entries, allowance days, and remarks
-// from known cell positions in the standard NPUPS template layout.
+// from known cell positions in the standard WorkForce template layout.
 // ──────────────────────────────────────────────────────────────────────────────
 
 import 'dart:typed_data';
@@ -122,7 +122,7 @@ class ExcelImportService {
         return ExcelImportResult(
           success: false,
           errors: [
-            'No timesheet data found. Ensure the file uses the NPUPS template format.',
+            'No timesheet data found. Ensure the file uses the WorkForce template format.',
             ...errors,
           ],
         );
@@ -149,7 +149,7 @@ class ExcelImportService {
     // Row 0: "TIMESHEET"
     r++;
 
-    // Row 1: "National Programme..."
+    // Row 1: header text
     if (r >= rows.length) return null;
     r++;
 

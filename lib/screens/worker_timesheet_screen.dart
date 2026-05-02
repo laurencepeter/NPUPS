@@ -1,5 +1,5 @@
 // ──────────────────────────────────────────────────────────────────────────────
-// NPUPS Worker Timesheet View
+// WorkForce
 // Workers see their own timesheet with pre-populated static fields (read-only)
 // and fill in dynamic fields (hours, overtime, leave, allowances).
 // Includes a progress tracker showing pipeline position.
@@ -7,14 +7,14 @@
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import '../theme/npups_theme.dart';
+import '../theme/app_theme.dart';
 import '../models/timesheet_model.dart';
 import '../models/user_model.dart';
 import '../services/timesheet_data_store.dart';
 import '../services/security_utils.dart';
 
 class WorkerTimesheetScreen extends StatefulWidget {
-  final NpupsUser user;
+  final AppUser user;
   const WorkerTimesheetScreen({super.key, required this.user});
 
   @override
@@ -38,9 +38,9 @@ class _WorkerTimesheetScreenState extends State<WorkerTimesheetScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: NpupsColors.surface,
+      backgroundColor: AppColors.surface,
       appBar: AppBar(
-        backgroundColor: NpupsColors.primary,
+        backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
         title: const Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -92,11 +92,11 @@ class _WorkerTimesheetScreenState extends State<WorkerTimesheetScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.assignment_outlined, size: 64, color: NpupsColors.textSecondary.withValues(alpha: 0.5)),
+          Icon(Icons.assignment_outlined, size: 64, color: AppColors.textSecondary.withValues(alpha: 0.5)),
           const SizedBox(height: 16),
-          const Text('No Timesheet Available', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: NpupsColors.textPrimary)),
+          const Text('No Timesheet Available', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
           const SizedBox(height: 8),
-          const Text('No timesheet has been assigned for the current fortnight.', style: TextStyle(color: NpupsColors.textSecondary)),
+          const Text('No timesheet has been assigned for the current fortnight.', style: TextStyle(color: AppColors.textSecondary)),
         ],
       ),
     );
@@ -118,9 +118,9 @@ class _WorkerTimesheetScreenState extends State<WorkerTimesheetScreen> {
           children: [
             Row(
               children: [
-                Icon(Icons.linear_scale, color: NpupsColors.accent, size: 20),
+                Icon(Icons.linear_scale, color: AppColors.accent, size: 20),
                 const SizedBox(width: 8),
-                const Text('Pipeline Status', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: NpupsColors.primary)),
+                const Text('Pipeline Status', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppColors.primary)),
                 const Spacer(),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -150,12 +150,12 @@ class _WorkerTimesheetScreenState extends State<WorkerTimesheetScreen> {
                             height: 28,
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
-                              color: isPast ? NpupsColors.success : isCurrent ? stage.color : NpupsColors.border,
+                              color: isPast ? AppColors.success : isCurrent ? stage.color : AppColors.border,
                             ),
                             child: Icon(
                               isPast ? Icons.check : stage.icon,
                               size: 14,
-                              color: isPast || isCurrent ? Colors.white : NpupsColors.textSecondary,
+                              color: isPast || isCurrent ? Colors.white : AppColors.textSecondary,
                             ),
                           ),
                           const SizedBox(height: 4),
@@ -167,7 +167,7 @@ class _WorkerTimesheetScreenState extends State<WorkerTimesheetScreen> {
                               style: TextStyle(
                                 fontSize: 8,
                                 fontWeight: isCurrent ? FontWeight.bold : FontWeight.normal,
-                                color: isCurrent ? stage.color : NpupsColors.textSecondary,
+                                color: isCurrent ? stage.color : AppColors.textSecondary,
                               ),
                             ),
                           ),
@@ -177,7 +177,7 @@ class _WorkerTimesheetScreenState extends State<WorkerTimesheetScreen> {
                         Container(
                           width: 20,
                           height: 2,
-                          color: isPast ? NpupsColors.success : NpupsColors.border,
+                          color: isPast ? AppColors.success : AppColors.border,
                           margin: const EdgeInsets.only(bottom: 16),
                         ),
                     ],
@@ -204,11 +204,11 @@ class _WorkerTimesheetScreenState extends State<WorkerTimesheetScreen> {
           children: [
             const Row(
               children: [
-                Icon(Icons.person, color: NpupsColors.accent, size: 20),
+                Icon(Icons.person, color: AppColors.accent, size: 20),
                 SizedBox(width: 8),
-                Text('Worker Information', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: NpupsColors.primary)),
+                Text('Worker Information', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppColors.primary)),
                 SizedBox(width: 8),
-                Text('(Read Only)', style: TextStyle(fontSize: 11, color: NpupsColors.textSecondary, fontStyle: FontStyle.italic)),
+                Text('(Read Only)', style: TextStyle(fontSize: 11, color: AppColors.textSecondary, fontStyle: FontStyle.italic)),
               ],
             ),
             const Divider(height: 20),
@@ -234,8 +234,8 @@ class _WorkerTimesheetScreenState extends State<WorkerTimesheetScreen> {
       padding: const EdgeInsets.symmetric(vertical: 3),
       child: Row(
         children: [
-          SizedBox(width: 120, child: Text(label, style: const TextStyle(fontSize: 12, color: NpupsColors.textSecondary))),
-          Expanded(child: Text(value, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: NpupsColors.textPrimary))),
+          SizedBox(width: 120, child: Text(label, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary))),
+          Expanded(child: Text(value, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textPrimary))),
         ],
       ),
     );
@@ -255,9 +255,9 @@ class _WorkerTimesheetScreenState extends State<WorkerTimesheetScreen> {
           children: [
             Row(
               children: [
-                const Icon(Icons.edit_calendar, color: NpupsColors.accent, size: 20),
+                const Icon(Icons.edit_calendar, color: AppColors.accent, size: 20),
                 const SizedBox(width: 8),
-                const Text('Attendance', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: NpupsColors.primary)),
+                const Text('Attendance', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppColors.primary)),
                 const Spacer(),
                 TextButton.icon(
                   onPressed: () => _quickFill(ts),
@@ -268,7 +268,7 @@ class _WorkerTimesheetScreenState extends State<WorkerTimesheetScreen> {
             ),
             const SizedBox(height: 8),
             for (int week = 0; week < 2; week++) ...[
-              Text('Week ${week + 1}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: NpupsColors.primary)),
+              Text('Week ${week + 1}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppColors.primary)),
               const SizedBox(height: 4),
               SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
@@ -282,24 +282,24 @@ class _WorkerTimesheetScreenState extends State<WorkerTimesheetScreen> {
                       margin: const EdgeInsets.only(right: 4, bottom: 8),
                       padding: const EdgeInsets.all(6),
                       decoration: BoxDecoration(
-                        color: entry.isPresent ? NpupsColors.success.withValues(alpha: 0.08)
+                        color: entry.isPresent ? AppColors.success.withValues(alpha: 0.08)
                             : isWeekend ? Colors.grey.withValues(alpha: 0.05) : Colors.white,
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: entry.isPresent ? NpupsColors.success.withValues(alpha: 0.3) : NpupsColors.border),
+                        border: Border.all(color: entry.isPresent ? AppColors.success.withValues(alpha: 0.3) : AppColors.border),
                       ),
                       child: Column(
                         children: [
-                          Text(dayLabels[d], style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: isWeekend ? NpupsColors.textSecondary : NpupsColors.primary)),
-                          Text(DateFormat('d').format(ts.fortnightStart.add(Duration(days: idx))), style: const TextStyle(fontSize: 9, color: NpupsColors.textSecondary)),
+                          Text(dayLabels[d], style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: isWeekend ? AppColors.textSecondary : AppColors.primary)),
+                          Text(DateFormat('d').format(ts.fortnightStart.add(Duration(days: idx))), style: const TextStyle(fontSize: 9, color: AppColors.textSecondary)),
                           const SizedBox(height: 4),
                           InkWell(
                             onTap: () => _pickTime(ts, idx, true),
                             child: Container(
                               padding: const EdgeInsets.symmetric(vertical: 3),
-                              decoration: BoxDecoration(color: NpupsColors.inputFill, borderRadius: BorderRadius.circular(4)),
+                              decoration: BoxDecoration(color: AppColors.inputFill, borderRadius: BorderRadius.circular(4)),
                               child: Center(child: Text(
                                 entry.timeIn != null ? '${entry.timeIn!.hour.toString().padLeft(2, '0')}:${entry.timeIn!.minute.toString().padLeft(2, '0')}' : '--:--',
-                                style: TextStyle(fontSize: 10, color: entry.timeIn != null ? NpupsColors.success : NpupsColors.textSecondary),
+                                style: TextStyle(fontSize: 10, color: entry.timeIn != null ? AppColors.success : AppColors.textSecondary),
                               )),
                             ),
                           ),
@@ -308,10 +308,10 @@ class _WorkerTimesheetScreenState extends State<WorkerTimesheetScreen> {
                             onTap: () => _pickTime(ts, idx, false),
                             child: Container(
                               padding: const EdgeInsets.symmetric(vertical: 3),
-                              decoration: BoxDecoration(color: NpupsColors.inputFill, borderRadius: BorderRadius.circular(4)),
+                              decoration: BoxDecoration(color: AppColors.inputFill, borderRadius: BorderRadius.circular(4)),
                               child: Center(child: Text(
                                 entry.timeOut != null ? '${entry.timeOut!.hour.toString().padLeft(2, '0')}:${entry.timeOut!.minute.toString().padLeft(2, '0')}' : '--:--',
-                                style: TextStyle(fontSize: 10, color: entry.timeOut != null ? NpupsColors.accent : NpupsColors.textSecondary),
+                                style: TextStyle(fontSize: 10, color: entry.timeOut != null ? AppColors.accent : AppColors.textSecondary),
                               )),
                             ),
                           ),
@@ -340,14 +340,14 @@ class _WorkerTimesheetScreenState extends State<WorkerTimesheetScreen> {
           children: [
             const Row(
               children: [
-                Icon(Icons.calendar_today, color: NpupsColors.accent, size: 20),
+                Icon(Icons.calendar_today, color: AppColors.accent, size: 20),
                 SizedBox(width: 8),
-                Text('Attendance (Submitted)', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: NpupsColors.primary)),
+                Text('Attendance (Submitted)', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppColors.primary)),
               ],
             ),
             const SizedBox(height: 8),
             for (int week = 0; week < 2; week++) ...[
-              Text('Week ${week + 1}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: NpupsColors.primary)),
+              Text('Week ${week + 1}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppColors.primary)),
               const SizedBox(height: 4),
               SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
@@ -360,13 +360,13 @@ class _WorkerTimesheetScreenState extends State<WorkerTimesheetScreen> {
                       margin: const EdgeInsets.only(right: 4, bottom: 8),
                       padding: const EdgeInsets.all(6),
                       decoration: BoxDecoration(
-                        color: entry.isPresent ? NpupsColors.success.withValues(alpha: 0.08) : Colors.grey.withValues(alpha: 0.05),
+                        color: entry.isPresent ? AppColors.success.withValues(alpha: 0.08) : Colors.grey.withValues(alpha: 0.05),
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: NpupsColors.border),
+                        border: Border.all(color: AppColors.border),
                       ),
                       child: Column(
                         children: [
-                          Text(dayLabels[d], style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: NpupsColors.primary)),
+                          Text(dayLabels[d], style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.primary)),
                           const SizedBox(height: 4),
                           Text(entry.timeIn != null ? '${entry.timeIn!.hour.toString().padLeft(2, '0')}:${entry.timeIn!.minute.toString().padLeft(2, '0')}' : '--', style: const TextStyle(fontSize: 10)),
                           Text(entry.timeOut != null ? '${entry.timeOut!.hour.toString().padLeft(2, '0')}:${entry.timeOut!.minute.toString().padLeft(2, '0')}' : '--', style: const TextStyle(fontSize: 10)),
@@ -394,7 +394,7 @@ class _WorkerTimesheetScreenState extends State<WorkerTimesheetScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Additional Details', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: NpupsColors.primary)),
+            const Text('Additional Details', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppColors.primary)),
             const SizedBox(height: 12),
             Row(
               children: [
@@ -429,7 +429,7 @@ class _WorkerTimesheetScreenState extends State<WorkerTimesheetScreen> {
   Widget _buildTotalsCard(Timesheet ts) {
     return Card(
       elevation: 2,
-      color: NpupsColors.primary,
+      color: AppColors.primary,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -479,13 +479,13 @@ class _WorkerTimesheetScreenState extends State<WorkerTimesheetScreen> {
               }
               _store.updateTimesheet(ts);
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Draft saved'), backgroundColor: NpupsColors.success),
+                const SnackBar(content: Text('Draft saved'), backgroundColor: AppColors.success),
               );
             },
             icon: const Icon(Icons.save_outlined, size: 18),
             label: const Text('Save Draft'),
             style: OutlinedButton.styleFrom(
-              foregroundColor: NpupsColors.accent,
+              foregroundColor: AppColors.accent,
               padding: const EdgeInsets.symmetric(vertical: 14),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
@@ -497,7 +497,7 @@ class _WorkerTimesheetScreenState extends State<WorkerTimesheetScreen> {
             onPressed: () {
               if (ts.daysWorked == 0) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Please enter at least one day of attendance'), backgroundColor: NpupsColors.error),
+                  const SnackBar(content: Text('Please enter at least one day of attendance'), backgroundColor: AppColors.error),
                 );
                 return;
               }
@@ -513,13 +513,13 @@ class _WorkerTimesheetScreenState extends State<WorkerTimesheetScreen> {
               ts.updatedAt = DateTime.now();
               _store.updateTimesheet(ts);
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Timesheet submitted for review'), backgroundColor: NpupsColors.success),
+                const SnackBar(content: Text('Timesheet submitted for review'), backgroundColor: AppColors.success),
               );
             },
             icon: const Icon(Icons.send, size: 18),
             label: const Text('Submit'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: NpupsColors.success,
+              backgroundColor: AppColors.success,
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(vertical: 14),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -542,7 +542,7 @@ class _WorkerTimesheetScreenState extends State<WorkerTimesheetScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Approval History', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: NpupsColors.primary)),
+            const Text('Approval History', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppColors.primary)),
             const SizedBox(height: 12),
             ...ts.approvalHistory.map((record) => Padding(
               padding: const EdgeInsets.only(bottom: 8),
@@ -551,7 +551,7 @@ class _WorkerTimesheetScreenState extends State<WorkerTimesheetScreen> {
                   Icon(
                     record.state == ApprovalState.approved ? Icons.check_circle : Icons.cancel,
                     size: 18,
-                    color: record.state == ApprovalState.approved ? NpupsColors.success : NpupsColors.error,
+                    color: record.state == ApprovalState.approved ? AppColors.success : AppColors.error,
                   ),
                   const SizedBox(width: 8),
                   Expanded(
@@ -559,11 +559,11 @@ class _WorkerTimesheetScreenState extends State<WorkerTimesheetScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text('${record.reviewerName} (${record.reviewerRole})', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
-                        if (record.note != null) Text(record.note!, style: const TextStyle(fontSize: 11, color: NpupsColors.textSecondary)),
+                        if (record.note != null) Text(record.note!, style: const TextStyle(fontSize: 11, color: AppColors.textSecondary)),
                       ],
                     ),
                   ),
-                  Text(DateFormat('dd/MM HH:mm').format(record.timestamp), style: const TextStyle(fontSize: 10, color: NpupsColors.textSecondary)),
+                  Text(DateFormat('dd/MM HH:mm').format(record.timestamp), style: const TextStyle(fontSize: 10, color: AppColors.textSecondary)),
                 ],
               ),
             )),

@@ -1,5 +1,5 @@
 // ──────────────────────────────────────────────────────────────────────────────
-// NPUPS Security Utilities
+// WorkForce
 // Provides data masking for sensitive PII (NIS, bank accounts, ID numbers)
 // and input sanitization for file names and user inputs.
 // ──────────────────────────────────────────────────────────────────────────────

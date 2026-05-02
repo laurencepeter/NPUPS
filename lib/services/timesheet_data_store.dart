@@ -1,5 +1,5 @@
 // ──────────────────────────────────────────────────────────────────────────────
-// NPUPS Timesheet Data Store
+// WorkForce
 // In-memory singleton with demo timesheets at various pipeline stages.
 // Provides querying by stage, corporation, worker, and region.
 // ──────────────────────────────────────────────────────────────────────────────

@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import '../theme/npups_theme.dart';
+import '../theme/app_theme.dart';
 import '../services/security_utils.dart';
 import '../services/worker_data_store.dart';
 
 // ──────────────────────────────────────────────────────────────────────────────
-// NPUPS Timesheet Entry Screen
+// WorkForce
 // Digitizes the paper timesheet template (template.xlsx) for Regional Coordinators
-// Implements §5.4 Digital Timesheet, §6 Timesheet Data Collection, §7 Wireframe
+// Timesheet Screen
 //
 // Tech: Flutter + Supabase (replace mock data with Supabase client calls)
 // ──────────────────────────────────────────────────────────────────────────────
@@ -88,7 +88,7 @@ class _TimesheetEntryScreenState extends State<TimesheetEntryScreen>
   DateTime? _fortnightStart;
   DateTime? _fortnightEnd;
 
-  // Worker entries (up to 12 per template — §6.2)
+  // Worker entries (up to 12 per template)
   final List<WorkerTimesheetEntry> _workerEntries = [WorkerTimesheetEntry()];
 
   // Submission state
@@ -187,10 +187,10 @@ class _TimesheetEntryScreenState extends State<TimesheetEntryScreen>
       builder: (context, child) => Theme(
         data: Theme.of(context).copyWith(
           colorScheme: const ColorScheme.light(
-            primary: NpupsColors.primary,
+            primary: AppColors.primary,
             onPrimary: Colors.white,
             surface: Colors.white,
-            onSurface: NpupsColors.textPrimary,
+            onSurface: AppColors.textPrimary,
           ),
         ),
         child: child!,
@@ -212,7 +212,7 @@ class _TimesheetEntryScreenState extends State<TimesheetEntryScreen>
           : (entry.attendance[dayIndex].timeOut ?? const TimeOfDay(hour: 15, minute: 0)),
       builder: (context, child) => Theme(
         data: Theme.of(context).copyWith(
-          colorScheme: const ColorScheme.light(primary: NpupsColors.primary, onPrimary: Colors.white),
+          colorScheme: const ColorScheme.light(primary: AppColors.primary, onPrimary: Colors.white),
         ),
         child: child!,
       ),
@@ -243,7 +243,7 @@ class _TimesheetEntryScreenState extends State<TimesheetEntryScreen>
     if (!_formKey.currentState!.validate()) return;
     if (!_isSupervisorConfirmed) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Maintenance Supervisor confirmation required'), backgroundColor: NpupsColors.error),
+        const SnackBar(content: Text('Maintenance Supervisor confirmation required'), backgroundColor: AppColors.error),
       );
       return;
     }
@@ -258,7 +258,7 @@ class _TimesheetEntryScreenState extends State<TimesheetEntryScreen>
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           title: const Row(
             children: [
-              Icon(Icons.check_circle, color: NpupsColors.success, size: 28),
+              Icon(Icons.check_circle, color: AppColors.success, size: 28),
               SizedBox(width: 8),
               Text('Timesheet Submitted'),
             ],
@@ -267,7 +267,7 @@ class _TimesheetEntryScreenState extends State<TimesheetEntryScreen>
           actions: [
             TextButton(
               onPressed: () => Navigator.of(ctx).pop(),
-              child: const Text('OK', style: TextStyle(color: NpupsColors.primary)),
+              child: const Text('OK', style: TextStyle(color: AppColors.primary)),
             ),
           ],
         ),
@@ -280,15 +280,15 @@ class _TimesheetEntryScreenState extends State<TimesheetEntryScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: NpupsColors.surface,
+      backgroundColor: AppColors.surface,
       appBar: AppBar(
-        backgroundColor: NpupsColors.primary,
+        backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
         elevation: 0,
         title: const Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('NPUPS Timesheet', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            Text('WorkForce Timesheet', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             Text('Fortnightly Attendance Entry', style: TextStyle(fontSize: 12, color: Colors.white70)),
           ],
         ),
@@ -298,7 +298,7 @@ class _TimesheetEntryScreenState extends State<TimesheetEntryScreen>
             tooltip: 'Save Draft',
             onPressed: () {
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Draft saved locally'), backgroundColor: NpupsColors.success),
+                const SnackBar(content: Text('Draft saved locally'), backgroundColor: AppColors.success),
               );
             },
           ),
@@ -348,9 +348,9 @@ class _TimesheetEntryScreenState extends State<TimesheetEntryScreen>
           children: [
             const Row(
               children: [
-                Icon(Icons.assignment, color: NpupsColors.accent, size: 22),
+                Icon(Icons.assignment, color: AppColors.accent, size: 22),
                 SizedBox(width: 8),
-                Text('Timesheet Header', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: NpupsColors.primary)),
+                Text('Timesheet Header', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.primary)),
               ],
             ),
             const Divider(height: 24),
@@ -416,7 +416,7 @@ class _TimesheetEntryScreenState extends State<TimesheetEntryScreen>
                           decoration: _inputDecoration('Select Monday'),
                           child: Text(
                             _fortnightStart != null ? DateFormat('dd MMM yyyy').format(_fortnightStart!) : 'Tap to select',
-                            style: TextStyle(fontSize: 14, color: _fortnightStart != null ? NpupsColors.textPrimary : NpupsColors.textSecondary),
+                            style: TextStyle(fontSize: 14, color: _fortnightStart != null ? AppColors.textPrimary : AppColors.textSecondary),
                           ),
                         ),
                       ),
@@ -433,7 +433,7 @@ class _TimesheetEntryScreenState extends State<TimesheetEntryScreen>
                         decoration: _inputDecoration('Auto-calculated'),
                         child: Text(
                           _fortnightEnd != null ? DateFormat('dd MMM yyyy').format(_fortnightEnd!) : '--',
-                          style: const TextStyle(fontSize: 14, color: NpupsColors.textSecondary),
+                          style: const TextStyle(fontSize: 14, color: AppColors.textSecondary),
                         ),
                       ),
                     ],
@@ -462,25 +462,25 @@ class _TimesheetEntryScreenState extends State<TimesheetEntryScreen>
           children: [
             CircleAvatar(
               radius: 16,
-              backgroundColor: entry.worker != null ? NpupsColors.success : NpupsColors.border,
-              child: Text('${index + 1}', style: TextStyle(color: entry.worker != null ? Colors.white : NpupsColors.textSecondary, fontWeight: FontWeight.bold, fontSize: 13)),
+              backgroundColor: entry.worker != null ? AppColors.success : AppColors.border,
+              child: Text('${index + 1}', style: TextStyle(color: entry.worker != null ? Colors.white : AppColors.textSecondary, fontWeight: FontWeight.bold, fontSize: 13)),
             ),
             const SizedBox(width: 12),
             Expanded(
               child: Text(
                 entry.worker?.name ?? 'Worker ${index + 1} (unassigned)',
-                style: TextStyle(fontWeight: FontWeight.w600, color: entry.worker != null ? NpupsColors.textPrimary : NpupsColors.textSecondary),
+                style: TextStyle(fontWeight: FontWeight.w600, color: entry.worker != null ? AppColors.textPrimary : AppColors.textSecondary),
               ),
             ),
             if (entry.worker != null)
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                decoration: BoxDecoration(color: NpupsColors.success.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(4)),
-                child: Text('${entry.daysWorked}d | ${_formatCurrency(entry.grandTotal)}', style: const TextStyle(fontSize: 12, color: NpupsColors.success, fontWeight: FontWeight.w600)),
+                decoration: BoxDecoration(color: AppColors.success.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(4)),
+                child: Text('${entry.daysWorked}d | ${_formatCurrency(entry.grandTotal)}', style: const TextStyle(fontSize: 12, color: AppColors.success, fontWeight: FontWeight.w600)),
               ),
             if (_workerEntries.length > 1)
               IconButton(
-                icon: const Icon(Icons.close, size: 18, color: NpupsColors.error),
+                icon: const Icon(Icons.close, size: 18, color: AppColors.error),
                 onPressed: () => _removeWorkerEntry(index),
                 tooltip: 'Remove worker',
               ),
@@ -503,7 +503,7 @@ class _TimesheetEntryScreenState extends State<TimesheetEntryScreen>
             const SizedBox(height: 12),
             Container(
               padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(color: NpupsColors.inputFill, borderRadius: BorderRadius.circular(8), border: Border.all(color: NpupsColors.border)),
+              decoration: BoxDecoration(color: AppColors.inputFill, borderRadius: BorderRadius.circular(8), border: Border.all(color: AppColors.border)),
               child: Row(children: [_buildInfoChip('Position', entry.worker!.position), _buildInfoChip('ID#', SecurityUtils.maskIdNumber(entry.worker!.idNumber)), _buildInfoChip('NIS#', SecurityUtils.maskNisNumber(entry.worker!.nisNumber))]),
             ),
             const SizedBox(height: 16),
@@ -511,8 +511,8 @@ class _TimesheetEntryScreenState extends State<TimesheetEntryScreen>
               alignment: Alignment.centerRight,
               child: TextButton.icon(
                 onPressed: () => _quickFillWeekday(entry),
-                icon: const Icon(Icons.flash_on, size: 16, color: NpupsColors.accent),
-                label: const Text('Quick fill Mon-Fri (7:00-15:00)', style: TextStyle(fontSize: 12, color: NpupsColors.accent)),
+                icon: const Icon(Icons.flash_on, size: 16, color: AppColors.accent),
+                label: const Text('Quick fill Mon-Fri (7:00-15:00)', style: TextStyle(fontSize: 12, color: AppColors.accent)),
               ),
             ),
             _buildAttendanceGrid(entry),
@@ -530,11 +530,11 @@ class _TimesheetEntryScreenState extends State<TimesheetEntryScreen>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Week 1', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: NpupsColors.primary)),
+        const Text('Week 1', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.primary)),
         const SizedBox(height: 4),
         _buildWeekRow(entry, 0, 7),
         const SizedBox(height: 12),
-        const Text('Week 2', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: NpupsColors.primary)),
+        const Text('Week 2', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.primary)),
         const SizedBox(height: 4),
         _buildWeekRow(entry, 7, 14),
       ],
@@ -554,22 +554,22 @@ class _TimesheetEntryScreenState extends State<TimesheetEntryScreen>
             margin: const EdgeInsets.only(right: 4),
             padding: const EdgeInsets.all(6),
             decoration: BoxDecoration(
-              color: att.isPresent ? NpupsColors.success.withValues(alpha: 0.08) : isWeekend ? Colors.grey.withValues(alpha: 0.05) : Colors.white,
+              color: att.isPresent ? AppColors.success.withValues(alpha: 0.08) : isWeekend ? Colors.grey.withValues(alpha: 0.05) : Colors.white,
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: att.isPresent ? NpupsColors.success.withValues(alpha: 0.3) : NpupsColors.border),
+              border: Border.all(color: att.isPresent ? AppColors.success.withValues(alpha: 0.3) : AppColors.border),
             ),
             child: Column(
               children: [
-                Text(_dayLabels[dayIndex], style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: isWeekend ? NpupsColors.textSecondary : NpupsColors.primary)),
+                Text(_dayLabels[dayIndex], style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: isWeekend ? AppColors.textSecondary : AppColors.primary)),
                 if (_fortnightStart != null)
-                  Text(DateFormat('d').format(_fortnightStart!.add(Duration(days: dayIndex))), style: const TextStyle(fontSize: 10, color: NpupsColors.textSecondary)),
+                  Text(DateFormat('d').format(_fortnightStart!.add(Duration(days: dayIndex))), style: const TextStyle(fontSize: 10, color: AppColors.textSecondary)),
                 const SizedBox(height: 4),
                 InkWell(
                   onTap: () => _pickTime(entry, dayIndex, true),
                   child: Container(
                     padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
-                    decoration: BoxDecoration(color: NpupsColors.inputFill, borderRadius: BorderRadius.circular(4)),
-                    child: Text(_formatTime(att.timeIn), style: TextStyle(fontSize: 10, color: att.timeIn != null ? NpupsColors.success : NpupsColors.textSecondary, fontWeight: FontWeight.w500)),
+                    decoration: BoxDecoration(color: AppColors.inputFill, borderRadius: BorderRadius.circular(4)),
+                    child: Text(_formatTime(att.timeIn), style: TextStyle(fontSize: 10, color: att.timeIn != null ? AppColors.success : AppColors.textSecondary, fontWeight: FontWeight.w500)),
                   ),
                 ),
                 const SizedBox(height: 2),
@@ -577,8 +577,8 @@ class _TimesheetEntryScreenState extends State<TimesheetEntryScreen>
                   onTap: () => _pickTime(entry, dayIndex, false),
                   child: Container(
                     padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
-                    decoration: BoxDecoration(color: NpupsColors.inputFill, borderRadius: BorderRadius.circular(4)),
-                    child: Text(_formatTime(att.timeOut), style: TextStyle(fontSize: 10, color: att.timeOut != null ? NpupsColors.accent : NpupsColors.textSecondary, fontWeight: FontWeight.w500)),
+                    decoration: BoxDecoration(color: AppColors.inputFill, borderRadius: BorderRadius.circular(4)),
+                    child: Text(_formatTime(att.timeOut), style: TextStyle(fontSize: 10, color: att.timeOut != null ? AppColors.accent : AppColors.textSecondary, fontWeight: FontWeight.w500)),
                   ),
                 ),
               ],
@@ -595,9 +595,9 @@ class _TimesheetEntryScreenState extends State<TimesheetEntryScreen>
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: NpupsColors.primary.withValues(alpha: 0.04),
+        color: AppColors.primary.withValues(alpha: 0.04),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: NpupsColors.primary.withValues(alpha: 0.15)),
+        border: Border.all(color: AppColors.primary.withValues(alpha: 0.15)),
       ),
       child: Column(
         children: [
@@ -647,7 +647,7 @@ class _TimesheetEntryScreenState extends State<TimesheetEntryScreen>
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      color: NpupsColors.primary,
+      color: AppColors.primary,
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -688,9 +688,9 @@ class _TimesheetEntryScreenState extends State<TimesheetEntryScreen>
           children: [
             const Row(
               children: [
-                Icon(Icons.verified_user, color: NpupsColors.accent, size: 22),
+                Icon(Icons.verified_user, color: AppColors.accent, size: 22),
                 SizedBox(width: 8),
-                Text('Sign-Off & Approval', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: NpupsColors.primary)),
+                Text('Sign-Off & Approval', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.primary)),
               ],
             ),
             const Divider(height: 24),
@@ -699,20 +699,20 @@ class _TimesheetEntryScreenState extends State<TimesheetEntryScreen>
               onChanged: (v) => setState(() => _isSupervisorConfirmed = v ?? false),
               title: const Text('Maintenance Supervisor Confirmation', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
               subtitle: const Text('I confirm that attendance records are accurate and verified.', style: TextStyle(fontSize: 12)),
-              activeColor: NpupsColors.success,
+              activeColor: AppColors.success,
               contentPadding: EdgeInsets.zero,
               controlAffinity: ListTileControlAffinity.leading,
             ),
             const Divider(),
             ListTile(
               contentPadding: EdgeInsets.zero,
-              leading: const Icon(Icons.person, color: NpupsColors.accent),
+              leading: const Icon(Icons.person, color: AppColors.accent),
               title: const Text('Regional Coordinator', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
               subtitle: const Text('Auto-captured from your login session', style: TextStyle(fontSize: 12)),
               trailing: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(color: NpupsColors.success.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(4)),
-                child: const Text('Authenticated', style: TextStyle(fontSize: 11, color: NpupsColors.success)),
+                decoration: BoxDecoration(color: AppColors.success.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(4)),
+                child: const Text('Authenticated', style: TextStyle(fontSize: 11, color: AppColors.success)),
               ),
             ),
           ],
@@ -729,8 +729,8 @@ class _TimesheetEntryScreenState extends State<TimesheetEntryScreen>
       icon: const Icon(Icons.person_add, size: 18),
       label: Text('Add Worker (${_workerEntries.length}/12)'),
       style: OutlinedButton.styleFrom(
-        foregroundColor: NpupsColors.accent,
-        side: BorderSide(color: NpupsColors.accent.withValues(alpha: 0.4)),
+        foregroundColor: AppColors.accent,
+        side: BorderSide(color: AppColors.accent.withValues(alpha: 0.4)),
         padding: const EdgeInsets.symmetric(vertical: 14),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
@@ -750,7 +750,7 @@ class _TimesheetEntryScreenState extends State<TimesheetEntryScreen>
             : const Icon(Icons.send, size: 20),
         label: Text(_isSubmitting ? 'Submitting...' : 'Submit Timesheet'),
         style: ElevatedButton.styleFrom(
-          backgroundColor: NpupsColors.success,
+          backgroundColor: AppColors.success,
           foregroundColor: Colors.white,
           elevation: 2,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -765,30 +765,30 @@ class _TimesheetEntryScreenState extends State<TimesheetEntryScreen>
   Widget _buildLabel(String text) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 6),
-      child: Text(text, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: NpupsColors.textSecondary)),
+      child: Text(text, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textSecondary)),
     );
   }
 
   InputDecoration _inputDecoration(String hint) {
     return InputDecoration(
       hintText: hint,
-      hintStyle: const TextStyle(fontSize: 14, color: NpupsColors.textSecondary),
+      hintStyle: const TextStyle(fontSize: 14, color: AppColors.textSecondary),
       filled: true,
-      fillColor: NpupsColors.inputFill,
+      fillColor: AppColors.inputFill,
       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: NpupsColors.border)),
-      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: NpupsColors.border)),
-      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: NpupsColors.accent, width: 2)),
-      errorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: NpupsColors.error)),
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: AppColors.border)),
+      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: AppColors.border)),
+      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: AppColors.accent, width: 2)),
+      errorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: AppColors.error)),
     );
   }
 
   Widget _buildInfoChip(String label, String value) {
     return Expanded(
       child: Column(children: [
-        Text(label, style: const TextStyle(fontSize: 10, color: NpupsColors.textSecondary)),
+        Text(label, style: const TextStyle(fontSize: 10, color: AppColors.textSecondary)),
         const SizedBox(height: 2),
-        Text(value, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: NpupsColors.textPrimary)),
+        Text(value, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
       ]),
     );
   }
@@ -796,9 +796,9 @@ class _TimesheetEntryScreenState extends State<TimesheetEntryScreen>
   Widget _buildTotalItem(String label, String value, {bool bold = false}) {
     return Expanded(
       child: Column(children: [
-        Text(label, style: const TextStyle(fontSize: 10, color: NpupsColors.textSecondary)),
+        Text(label, style: const TextStyle(fontSize: 10, color: AppColors.textSecondary)),
         const SizedBox(height: 2),
-        Text(value, style: TextStyle(fontSize: bold ? 14 : 12, fontWeight: bold ? FontWeight.bold : FontWeight.w600, color: bold ? NpupsColors.primary : NpupsColors.textPrimary)),
+        Text(value, style: TextStyle(fontSize: bold ? 14 : 12, fontWeight: bold ? FontWeight.bold : FontWeight.w600, color: bold ? AppColors.primary : AppColors.textPrimary)),
       ]),
     );
   }

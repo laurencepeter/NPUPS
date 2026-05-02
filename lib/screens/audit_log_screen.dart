@@ -1,5 +1,5 @@
 // ──────────────────────────────────────────────────────────────────────────────
-// NPUPS Audit Log Screen
+// WorkForce
 // Full tamper-evident audit trail viewer with:
 //  - Filters: date range, user, action type, entity type, text search
 //  - Per-entry field-level diff (before → after)
@@ -11,10 +11,10 @@ import 'package:flutter/material.dart';
 import '../models/audit_model.dart';
 import '../models/user_model.dart';
 import '../services/audit_service.dart';
-import '../theme/npups_theme.dart';
+import '../theme/app_theme.dart';
 
 class AuditLogScreen extends StatefulWidget {
-  final NpupsUser currentUser;
+  final AppUser currentUser;
 
   const AuditLogScreen({super.key, required this.currentUser});
 
@@ -77,7 +77,7 @@ class _AuditLogScreenState extends State<AuditLogScreen> {
               IconButton(
                 icon: Icon(
                   _showFilters ? Icons.filter_alt : Icons.filter_alt_outlined,
-                  color: _hasActiveFilters ? NpupsColors.accent : null,
+                  color: _hasActiveFilters ? AppColors.accent : null,
                 ),
                 tooltip: 'Filters',
                 onPressed: () => setState(() => _showFilters = !_showFilters),
@@ -95,7 +95,7 @@ class _AuditLogScreenState extends State<AuditLogScreen> {
             children: [
               // ── Search bar ────────────────────────────────────────────────
               Container(
-                color: isDark ? NpupsColors.darkCard : Colors.white,
+                color: isDark ? AppColors.darkCard : Colors.white,
                 padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
                 child: TextField(
                   controller: _searchCtrl,
@@ -123,8 +123,8 @@ class _AuditLogScreenState extends State<AuditLogScreen> {
               // ── Stats bar ─────────────────────────────────────────────────
               Container(
                 color: isDark
-                    ? NpupsColors.darkBackground
-                    : NpupsColors.surface,
+                    ? AppColors.darkBackground
+                    : AppColors.surface,
                 padding:
                     const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
                 child: Row(
@@ -134,8 +134,8 @@ class _AuditLogScreenState extends State<AuditLogScreen> {
                       style: TextStyle(
                         fontSize: 12,
                         color: isDark
-                            ? NpupsColors.darkTextSecondary
-                            : NpupsColors.textSecondary,
+                            ? AppColors.darkTextSecondary
+                            : AppColors.textSecondary,
                       ),
                     ),
                     if (_hasActiveFilters) ...[
@@ -161,8 +161,8 @@ class _AuditLogScreenState extends State<AuditLogScreen> {
                             : Icons.warning_amber_outlined,
                         size: 14,
                         color: _verificationResult!.isValid
-                            ? NpupsColors.success
-                            : NpupsColors.error,
+                            ? AppColors.success
+                            : AppColors.error,
                       ),
                     const SizedBox(width: 4),
                     Text(
@@ -170,8 +170,8 @@ class _AuditLogScreenState extends State<AuditLogScreen> {
                       style: TextStyle(
                         fontSize: 11,
                         color: _verificationResult?.isValid == true
-                            ? NpupsColors.success
-                            : NpupsColors.error,
+                            ? AppColors.success
+                            : AppColors.error,
                       ),
                     ),
                   ],
@@ -190,8 +190,8 @@ class _AuditLogScreenState extends State<AuditLogScreen> {
                         separatorBuilder: (_, __) => Divider(
                           height: 1,
                           color: isDark
-                              ? NpupsColors.darkBorder
-                              : NpupsColors.border,
+                              ? AppColors.darkBorder
+                              : AppColors.border,
                         ),
                         itemBuilder: (context, i) =>
                             _buildEntry(context, entries[i], isDark),
@@ -207,7 +207,7 @@ class _AuditLogScreenState extends State<AuditLogScreen> {
   Widget _buildFilterPanel(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
-      color: isDark ? NpupsColors.darkCard : Colors.white,
+      color: isDark ? AppColors.darkCard : Colors.white,
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -240,7 +240,7 @@ class _AuditLogScreenState extends State<AuditLogScreen> {
                   Icons.date_range,
                   size: 16,
                   color: _filterDateRange != null
-                      ? NpupsColors.accent
+                      ? AppColors.accent
                       : null,
                 ),
                 label: Text(
@@ -249,7 +249,7 @@ class _AuditLogScreenState extends State<AuditLogScreen> {
                       : 'Date Range',
                   style: TextStyle(
                     fontSize: 12,
-                    color: _filterDateRange != null ? NpupsColors.accent : null,
+                    color: _filterDateRange != null ? AppColors.accent : null,
                   ),
                 ),
                 onPressed: _pickDateRange,
@@ -305,8 +305,8 @@ class _AuditLogScreenState extends State<AuditLogScreen> {
                                 fontWeight: FontWeight.w600,
                                 fontSize: 13,
                                 color: isDark
-                                    ? NpupsColors.darkTextPrimary
-                                    : NpupsColors.textPrimary,
+                                    ? AppColors.darkTextPrimary
+                                    : AppColors.textPrimary,
                               ),
                             ),
                           ),
@@ -315,8 +315,8 @@ class _AuditLogScreenState extends State<AuditLogScreen> {
                             style: TextStyle(
                               fontSize: 11,
                               color: isDark
-                                  ? NpupsColors.darkTextSecondary
-                                  : NpupsColors.textSecondary,
+                                  ? AppColors.darkTextSecondary
+                                  : AppColors.textSecondary,
                             ),
                           ),
                         ],
@@ -327,8 +327,8 @@ class _AuditLogScreenState extends State<AuditLogScreen> {
                         style: TextStyle(
                           fontSize: 13,
                           color: isDark
-                              ? NpupsColors.darkTextSecondary
-                              : NpupsColors.textSecondary,
+                              ? AppColors.darkTextSecondary
+                              : AppColors.textSecondary,
                         ),
                       ),
                       const SizedBox(height: 2),
@@ -337,16 +337,16 @@ class _AuditLogScreenState extends State<AuditLogScreen> {
                           Icon(Icons.person_outline,
                               size: 12,
                               color: isDark
-                                  ? NpupsColors.darkTextHint
-                                  : NpupsColors.textHint),
+                                  ? AppColors.darkTextHint
+                                  : AppColors.textHint),
                           const SizedBox(width: 3),
                           Text(
                             '${entry.userName} (${entry.userRole})',
                             style: TextStyle(
                               fontSize: 11,
                               color: isDark
-                                  ? NpupsColors.darkTextHint
-                                  : NpupsColors.textHint,
+                                  ? AppColors.darkTextHint
+                                  : AppColors.textHint,
                             ),
                           ),
                           if (entry.hasFieldChanges) ...[
@@ -355,13 +355,13 @@ class _AuditLogScreenState extends State<AuditLogScreen> {
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 5, vertical: 1),
                               decoration: BoxDecoration(
-                                color: NpupsColors.info.withValues(alpha: 0.12),
+                                color: AppColors.info.withValues(alpha: 0.12),
                                 borderRadius: BorderRadius.circular(4),
                               ),
                               child: Text(
                                 '${entry.fieldChanges.length} field${entry.fieldChanges.length == 1 ? '' : 's'} changed',
                                 style: const TextStyle(
-                                    fontSize: 10, color: NpupsColors.info),
+                                    fontSize: 10, color: AppColors.info),
                               ),
                             ),
                           ],
@@ -375,8 +375,8 @@ class _AuditLogScreenState extends State<AuditLogScreen> {
                   isExpanded ? Icons.expand_less : Icons.expand_more,
                   size: 18,
                   color: isDark
-                      ? NpupsColors.darkTextHint
-                      : NpupsColors.textHint,
+                      ? AppColors.darkTextHint
+                      : AppColors.textHint,
                 ),
               ],
             ),
@@ -393,17 +393,17 @@ class _AuditLogScreenState extends State<AuditLogScreen> {
   }
 
   Widget _buildEntryDetail(AuditLogEntry entry, bool isDark) {
-    final bg = isDark ? NpupsColors.darkBackground : NpupsColors.surface;
+    final bg = isDark ? AppColors.darkBackground : AppColors.surface;
     final textColor = isDark
-        ? NpupsColors.darkTextSecondary
-        : NpupsColors.textSecondary;
+        ? AppColors.darkTextSecondary
+        : AppColors.textSecondary;
 
     return Container(
       decoration: BoxDecoration(
         color: bg,
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: isDark ? NpupsColors.darkBorder : NpupsColors.border,
+          color: isDark ? AppColors.darkBorder : AppColors.border,
         ),
       ),
       padding: const EdgeInsets.all(12),
@@ -431,7 +431,7 @@ class _AuditLogScreenState extends State<AuditLogScreen> {
             style: TextStyle(
               fontFamily: 'monospace',
               fontSize: 10,
-              color: isDark ? NpupsColors.darkAccentLight : NpupsColors.accent,
+              color: isDark ? AppColors.darkAccentLight : AppColors.accent,
             ),
           ),
 
@@ -465,8 +465,8 @@ class _AuditLogScreenState extends State<AuditLogScreen> {
                 fontSize: 11,
                 fontWeight: FontWeight.w500,
                 color: isDark
-                    ? NpupsColors.darkTextSecondary
-                    : NpupsColors.textSecondary,
+                    ? AppColors.darkTextSecondary
+                    : AppColors.textSecondary,
               ),
             ),
           ),
@@ -477,18 +477,18 @@ class _AuditLogScreenState extends State<AuditLogScreen> {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
-                  color: NpupsColors.error.withValues(alpha: 0.1),
+                  color: AppColors.error.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: Text(fc.oldValue!,
                     style: const TextStyle(
-                        fontSize: 11, color: NpupsColors.error)),
+                        fontSize: 11, color: AppColors.error)),
               ),
             ),
             const Padding(
               padding: EdgeInsets.symmetric(horizontal: 4),
               child: Icon(Icons.arrow_forward, size: 12,
-                  color: NpupsColors.textHint),
+                  color: AppColors.textHint),
             ),
           ],
           if (fc.newValue != null)
@@ -497,12 +497,12 @@ class _AuditLogScreenState extends State<AuditLogScreen> {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
-                  color: NpupsColors.success.withValues(alpha: 0.1),
+                  color: AppColors.success.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: Text(fc.newValue!,
                     style: const TextStyle(
-                        fontSize: 11, color: NpupsColors.success)),
+                        fontSize: 11, color: AppColors.success)),
               ),
             ),
         ],
@@ -522,8 +522,8 @@ class _AuditLogScreenState extends State<AuditLogScreen> {
                 style: TextStyle(
                   fontSize: 11,
                   color: isDark
-                      ? NpupsColors.darkTextHint
-                      : NpupsColors.textHint,
+                      ? AppColors.darkTextHint
+                      : AppColors.textHint,
                 )),
           ),
           Expanded(
@@ -531,8 +531,8 @@ class _AuditLogScreenState extends State<AuditLogScreen> {
                 style: TextStyle(
                   fontSize: 11,
                   color: isDark
-                      ? NpupsColors.darkTextSecondary
-                      : NpupsColors.textSecondary,
+                      ? AppColors.darkTextSecondary
+                      : AppColors.textSecondary,
                 )),
           ),
         ],
@@ -548,15 +548,15 @@ class _AuditLogScreenState extends State<AuditLogScreen> {
           Icon(Icons.history_edu,
               size: 48,
               color: isDark
-                  ? NpupsColors.darkTextHint
-                  : NpupsColors.textHint),
+                  ? AppColors.darkTextHint
+                  : AppColors.textHint),
           const SizedBox(height: 12),
           Text(
             'No audit entries match your filters',
             style: TextStyle(
                 color: isDark
-                    ? NpupsColors.darkTextSecondary
-                    : NpupsColors.textSecondary),
+                    ? AppColors.darkTextSecondary
+                    : AppColors.textSecondary),
           ),
         ],
       ),
@@ -585,23 +585,23 @@ class _AuditLogScreenState extends State<AuditLogScreen> {
 
   static Color _actionColor(AuditAction a) {
     return switch (a) {
-      AuditAction.create => NpupsColors.success,
-      AuditAction.update => NpupsColors.info,
-      AuditAction.delete || AuditAction.deactivate => NpupsColors.error,
-      AuditAction.activate => NpupsColors.success,
+      AuditAction.create => AppColors.success,
+      AuditAction.update => AppColors.info,
+      AuditAction.delete || AuditAction.deactivate => AppColors.error,
+      AuditAction.activate => AppColors.success,
       AuditAction.approve ||
       AuditAction.documentApprove ||
       AuditAction.stageAdvanced =>
-        NpupsColors.success,
+        AppColors.success,
       AuditAction.reject ||
       AuditAction.documentReject ||
       AuditAction.stageRejected =>
-        NpupsColors.error,
-      AuditAction.login || AuditAction.logout => NpupsColors.primary,
-      AuditAction.export || AuditAction.import => NpupsColors.accentDark,
-      AuditAction.rosterUpdate => NpupsColors.warning,
-      AuditAction.documentUpload => NpupsColors.info,
-      _ => NpupsColors.textSecondary,
+        AppColors.error,
+      AuditAction.login || AuditAction.logout => AppColors.primary,
+      AuditAction.export || AuditAction.import => AppColors.accentDark,
+      AuditAction.rosterUpdate => AppColors.warning,
+      AuditAction.documentUpload => AppColors.info,
+      _ => AppColors.textSecondary,
     };
   }
 
@@ -651,11 +651,11 @@ class _ChainBadge extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         decoration: BoxDecoration(
           color: ok
-              ? NpupsColors.success.withValues(alpha: 0.15)
-              : NpupsColors.error.withValues(alpha: 0.15),
+              ? AppColors.success.withValues(alpha: 0.15)
+              : AppColors.error.withValues(alpha: 0.15),
           borderRadius: BorderRadius.circular(6),
           border: Border.all(
-              color: ok ? NpupsColors.success : NpupsColors.error, width: 0.5),
+              color: ok ? AppColors.success : AppColors.error, width: 0.5),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -663,7 +663,7 @@ class _ChainBadge extends StatelessWidget {
             Icon(
               ok ? Icons.shield_outlined : Icons.shield_outlined,
               size: 13,
-              color: ok ? NpupsColors.success : NpupsColors.error,
+              color: ok ? AppColors.success : AppColors.error,
             ),
             const SizedBox(width: 4),
             Text(
@@ -671,7 +671,7 @@ class _ChainBadge extends StatelessWidget {
               style: TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.w600,
-                color: ok ? NpupsColors.success : NpupsColors.error,
+                color: ok ? AppColors.success : AppColors.error,
               ),
             ),
           ],
@@ -702,13 +702,13 @@ class _FilterChip<T> extends StatelessWidget {
       avatar: Icon(
         Icons.filter_list,
         size: 14,
-        color: value != null ? NpupsColors.accent : null,
+        color: value != null ? AppColors.accent : null,
       ),
       label: Text(
         value != null ? displayName(value as T) : label,
         style: TextStyle(
           fontSize: 12,
-          color: value != null ? NpupsColors.accent : null,
+          color: value != null ? AppColors.accent : null,
         ),
       ),
       onPressed: () async {

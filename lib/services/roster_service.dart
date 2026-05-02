@@ -1,5 +1,5 @@
 // ──────────────────────────────────────────────────────────────────────────────
-// NPUPS Roster Service
+// WorkForce
 // Manages fortnightly attendance rosters. Workers are present Mon-Fri by
 // default; data entry staff check off absences. Admins configure max days
 // (default 10) and can enable weekend shifts per corporation.

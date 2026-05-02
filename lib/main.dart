@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'theme/npups_theme.dart';
+import 'theme/app_theme.dart';
 import 'models/user_model.dart';
 import 'services/auth_service.dart';
 import 'screens/login_screen.dart';
@@ -16,14 +16,14 @@ import 'screens/accounts_review_screen.dart';
 import 'screens/ps_dashboard_screen.dart';
 import 'screens/timesheet_upload_screen.dart';
 import 'screens/worker_registration_form.dart';
-import 'screens/ministers_department_screen.dart';
+import 'screens/executive_department_screen.dart';
 import 'screens/audit_log_screen.dart';
 import 'screens/roster_screen.dart';
 import 'screens/employee_import_screen.dart';
 import 'screens/hr_management_screen.dart';
 
 // ──────────────────────────────────────────────────────────────────────────────
-// NUPS — National Upkeep Programme System
+// WorkForce — Digital HR & Payroll System
 // Worker Registration & Payroll Management Platform
 //
 // Developed by Laurence Peter · Built with AI support
@@ -44,22 +44,22 @@ void main() {
     const SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
       statusBarIconBrightness: Brightness.light,
-      systemNavigationBarColor: NpupsColors.primary,
+      systemNavigationBarColor: AppColors.primary,
       systemNavigationBarIconBrightness: Brightness.light,
     ),
   );
 
-  runApp(const NpupsApp());
+  runApp(const WorkForceApp());
 }
 
-class NpupsApp extends StatefulWidget {
-  const NpupsApp({super.key});
+class WorkForceApp extends StatefulWidget {
+  const WorkForceApp({super.key});
 
   @override
-  State<NpupsApp> createState() => _NpupsAppState();
+  State<WorkForceApp> createState() => _WorkForceAppState();
 }
 
-class _NpupsAppState extends State<NpupsApp> with WidgetsBindingObserver {
+class _WorkForceAppState extends State<WorkForceApp> with WidgetsBindingObserver {
   final AuthService _authService = AuthService();
   final ThemeModeNotifier _themeMode = ThemeModeNotifier();
 
@@ -88,10 +88,10 @@ class _NpupsAppState extends State<NpupsApp> with WidgetsBindingObserver {
       valueListenable: _themeMode,
       builder: (context, themeMode, _) {
         return MaterialApp(
-          title: 'NPUPS Digital System',
+          title: 'WorkForce',
           debugShowCheckedModeBanner: false,
-          theme: NpupsTheme.lightTheme,
-          darkTheme: NpupsTheme.darkTheme,
+          theme: AppTheme.lightTheme,
+          darkTheme: AppTheme.darkTheme,
           themeMode: themeMode,
           home: ListenableBuilder(
             listenable: _authService,
@@ -156,7 +156,7 @@ class _AuthenticatedShellState extends State<_AuthenticatedShell> {
   List<_TabConfig>? _cachedTabs;
   UserRole? _cachedRole;
 
-  NpupsUser get _user => widget.authService.currentUser!;
+  AppUser get _user => widget.authService.currentUser!;
 
   void _onTabChanged(int index) {
     if (index != _currentIndex) {
@@ -173,12 +173,12 @@ class _AuthenticatedShellState extends State<_AuthenticatedShell> {
             RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Row(
           children: [
-            Icon(Icons.logout, color: NpupsColors.error, size: 24),
+            Icon(Icons.logout, color: AppColors.error, size: 24),
             SizedBox(width: 10),
             Text('Sign Out'),
           ],
         ),
-        content: const Text('Are you sure you want to sign out of NPUPS?'),
+        content: const Text('Are you sure you want to sign out?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
@@ -187,7 +187,7 @@ class _AuthenticatedShellState extends State<_AuthenticatedShell> {
           ElevatedButton(
             onPressed: () => Navigator.of(ctx).pop(true),
             style: ElevatedButton.styleFrom(
-                backgroundColor: NpupsColors.error),
+                backgroundColor: AppColors.error),
             child: const Text('Sign Out'),
           ),
         ],
@@ -318,8 +318,8 @@ class _AuthenticatedShellState extends State<_AuthenticatedShell> {
         ],
       UserRole.ministersDepartment => [
           _TabConfig('Workers', Icons.people_outlined, Icons.people,
-              () => MinistersDepartmentScreen(
-                  key: const ValueKey('ministers-workers'), user: _user)),
+              () => ExecutiveDepartmentScreen(
+                  key: const ValueKey('executive-workers'), user: _user)),
           _TabConfig('Registry', Icons.person_search_outlined,
               Icons.person_search,
               () => WorkerListScreen(
@@ -387,12 +387,12 @@ class _AuthenticatedShellState extends State<_AuthenticatedShell> {
             selectedIndex: _currentIndex.clamp(0, tabs.length - 1),
             onDestinationSelected: _onTabChanged,
             backgroundColor:
-                isDark ? NpupsColors.darkCard : Colors.white,
+                isDark ? AppColors.darkCard : Colors.white,
             elevation: 8,
             shadowColor: Colors.black38,
             indicatorColor: isDark
-                ? NpupsColors.darkAccent.withValues(alpha: 0.2)
-                : NpupsColors.accent.withValues(alpha: 0.12),
+                ? AppColors.darkAccent.withValues(alpha: 0.2)
+                : AppColors.accent.withValues(alpha: 0.12),
             labelBehavior:
                 NavigationDestinationLabelBehavior.alwaysShow,
             animationDuration: const Duration(milliseconds: 400),
@@ -402,8 +402,8 @@ class _AuthenticatedShellState extends State<_AuthenticatedShell> {
                       selectedIcon: Icon(
                         tab.selectedIcon,
                         color: isDark
-                            ? NpupsColors.darkAccentLight
-                            : NpupsColors.accent,
+                            ? AppColors.darkAccentLight
+                            : AppColors.accent,
                       ),
                       label: tab.label,
                     ))
@@ -416,7 +416,7 @@ class _AuthenticatedShellState extends State<_AuthenticatedShell> {
 
   Widget _buildRoleSwitcher(bool isDark) {
     return Container(
-      color: NpupsColors.primaryDark,
+      color: AppColors.primaryDark,
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       child: Row(
         children: [
@@ -438,7 +438,7 @@ class _AuthenticatedShellState extends State<_AuthenticatedShell> {
                   _roleChip(UserRole.hr, 'HR'),
                   _roleChip(UserRole.subAccounts, 'Accounts'),
                   _roleChip(UserRole.ps, 'Perm. Sec.'),
-                  _roleChip(UserRole.ministersDepartment, 'Minister'),
+                  _roleChip(UserRole.ministersDepartment, 'Executive'),
                   _roleChip(UserRole.systemAdmin, 'Admin'),
                 ],
               ),
@@ -488,7 +488,7 @@ class _AuthenticatedShellState extends State<_AuthenticatedShell> {
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
           decoration: BoxDecoration(
             color: isActive
-                ? NpupsColors.accent
+                ? AppColors.accent
                 : Colors.white.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(12),
             border: isActive ? null : Border.all(color: Colors.white24),
