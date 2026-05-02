@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
-import '../theme/npups_theme.dart';
+import '../theme/app_theme.dart';
 import '../models/worker_model.dart';
 import '../services/worker_data_store.dart';
 
 // ──────────────────────────────────────────────────────────────────────────────
-// NPUPS Worker Registration Form
+// WorkForce
 // Admin creates a new worker with full personal, employment, and bank details.
 // All required fields are validated before submission.
 // ──────────────────────────────────────────────────────────────────────────────
@@ -171,7 +171,7 @@ class _WorkerRegistrationFormState extends State<WorkerRegistrationForm> {
       builder: (ctx, child) => Theme(
         data: Theme.of(ctx).copyWith(
           colorScheme: const ColorScheme.light(
-            primary: NpupsColors.primary,
+            primary: AppColors.primary,
             onPrimary: Colors.white,
           ),
         ),
@@ -260,7 +260,7 @@ class _WorkerRegistrationFormState extends State<WorkerRegistrationForm> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(_isEditing ? 'Worker updated successfully.' : 'Worker registered: ${worker.fullName}'),
-        backgroundColor: NpupsColors.success,
+        backgroundColor: AppColors.success,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ),
@@ -271,7 +271,7 @@ class _WorkerRegistrationFormState extends State<WorkerRegistrationForm> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(msg),
-        backgroundColor: NpupsColors.error,
+        backgroundColor: AppColors.error,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ),
@@ -281,9 +281,9 @@ class _WorkerRegistrationFormState extends State<WorkerRegistrationForm> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: NpupsColors.surface,
+      backgroundColor: AppColors.surface,
       appBar: AppBar(
-        backgroundColor: NpupsColors.primary,
+        backgroundColor: AppColors.primary,
         title: Text(
           _isEditing ? 'Edit Worker' : 'Register New Worker',
           style: const TextStyle(fontWeight: FontWeight.w700),
@@ -496,7 +496,7 @@ class _WorkerRegistrationFormState extends State<WorkerRegistrationForm> {
                   style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
                 ),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: NpupsColors.primary,
+                  backgroundColor: AppColors.primary,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -516,18 +516,18 @@ class _WorkerRegistrationFormState extends State<WorkerRegistrationForm> {
         Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: NpupsColors.accent.withValues(alpha: 0.1),
+            color: AppColors.accent.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(8),
           ),
-          child: Icon(icon, size: 18, color: NpupsColors.accent),
+          child: Icon(icon, size: 18, color: AppColors.accent),
         ),
         const SizedBox(width: 10),
         Text(
           title,
-          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: NpupsColors.textPrimary),
+          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
         ),
         const SizedBox(width: 10),
-        Expanded(child: Divider(color: NpupsColors.border)),
+        Expanded(child: Divider(color: AppColors.border)),
       ],
     );
   }
@@ -556,9 +556,9 @@ class _WorkerRegistrationFormState extends State<WorkerRegistrationForm> {
         helperMaxLines: 3,
         filled: true,
         fillColor: Colors.white,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: NpupsColors.border)),
-        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: NpupsColors.border)),
-        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: NpupsColors.accent, width: 2)),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppColors.border)),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppColors.border)),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppColors.accent, width: 2)),
         contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
       ),
       validator: required
@@ -581,10 +581,10 @@ class _WorkerRegistrationFormState extends State<WorkerRegistrationForm> {
       decoration: InputDecoration(
         labelText: required ? '$label *' : label,
         filled: true,
-        fillColor: disabled ? NpupsColors.inputFill : Colors.white,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: NpupsColors.border)),
-        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: NpupsColors.border)),
-        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: NpupsColors.accent, width: 2)),
+        fillColor: disabled ? AppColors.inputFill : Colors.white,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppColors.border)),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppColors.border)),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppColors.accent, width: 2)),
         contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
       ),
       items: items.map((item) => DropdownMenuItem<T>(value: item, child: Text(item.toString(), overflow: TextOverflow.ellipsis))).toList(),
@@ -607,12 +607,12 @@ class _WorkerRegistrationFormState extends State<WorkerRegistrationForm> {
         child: InputDecorator(
           decoration: InputDecoration(
             labelText: required ? '$label *' : label,
-            suffixIcon: const Icon(Icons.calendar_today, size: 18, color: NpupsColors.accent),
+            suffixIcon: const Icon(Icons.calendar_today, size: 18, color: AppColors.accent),
             filled: true,
             fillColor: Colors.white,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: NpupsColors.border)),
-            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: NpupsColors.border)),
-            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: NpupsColors.accent, width: 2)),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppColors.border)),
+            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppColors.border)),
+            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppColors.accent, width: 2)),
             contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
             errorText: (required && value == null) ? 'Please select a date.' : null,
           ),
@@ -620,7 +620,7 @@ class _WorkerRegistrationFormState extends State<WorkerRegistrationForm> {
             displayText.isEmpty ? 'Tap to select date' : displayText,
             style: TextStyle(
               fontSize: 14,
-              color: displayText.isEmpty ? NpupsColors.textHint : NpupsColors.textPrimary,
+              color: displayText.isEmpty ? AppColors.textHint : AppColors.textPrimary,
             ),
           ),
         ),

@@ -1,6 +1,6 @@
-# NUPS Platform — User Guide
+# WorkForce Platform — User Guide
 
-**National Upkeep Programme System**
+**Digital workflow for employee enrollment, payroll processing, and HR reporting**
 Developed by Laurence Peter · Built with AI support
 
 ---
@@ -18,7 +18,7 @@ Developed by Laurence Peter · Built with AI support
    - [Regional Coordinator](#72-regional-coordinator)
    - [HR Department](#73-hr-department)
    - [Accounts (Sub & Main)](#74-accounts-sub--main)
-   - [Permanent Secretary (PS)](#75-permanent-secretary-ps)
+   - [Director](#75-director)
    - [System Administrator](#76-system-administrator)
 8. [Worker Registry](#8-worker-registry)
 9. [Excel Export](#9-excel-export)
@@ -28,7 +28,7 @@ Developed by Laurence Peter · Built with AI support
 
 ## 1. Platform Overview
 
-NUPS is a web-based digital system for managing worker registration, fortnightly timesheet submission, and payroll processing for public space workers under the National Upkeep Programme.
+WorkForce is a web-based digital system for managing employee registration, fortnightly timesheet submission, and payroll processing.
 
 The platform enforces a structured, multi-stage approval workflow ensuring timesheets pass through Worker → Coordinator → HR → Accounts before payment is authorised and exported for payroll processing.
 
@@ -38,8 +38,8 @@ The platform enforces a structured, multi-stage approval workflow ensuring times
 - Role-based access control with 8 distinct user roles
 - Worker profile management with document verification tracking
 - Payroll calculation (Wage + COLA + Allowance)
-- Excel export matching the official NUPS timesheet template
-- Executive pipeline oversight for the Permanent Secretary
+- Excel export matching the standard timesheet template
+- Executive pipeline oversight for the Director
 
 ---
 
@@ -60,7 +60,7 @@ You will be presented with the Login Screen upon accessing the URL.
 ### What You See
 
 The login screen displays:
-- The NPUPS logo and Ministry branding at the top
+- The WorkForce logo at the top
 - An **Email Address** field
 - A **Password** field with a show/hide toggle
 - A **Login** button
@@ -68,7 +68,7 @@ The login screen displays:
 
 ### How to Log In
 
-1. Enter your assigned government email address (e.g., `firstname.lastname@gov.tt`)
+1. Enter your assigned email address (e.g., `firstname.lastname@yourorganisation.com`)
 2. Enter your password
 3. Click **Login**
 
@@ -94,7 +94,7 @@ Each user is assigned exactly one role. The role determines which screens and ac
 | **HR Department** | Verify employment compliance and leave; approve to Accounts |
 | **Sub-Accounts Clerk** | Verify payroll calculations and bank details; approve for payment |
 | **Main Accounts Clerk** | Authorise approved payments; manage cheque processing |
-| **Permanent Secretary (PS)** | Executive oversight of the full pipeline; bottleneck detection |
+| **Director** | Executive oversight of the full pipeline; bottleneck detection |
 | **DMCR** | Worker data compilation and coordination |
 | **System Administrator** | Full system access; user management |
 
@@ -214,7 +214,7 @@ This is your primary work screen. It shows all timesheets that have been submitt
 
 **What You See Per Timesheet Card:**
 - Worker name and position
-- Corporation / Electoral District
+- Corporation / District
 - Days worked
 - Calculated total amount
 - Current stage indicator
@@ -244,7 +244,7 @@ Used to digitally enter a **paper timesheet group** on behalf of workers who do 
 
 **Header Fields:**
 - Corporation
-- Electoral District
+- District
 - Group Number (1–12)
 - Fortnight Start Date and End Date
 
@@ -317,7 +317,7 @@ A record of timesheets that have already been exported to .xlsx format for payro
 
 #### Export Tab
 
-Used to generate the official NPUPS timesheet Excel file for a corporation group.
+Used to generate the timesheet Excel file for a group.
 
 **Steps:**
 
@@ -327,7 +327,7 @@ Used to generate the official NPUPS timesheet Excel file for a corporation group
 4. Review the pre-populated worker list
 5. Click **Generate Export**
 
-The system downloads a `.xlsx` file formatted to match the official NPUPS timesheet template, including:
+The system downloads a `.xlsx` file formatted to match the standard timesheet template, including:
 - Title header with group number, corporation, and fortnight dates
 - Worker rows with daily Time In/Time Out
 - Calculated Wage, COLA, Allowance, and Total columns
@@ -335,11 +335,11 @@ The system downloads a `.xlsx` file formatted to match the official NPUPS timesh
 
 ---
 
-### 7.5 Permanent Secretary (PS)
+### 7.5 Director
 
 **Navigation Tabs:** Pipeline · Drill Down · Bottlenecks · Workers · Export
 
-The PS dashboard provides **executive-level visibility** across the entire programme.
+The Director dashboard provides **executive-level visibility** across the entire programme.
 
 #### Pipeline Tab
 
@@ -421,8 +421,8 @@ Tap any worker card to open their full profile.
 
 **Personal Information**
 - Full Name, Date of Birth
-- NIS Number, National ID Number
-- Position, Electoral District
+- NIS Number, ID Number
+- Position, District
 
 **Bank Information**
 - Bank Name, Account Number, Branch
@@ -436,7 +436,7 @@ Tracks the 5 required compliance documents:
 | NIS Registration Card | Missing / Pending / Uploaded |
 | Birth Certificate | Missing / Pending / Uploaded |
 | Bank Letter | Missing / Pending / Uploaded |
-| National ID | Missing / Pending / Uploaded |
+| ID Card | Missing / Pending / Uploaded |
 | Police Certificate | Missing / Pending / Uploaded |
 
 A progress bar and colour-coded badge show overall verification status:
@@ -450,7 +450,7 @@ Authorised users can initiate a document upload from this screen.
 
 ## 9. Excel Export
 
-The exported `.xlsx` file matches the official NPUPS paper timesheet template and is suitable for payroll processing.
+The exported `.xlsx` file matches the standard timesheet template and is suitable for payroll processing.
 
 **File Contents:**
 
@@ -461,7 +461,7 @@ The exported `.xlsx` file matches the official NPUPS paper timesheet template an
 | Worker Rows | Name, Position, NIS, ID, Time In/Out per day, allowance days, calculated totals |
 | Footer | Supervisor signature line, Coordinator signature line, Corporation signature line |
 
-Cells are formatted with borders, alignment, and government-standard styling.
+Cells are formatted with borders and alignment for easy printing.
 
 ---
 
@@ -474,24 +474,19 @@ Cells are formatted with borders, alignment, and government-standard styling.
 | **443** | HTTPS/TLS | Encrypted web traffic (primary access) | **Yes — mandatory** |
 | **80** | HTTP | Should redirect to 443 only | Yes (redirect only) |
 
-> **Port 443 is mandatory.** As this platform is deployed on a government network and handles personal employee data (NIS numbers, national ID, bank account details, payroll information), all traffic **must** be encrypted using TLS 1.2 or higher. HTTP on port 80 should only be used to issue an automatic redirect to HTTPS — it should never serve application content in plaintext.
+> **Port 443 is mandatory.** This platform handles personal employee data (NIS numbers, ID numbers, bank account details, payroll information). All traffic **must** be encrypted using TLS 1.2 or higher. HTTP on port 80 should only be used to issue an automatic redirect to HTTPS — it should never serve application content in plaintext.
 
-### Why HTTPS Is Required on a Government Network
+### Why HTTPS Is Required
 
-- **Legal compliance** — GoRTT and public sector ICT policies require encryption of personally identifiable information (PII) in transit
 - **Data protection** — NIS numbers, bank account details, and payroll figures are sensitive financial data
 - **Authentication security** — login credentials must not be transmitted in plaintext
-- **Browser requirements** — modern browsers flag plain HTTP sites as "Not Secure", which affects usability and trust
+- **Browser requirements** — modern browsers flag plain HTTP sites as "Not Secure"
 
 ### SSL/TLS Certificate
 
-Obtain a certificate from:
-- A government-managed Certificate Authority (preferred for .gov.tt domains)
-- A trusted public CA (e.g., Let's Encrypt, DigiCert) if approved by your IT department
-
-Configure Nginx to use the certificate in the server block listening on port 443, and add an HTTP-to-HTTPS redirect on port 80.
+Obtain a certificate from a trusted public CA (e.g., Let's Encrypt, DigiCert) and configure Nginx to use it in the server block listening on port 443, with an HTTP-to-HTTPS redirect on port 80.
 
 ---
 
-*Document Version: 1.0 — March 2026*
+*Document Version: 1.0 — 2026*
 *Developed by Laurence Peter · Built with AI support*

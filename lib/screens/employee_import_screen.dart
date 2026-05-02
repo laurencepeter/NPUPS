@@ -1,5 +1,5 @@
 // ──────────────────────────────────────────────────────────────────────────────
-// NPUPS Employee Import Screen
+// WorkForce
 // Upload an Excel workbook with worker biodata. Parses required columns,
 // shows a validation preview, and bulk-imports to the worker registry.
 // Expected columns (header row 1):
@@ -19,10 +19,10 @@ import '../models/worker_model.dart';
 import '../services/worker_data_store.dart';
 import '../services/audit_service.dart';
 import '../models/audit_model.dart';
-import '../theme/npups_theme.dart';
+import '../theme/app_theme.dart';
 
 class EmployeeImportScreen extends StatefulWidget {
-  final NpupsUser currentUser;
+  final AppUser currentUser;
 
   const EmployeeImportScreen({super.key, required this.currentUser});
 
@@ -80,14 +80,14 @@ class _EmployeeImportScreenState extends State<EmployeeImportScreen> {
             Row(
               children: [
                 const Icon(Icons.info_outline,
-                    size: 18, color: NpupsColors.info),
+                    size: 18, color: AppColors.info),
                 const SizedBox(width: 8),
                 Text('Excel Format Requirements',
                     style: TextStyle(
                       fontWeight: FontWeight.w600,
                       color: isDark
-                          ? NpupsColors.darkTextPrimary
-                          : NpupsColors.textPrimary,
+                          ? AppColors.darkTextPrimary
+                          : AppColors.textPrimary,
                     )),
               ],
             ),
@@ -125,12 +125,12 @@ class _EmployeeImportScreenState extends State<EmployeeImportScreen> {
         width: double.infinity,
         padding: const EdgeInsets.symmetric(vertical: 28),
         decoration: BoxDecoration(
-          color: isDark ? NpupsColors.darkCard : Colors.white,
+          color: isDark ? AppColors.darkCard : Colors.white,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: _importState == _ImportState.idle
-                ? (isDark ? NpupsColors.darkBorder : NpupsColors.border)
-                : NpupsColors.accent,
+                ? (isDark ? AppColors.darkBorder : AppColors.border)
+                : AppColors.accent,
             width: 1.5,
             strokeAlign: BorderSide.strokeAlignOutside,
           ),
@@ -143,8 +143,8 @@ class _EmployeeImportScreenState extends State<EmployeeImportScreen> {
                   : Icons.upload_file_outlined,
               size: 40,
               color: _importState == _ImportState.idle
-                  ? (isDark ? NpupsColors.darkTextHint : NpupsColors.textHint)
-                  : NpupsColors.accent,
+                  ? (isDark ? AppColors.darkTextHint : AppColors.textHint)
+                  : AppColors.accent,
             ),
             const SizedBox(height: 8),
             if (_importState == _ImportState.idle)
@@ -152,8 +152,8 @@ class _EmployeeImportScreenState extends State<EmployeeImportScreen> {
                 'Click to select an Excel file (.xlsx)',
                 style: TextStyle(
                     color: isDark
-                        ? NpupsColors.darkTextSecondary
-                        : NpupsColors.textSecondary),
+                        ? AppColors.darkTextSecondary
+                        : AppColors.textSecondary),
               )
             else if (_importState == _ImportState.importing)
               const Text('Processing…')
@@ -168,8 +168,8 @@ class _EmployeeImportScreenState extends State<EmployeeImportScreen> {
                 style: TextStyle(
                     fontSize: 12,
                     color: isDark
-                        ? NpupsColors.darkTextSecondary
-                        : NpupsColors.textSecondary),
+                        ? AppColors.darkTextSecondary
+                        : AppColors.textSecondary),
               ),
               const SizedBox(height: 8),
               OutlinedButton.icon(
@@ -201,21 +201,21 @@ class _EmployeeImportScreenState extends State<EmployeeImportScreen> {
             children: [
               Chip(
                 avatar: Icon(Icons.check_circle,
-                    size: 14, color: NpupsColors.success),
+                    size: 14, color: AppColors.success),
                 label: Text('${validRows.length} valid',
                     style: const TextStyle(fontSize: 12)),
                 backgroundColor:
-                    NpupsColors.success.withValues(alpha: 0.1),
+                    AppColors.success.withValues(alpha: 0.1),
               ),
               const SizedBox(width: 8),
               if (invalidRows.isNotEmpty)
                 Chip(
                   avatar: const Icon(Icons.warning_amber,
-                      size: 14, color: NpupsColors.warning),
+                      size: 14, color: AppColors.warning),
                   label: Text('${invalidRows.length} issues',
                       style: const TextStyle(fontSize: 12)),
                   backgroundColor:
-                      NpupsColors.warning.withValues(alpha: 0.1),
+                      AppColors.warning.withValues(alpha: 0.1),
                 ),
               const Spacer(),
               if (validRows.isNotEmpty)
@@ -243,7 +243,7 @@ class _EmployeeImportScreenState extends State<EmployeeImportScreen> {
               itemCount: _parsed.length,
               separatorBuilder: (_, __) => Divider(
                 height: 1,
-                color: isDark ? NpupsColors.darkBorder : NpupsColors.border,
+                color: isDark ? AppColors.darkBorder : AppColors.border,
               ),
               itemBuilder: (ctx, i) => _buildPreviewRow(_parsed[i], i, isDark),
             ),
@@ -254,7 +254,7 @@ class _EmployeeImportScreenState extends State<EmployeeImportScreen> {
   }
 
   Widget _buildTableHeader(bool isDark) {
-    final bg = isDark ? NpupsColors.darkCardElevated : NpupsColors.primary;
+    final bg = isDark ? AppColors.darkCardElevated : AppColors.primary;
     final fg = Colors.white;
     return Container(
       color: bg,
@@ -280,7 +280,7 @@ class _EmployeeImportScreenState extends State<EmployeeImportScreen> {
                 });
               },
               fillColor: WidgetStateProperty.all(
-                  _allSelected ? NpupsColors.accent : Colors.transparent),
+                  _allSelected ? AppColors.accent : Colors.transparent),
               side: const BorderSide(color: Colors.white54),
             ),
           ),
@@ -330,11 +330,11 @@ class _EmployeeImportScreenState extends State<EmployeeImportScreen> {
     final isSelected = _selectedRows.contains(index);
     final rowBg = emp.isValid
         ? (isSelected
-            ? NpupsColors.accent.withValues(alpha: 0.07)
-            : (isDark ? NpupsColors.darkCard : Colors.white))
+            ? AppColors.accent.withValues(alpha: 0.07)
+            : (isDark ? AppColors.darkCard : Colors.white))
         : (isDark
-            ? NpupsColors.error.withValues(alpha: 0.08)
-            : NpupsColors.error.withValues(alpha: 0.04));
+            ? AppColors.error.withValues(alpha: 0.08)
+            : AppColors.error.withValues(alpha: 0.04));
 
     return InkWell(
       onTap: emp.isValid
@@ -368,7 +368,7 @@ class _EmployeeImportScreenState extends State<EmployeeImportScreen> {
                       visualDensity: VisualDensity.compact,
                     )
                   : const Icon(Icons.warning_amber,
-                      size: 16, color: NpupsColors.warning),
+                      size: 16, color: AppColors.warning),
             ),
             Expanded(
                 flex: 3,
@@ -381,16 +381,16 @@ class _EmployeeImportScreenState extends State<EmployeeImportScreen> {
                         fontSize: 12,
                         color: emp.fullName != null
                             ? (isDark
-                                ? NpupsColors.darkTextPrimary
-                                : NpupsColors.textPrimary)
-                            : NpupsColors.error,
+                                ? AppColors.darkTextPrimary
+                                : AppColors.textPrimary)
+                            : AppColors.error,
                       ),
                     ),
                     if (emp.errors.isNotEmpty)
                       Text(
                         emp.errors.first,
                         style: const TextStyle(
-                            fontSize: 10, color: NpupsColors.error),
+                            fontSize: 10, color: AppColors.error),
                       ),
                   ],
                 )),
@@ -419,7 +419,7 @@ class _EmployeeImportScreenState extends State<EmployeeImportScreen> {
               child: Icon(
                 emp.isValid ? Icons.check_circle : Icons.cancel,
                 size: 16,
-                color: emp.isValid ? NpupsColors.success : NpupsColors.error,
+                color: emp.isValid ? AppColors.success : AppColors.error,
               ),
             ),
           ],
@@ -430,17 +430,17 @@ class _EmployeeImportScreenState extends State<EmployeeImportScreen> {
 
   Widget _buildDoneCard(bool isDark) {
     return Card(
-      color: NpupsColors.success.withValues(alpha: 0.1),
+      color: AppColors.success.withValues(alpha: 0.1),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: const BorderSide(color: NpupsColors.success, width: 0.5),
+        side: const BorderSide(color: AppColors.success, width: 0.5),
       ),
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Row(
           children: [
             const Icon(Icons.check_circle,
-                size: 32, color: NpupsColors.success),
+                size: 32, color: AppColors.success),
             const SizedBox(width: 16),
             Expanded(
               child: Column(
@@ -450,7 +450,7 @@ class _EmployeeImportScreenState extends State<EmployeeImportScreen> {
                       style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 16,
-                          color: NpupsColors.success)),
+                          color: AppColors.success)),
                   Text(
                     '${_selectedRows.isEmpty ? _parsed.where((p) => p.isValid).length : _selectedRows.length} employees have been added to the registry.',
                     style: const TextStyle(fontSize: 13),
@@ -602,7 +602,7 @@ class _EmployeeImportScreenState extends State<EmployeeImportScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('$imported employee(s) imported successfully'),
-          backgroundColor: NpupsColors.success,
+          backgroundColor: AppColors.success,
         ),
       );
     }

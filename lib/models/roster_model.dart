@@ -1,5 +1,5 @@
 // ──────────────────────────────────────────────────────────────────────────────
-// NPUPS Roster Model
+// WorkForce
 // Fortnightly attendance roster: workers are present Mon-Fri by default.
 // Data entry staff uncheck absent days. Admins can enable weekend work
 // and set max-days-per-fortnight (default 10, overridable per worker).

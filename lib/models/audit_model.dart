@@ -1,5 +1,5 @@
 // ──────────────────────────────────────────────────────────────────────────────
-// NPUPS Audit Trail Model
+// WorkForce
 // Tamper-evident audit log with SHA-256 hash chaining.
 // Every mutation in the system is recorded here with full before/after diffs.
 // The hash chain means any alteration to a past record invalidates all

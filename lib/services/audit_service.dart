@@ -1,5 +1,5 @@
 // ──────────────────────────────────────────────────────────────────────────────
-// NPUPS Audit Service
+// WorkForce
 // Tamper-evident audit trail using SHA-256 hash chaining.
 // Every entry contains a hash of (previousHash + core entry data).
 // Any modification to a past entry breaks the chain — detectable via
@@ -30,7 +30,7 @@ class AuditService extends ChangeNotifier {
   // ── Public API ─────────────────────────────────────────────────────────────
 
   void log({
-    required NpupsUser actor,
+    required AppUser actor,
     required AuditAction action,
     required AuditEntityType entityType,
     required String entityId,
@@ -79,7 +79,7 @@ class AuditService extends ChangeNotifier {
 
   // Convenience: log a plain event with no field diffs.
   void logEvent({
-    required NpupsUser actor,
+    required AppUser actor,
     required AuditAction action,
     required AuditEntityType entityType,
     required String entityId,
@@ -233,7 +233,7 @@ class AuditService extends ChangeNotifier {
       UserRole.hr => 'HR Department',
       UserRole.subAccounts => 'Sub-Accounts',
       UserRole.mainAccounts => 'Main Accounts',
-      UserRole.ministersDepartment => "Minister's Department",
+      UserRole.ministersDepartment => "Executive Department",
       UserRole.worker => 'Worker',
     };
   }
@@ -241,25 +241,25 @@ class AuditService extends ChangeNotifier {
   // ── Demo Seed Data ──────────────────────────────────────────────────────────
 
   void _seedDemoLogs() {
-    const demoUser = NpupsUser(
+    const demoUser = AppUser(
       id: 'admin',
-      email: 'admin@npups.gov.tt',
+      email: 'admin@workforce.app',
       fullName: 'System Administrator',
       role: UserRole.systemAdmin,
     );
 
-    const hrUser = NpupsUser(
+    const hrUser = AppUser(
       id: 'hr-001',
-      email: 'hr@npups.gov.tt',
+      email: 'hr@workforce.app',
       fullName: 'HR Officer',
       role: UserRole.hr,
       corporationId: '2',
       corporationName: 'Chaguanas Borough Corporation',
     );
 
-    const coordUser = NpupsUser(
+    const coordUser = AppUser(
       id: 'coord-001',
-      email: 'coordinator@npups.gov.tt',
+      email: 'coordinator@workforce.app',
       fullName: 'Regional Coordinator',
       role: UserRole.regionalCoordinator,
       corporationId: '8',
@@ -394,7 +394,7 @@ class AuditService extends ChangeNotifier {
   }
 
   void _seedEntry({
-    required NpupsUser actor,
+    required AppUser actor,
     required AuditAction action,
     required AuditEntityType entityType,
     required String entityId,

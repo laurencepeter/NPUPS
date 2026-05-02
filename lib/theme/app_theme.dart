@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
 
 // ──────────────────────────────────────────────────────────────────────────────
-// NPUPS Design System — Colour Palette, Light & Dark Themes
-// Aligned with NPUPS Scope Document §8.1 Logo Design Brief colour palette
-// and Trinidad & Tobago national branding guidelines.
+// WorkForce
+// Aligned with WorkForce design system colour palette
+// /
 // Dark theme preserves the navy/teal identity at reduced brightness.
 // ──────────────────────────────────────────────────────────────────────────────
 
-class NpupsColors {
-  NpupsColors._();
+class AppColors {
+  AppColors._();
 
-  // Primary — Navy (Ministry branding)
+  // Primary — Navy
   static const Color primary = Color(0xFF1A2C4E);
   static const Color primaryLight = Color(0xFF2A4470);
   static const Color primaryDark = Color(0xFF0F1A2E);
@@ -20,9 +20,9 @@ class NpupsColors {
   static const Color accentLight = Color(0xFF5DADE2);
   static const Color accentDark = Color(0xFF1F6391);
 
-  // National colours (Trinidad & Tobago)
-  static const Color trinidadRed = Color(0xFFCE1126);
-  static const Color trinidadBlack = Color(0xFF000000);
+  // Accent colours
+  static const Color brandRed = Color(0xFFCE1126);
+  static const Color brandBlack = Color(0xFF000000);
 
   // Semantic
   static const Color success = Color(0xFF27AE60);
@@ -83,23 +83,23 @@ class NpupsColors {
   );
 }
 
-class NpupsTheme {
-  NpupsTheme._();
+class AppTheme {
+  AppTheme._();
 
   static ThemeData get lightTheme {
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.light,
       colorScheme: ColorScheme.fromSeed(
-        seedColor: NpupsColors.primary,
-        primary: NpupsColors.primary,
-        secondary: NpupsColors.accent,
-        surface: NpupsColors.surface,
-        error: NpupsColors.error,
+        seedColor: AppColors.primary,
+        primary: AppColors.primary,
+        secondary: AppColors.accent,
+        surface: AppColors.surface,
+        error: AppColors.error,
       ),
-      scaffoldBackgroundColor: NpupsColors.surface,
+      scaffoldBackgroundColor: AppColors.surface,
       appBarTheme: const AppBarTheme(
-        backgroundColor: NpupsColors.primary,
+        backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
         elevation: 0,
         centerTitle: false,
@@ -107,11 +107,11 @@ class NpupsTheme {
       cardTheme: CardThemeData(
         elevation: 2,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        color: NpupsColors.card,
+        color: AppColors.card,
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: NpupsColors.accent,
+          backgroundColor: AppColors.accent,
           foregroundColor: Colors.white,
           elevation: 2,
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
@@ -125,32 +125,32 @@ class NpupsTheme {
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: NpupsColors.inputFill,
+        fillColor: AppColors.inputFill,
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: NpupsColors.border),
+          borderSide: const BorderSide(color: AppColors.border),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: NpupsColors.border),
+          borderSide: const BorderSide(color: AppColors.border),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: NpupsColors.accent, width: 2),
+          borderSide: const BorderSide(color: AppColors.accent, width: 2),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: NpupsColors.error),
+          borderSide: const BorderSide(color: AppColors.error),
         ),
-        hintStyle: const TextStyle(color: NpupsColors.textHint, fontSize: 14),
-        labelStyle: const TextStyle(color: NpupsColors.textSecondary, fontSize: 14),
+        hintStyle: const TextStyle(color: AppColors.textHint, fontSize: 14),
+        labelStyle: const TextStyle(color: AppColors.textSecondary, fontSize: 14),
       ),
-      dividerTheme: const DividerThemeData(color: NpupsColors.border),
+      dividerTheme: const DividerThemeData(color: AppColors.border),
       chipTheme: ChipThemeData(
-        backgroundColor: NpupsColors.inputFill,
-        selectedColor: NpupsColors.accent.withValues(alpha: 0.15),
-        labelStyle: const TextStyle(color: NpupsColors.textPrimary),
+        backgroundColor: AppColors.inputFill,
+        selectedColor: AppColors.accent.withValues(alpha: 0.15),
+        labelStyle: const TextStyle(color: AppColors.textPrimary),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       ),
     );
@@ -162,30 +162,30 @@ class NpupsTheme {
       brightness: Brightness.dark,
       colorScheme: ColorScheme(
         brightness: Brightness.dark,
-        primary: NpupsColors.primaryLight,
+        primary: AppColors.primaryLight,
         onPrimary: Colors.white,
-        primaryContainer: NpupsColors.primary,
-        onPrimaryContainer: NpupsColors.darkTextPrimary,
-        secondary: NpupsColors.darkAccent,
+        primaryContainer: AppColors.primary,
+        onPrimaryContainer: AppColors.darkTextPrimary,
+        secondary: AppColors.darkAccent,
         onSecondary: Colors.white,
-        secondaryContainer: NpupsColors.accentDark,
-        onSecondaryContainer: NpupsColors.darkTextPrimary,
-        surface: NpupsColors.darkSurface,
-        onSurface: NpupsColors.darkTextPrimary,
-        onSurfaceVariant: NpupsColors.darkTextSecondary,
-        error: NpupsColors.error,
+        secondaryContainer: AppColors.accentDark,
+        onSecondaryContainer: AppColors.darkTextPrimary,
+        surface: AppColors.darkSurface,
+        onSurface: AppColors.darkTextPrimary,
+        onSurfaceVariant: AppColors.darkTextSecondary,
+        error: AppColors.error,
         onError: Colors.white,
-        outline: NpupsColors.darkBorder,
-        outlineVariant: NpupsColors.darkBorder.withValues(alpha: 0.5),
-        inverseSurface: NpupsColors.darkTextPrimary,
-        onInverseSurface: NpupsColors.darkSurface,
+        outline: AppColors.darkBorder,
+        outlineVariant: AppColors.darkBorder.withValues(alpha: 0.5),
+        inverseSurface: AppColors.darkTextPrimary,
+        onInverseSurface: AppColors.darkSurface,
         shadow: Colors.black54,
         scrim: Colors.black54,
       ),
-      scaffoldBackgroundColor: NpupsColors.darkBackground,
+      scaffoldBackgroundColor: AppColors.darkBackground,
       appBarTheme: const AppBarTheme(
-        backgroundColor: NpupsColors.primaryDark,
-        foregroundColor: NpupsColors.darkTextPrimary,
+        backgroundColor: AppColors.primaryDark,
+        foregroundColor: AppColors.darkTextPrimary,
         elevation: 0,
         centerTitle: false,
         surfaceTintColor: Colors.transparent,
@@ -195,17 +195,17 @@ class NpupsTheme {
         shadowColor: Colors.black54,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
-          side: const BorderSide(color: NpupsColors.darkBorder, width: 0.5),
+          side: const BorderSide(color: AppColors.darkBorder, width: 0.5),
         ),
-        color: NpupsColors.darkCard,
+        color: AppColors.darkCard,
         surfaceTintColor: Colors.transparent,
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: NpupsColors.darkAccent,
+          backgroundColor: AppColors.darkAccent,
           foregroundColor: Colors.white,
           elevation: 2,
-          shadowColor: NpupsColors.darkAccent.withValues(alpha: 0.4),
+          shadowColor: AppColors.darkAccent.withValues(alpha: 0.4),
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           textStyle: const TextStyle(
@@ -216,96 +216,96 @@ class NpupsTheme {
         ),
       ),
       textButtonTheme: TextButtonThemeData(
-        style: TextButton.styleFrom(foregroundColor: NpupsColors.darkAccentLight),
+        style: TextButton.styleFrom(foregroundColor: AppColors.darkAccentLight),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          foregroundColor: NpupsColors.darkAccentLight,
-          side: const BorderSide(color: NpupsColors.darkAccent),
+          foregroundColor: AppColors.darkAccentLight,
+          side: const BorderSide(color: AppColors.darkAccent),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: NpupsColors.darkInputFill,
+        fillColor: AppColors.darkInputFill,
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: NpupsColors.darkBorder),
+          borderSide: const BorderSide(color: AppColors.darkBorder),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: NpupsColors.darkBorder),
+          borderSide: const BorderSide(color: AppColors.darkBorder),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: NpupsColors.darkAccent, width: 2),
+          borderSide: const BorderSide(color: AppColors.darkAccent, width: 2),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: NpupsColors.error),
+          borderSide: const BorderSide(color: AppColors.error),
         ),
-        hintStyle: const TextStyle(color: NpupsColors.darkTextHint, fontSize: 14),
-        labelStyle: const TextStyle(color: NpupsColors.darkTextSecondary, fontSize: 14),
+        hintStyle: const TextStyle(color: AppColors.darkTextHint, fontSize: 14),
+        labelStyle: const TextStyle(color: AppColors.darkTextSecondary, fontSize: 14),
       ),
       navigationBarTheme: NavigationBarThemeData(
-        backgroundColor: NpupsColors.darkCard,
-        indicatorColor: NpupsColors.darkAccent.withValues(alpha: 0.2),
+        backgroundColor: AppColors.darkCard,
+        indicatorColor: AppColors.darkAccent.withValues(alpha: 0.2),
         labelTextStyle: WidgetStateProperty.all(
-          const TextStyle(color: NpupsColors.darkTextSecondary, fontSize: 12),
+          const TextStyle(color: AppColors.darkTextSecondary, fontSize: 12),
         ),
         iconTheme: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
-            return const IconThemeData(color: NpupsColors.darkAccentLight);
+            return const IconThemeData(color: AppColors.darkAccentLight);
           }
-          return const IconThemeData(color: NpupsColors.darkTextSecondary);
+          return const IconThemeData(color: AppColors.darkTextSecondary);
         }),
         elevation: 8,
         shadowColor: Colors.black54,
       ),
-      dividerTheme: const DividerThemeData(color: NpupsColors.darkBorder),
+      dividerTheme: const DividerThemeData(color: AppColors.darkBorder),
       chipTheme: ChipThemeData(
-        backgroundColor: NpupsColors.darkCardElevated,
-        selectedColor: NpupsColors.darkAccent.withValues(alpha: 0.3),
-        labelStyle: const TextStyle(color: NpupsColors.darkTextPrimary),
+        backgroundColor: AppColors.darkCardElevated,
+        selectedColor: AppColors.darkAccent.withValues(alpha: 0.3),
+        labelStyle: const TextStyle(color: AppColors.darkTextPrimary),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(8),
-          side: const BorderSide(color: NpupsColors.darkBorder),
+          side: const BorderSide(color: AppColors.darkBorder),
         ),
       ),
       dialogTheme: DialogThemeData(
-        backgroundColor: NpupsColors.darkCard,
+        backgroundColor: AppColors.darkCard,
         surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
-          side: const BorderSide(color: NpupsColors.darkBorder, width: 0.5),
+          side: const BorderSide(color: AppColors.darkBorder, width: 0.5),
         ),
       ),
       popupMenuTheme: PopupMenuThemeData(
-        color: NpupsColors.darkCard,
+        color: AppColors.darkCard,
         surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(10),
-          side: const BorderSide(color: NpupsColors.darkBorder, width: 0.5),
+          side: const BorderSide(color: AppColors.darkBorder, width: 0.5),
         ),
       ),
       listTileTheme: const ListTileThemeData(
-        textColor: NpupsColors.darkTextPrimary,
-        iconColor: NpupsColors.darkTextSecondary,
+        textColor: AppColors.darkTextPrimary,
+        iconColor: AppColors.darkTextSecondary,
       ),
       switchTheme: SwitchThemeData(
         thumbColor: WidgetStateProperty.resolveWith((s) =>
-            s.contains(WidgetState.selected) ? NpupsColors.darkAccent : NpupsColors.darkTextHint),
+            s.contains(WidgetState.selected) ? AppColors.darkAccent : AppColors.darkTextHint),
         trackColor: WidgetStateProperty.resolveWith((s) =>
             s.contains(WidgetState.selected)
-                ? NpupsColors.darkAccent.withValues(alpha: 0.4)
-                : NpupsColors.darkBorder),
+                ? AppColors.darkAccent.withValues(alpha: 0.4)
+                : AppColors.darkBorder),
       ),
       checkboxTheme: CheckboxThemeData(
         fillColor: WidgetStateProperty.resolveWith((s) =>
-            s.contains(WidgetState.selected) ? NpupsColors.darkAccent : Colors.transparent),
+            s.contains(WidgetState.selected) ? AppColors.darkAccent : Colors.transparent),
         checkColor: WidgetStateProperty.all(Colors.white),
-        side: const BorderSide(color: NpupsColors.darkTextSecondary),
+        side: const BorderSide(color: AppColors.darkTextSecondary),
       ),
     );
   }

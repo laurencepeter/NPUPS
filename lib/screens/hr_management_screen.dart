@@ -1,11 +1,11 @@
 // ──────────────────────────────────────────────────────────────────────────────
-// NPUPS HR Management Screen
+// WorkForce
 // Comprehensive HR dashboard for:
 //  - Document vetting (approve / reject / request re-upload per document)
 //  - Worker status management (active / inactive / on-leave / terminated)
 //  - HR notes attached to worker records
 //  - Employment action log (full history)
-// Accessible by HR, System Admin, PS (read-only for PS and Minister's Dept)
+// Accessible by HR, System Admin, PS (read-only for PS and Executive Dept)
 // ──────────────────────────────────────────────────────────────────────────────
 
 import 'package:flutter/material.dart';
@@ -14,10 +14,10 @@ import '../models/worker_model.dart';
 import '../services/worker_data_store.dart';
 import '../services/audit_service.dart';
 import '../models/audit_model.dart';
-import '../theme/npups_theme.dart';
+import '../theme/app_theme.dart';
 
 class HrManagementScreen extends StatefulWidget {
-  final NpupsUser currentUser;
+  final AppUser currentUser;
 
   const HrManagementScreen({super.key, required this.currentUser});
 
@@ -95,7 +95,7 @@ class _HrManagementScreenState extends State<HrManagementScreen>
               controller: _tabCtrl,
               labelColor: Colors.white,
               unselectedLabelColor: Colors.white60,
-              indicatorColor: NpupsColors.accentLight,
+              indicatorColor: AppColors.accentLight,
               tabs: const [
                 Tab(text: 'Workers & Documents'),
                 Tab(text: 'Document Queue'),
@@ -134,8 +134,8 @@ class _HrManagementScreenState extends State<HrManagementScreen>
                   separatorBuilder: (_, __) => Divider(
                     height: 1,
                     color: isDark
-                        ? NpupsColors.darkBorder
-                        : NpupsColors.border,
+                        ? AppColors.darkBorder
+                        : AppColors.border,
                   ),
                   itemBuilder: (_, i) =>
                       _buildWorkerListTile(workers[i], isDark),
@@ -148,7 +148,7 @@ class _HrManagementScreenState extends State<HrManagementScreen>
         // Vertical divider
         VerticalDivider(
           width: 1,
-          color: isDark ? NpupsColors.darkBorder : NpupsColors.border,
+          color: isDark ? AppColors.darkBorder : AppColors.border,
         ),
 
         // Detail panel
@@ -164,7 +164,7 @@ class _HrManagementScreenState extends State<HrManagementScreen>
   Widget _buildSearchBar(bool isDark) {
     return Container(
       padding: const EdgeInsets.all(10),
-      color: isDark ? NpupsColors.darkCard : Colors.white,
+      color: isDark ? AppColors.darkCard : Colors.white,
       child: TextField(
         controller: _searchCtrl,
         onChanged: (_) => setState(() {}),
@@ -190,7 +190,7 @@ class _HrManagementScreenState extends State<HrManagementScreen>
     final filters = ['All', 'Active', 'Inactive', 'Pending Docs'];
     return Container(
       height: 40,
-      color: isDark ? NpupsColors.darkBackground : NpupsColors.surface,
+      color: isDark ? AppColors.darkBackground : AppColors.surface,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 8),
@@ -204,7 +204,7 @@ class _HrManagementScreenState extends State<HrManagementScreen>
               label: Text(f, style: const TextStyle(fontSize: 11)),
               selected: active,
               onSelected: (_) => setState(() => _statusFilter = f),
-              selectedColor: NpupsColors.accent.withValues(alpha: 0.2),
+              selectedColor: AppColors.accent.withValues(alpha: 0.2),
               visualDensity: VisualDensity.compact,
             ),
           );
@@ -221,7 +221,7 @@ class _HrManagementScreenState extends State<HrManagementScreen>
       onTap: () => setState(() => _selectedWorker = worker),
       child: Container(
         color: isSelected
-            ? NpupsColors.accent.withValues(alpha: 0.08)
+            ? AppColors.accent.withValues(alpha: 0.08)
             : Colors.transparent,
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         child: Row(
@@ -229,16 +229,16 @@ class _HrManagementScreenState extends State<HrManagementScreen>
             CircleAvatar(
               radius: 18,
               backgroundColor: worker.isActive
-                  ? NpupsColors.accent.withValues(alpha: 0.15)
-                  : NpupsColors.error.withValues(alpha: 0.15),
+                  ? AppColors.accent.withValues(alpha: 0.15)
+                  : AppColors.error.withValues(alpha: 0.15),
               child: Text(
                 worker.initials,
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.bold,
                   color: worker.isActive
-                      ? NpupsColors.accent
-                      : NpupsColors.error,
+                      ? AppColors.accent
+                      : AppColors.error,
                 ),
               ),
             ),
@@ -253,8 +253,8 @@ class _HrManagementScreenState extends State<HrManagementScreen>
                       fontSize: 12,
                       fontWeight: FontWeight.w500,
                       color: isDark
-                          ? NpupsColors.darkTextPrimary
-                          : NpupsColors.textPrimary,
+                          ? AppColors.darkTextPrimary
+                          : AppColors.textPrimary,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -264,8 +264,8 @@ class _HrManagementScreenState extends State<HrManagementScreen>
                     style: TextStyle(
                       fontSize: 11,
                       color: isDark
-                          ? NpupsColors.darkTextHint
-                          : NpupsColors.textHint,
+                          ? AppColors.darkTextHint
+                          : AppColors.textHint,
                     ),
                   ),
                 ],
@@ -284,11 +284,11 @@ class _HrManagementScreenState extends State<HrManagementScreen>
                     child: LinearProgressIndicator(
                       value: docPct,
                       backgroundColor: isDark
-                          ? NpupsColors.darkBorder
-                          : NpupsColors.border,
+                          ? AppColors.darkBorder
+                          : AppColors.border,
                       color: docPct == 1.0
-                          ? NpupsColors.success
-                          : NpupsColors.warning,
+                          ? AppColors.success
+                          : AppColors.warning,
                     ),
                   ),
                 ),
@@ -302,11 +302,11 @@ class _HrManagementScreenState extends State<HrManagementScreen>
 
   Widget _docBadge(Worker worker) {
     if (worker.isFullyVerified) {
-      return const Icon(Icons.verified, size: 14, color: NpupsColors.success);
+      return const Icon(Icons.verified, size: 14, color: AppColors.success);
     }
     return Text(
       '${worker.documentsUploaded}/${worker.totalDocuments}',
-      style: const TextStyle(fontSize: 10, color: NpupsColors.warning),
+      style: const TextStyle(fontSize: 10, color: AppColors.warning),
     );
   }
 
@@ -318,15 +318,15 @@ class _HrManagementScreenState extends State<HrManagementScreen>
           Icon(Icons.person_search_outlined,
               size: 48,
               color: isDark
-                  ? NpupsColors.darkTextHint
-                  : NpupsColors.textHint),
+                  ? AppColors.darkTextHint
+                  : AppColors.textHint),
           const SizedBox(height: 12),
           Text(
             'Select a worker to view their HR record',
             style: TextStyle(
                 color: isDark
-                    ? NpupsColors.darkTextSecondary
-                    : NpupsColors.textSecondary),
+                    ? AppColors.darkTextSecondary
+                    : AppColors.textSecondary),
           ),
         ],
       ),
@@ -388,16 +388,16 @@ class _HrManagementScreenState extends State<HrManagementScreen>
             CircleAvatar(
               radius: 28,
               backgroundColor: worker.isActive
-                  ? NpupsColors.accent.withValues(alpha: 0.15)
-                  : NpupsColors.error.withValues(alpha: 0.15),
+                  ? AppColors.accent.withValues(alpha: 0.15)
+                  : AppColors.error.withValues(alpha: 0.15),
               child: Text(
                 worker.initials,
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
                   color: worker.isActive
-                      ? NpupsColors.accent
-                      : NpupsColors.error,
+                      ? AppColors.accent
+                      : AppColors.error,
                 ),
               ),
             ),
@@ -412,27 +412,27 @@ class _HrManagementScreenState extends State<HrManagementScreen>
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
                       color: isDark
-                          ? NpupsColors.darkTextPrimary
-                          : NpupsColors.textPrimary,
+                          ? AppColors.darkTextPrimary
+                          : AppColors.textPrimary,
                     ),
                   ),
                   Text(worker.id,
                       style: TextStyle(
                           fontSize: 11,
                           color: isDark
-                              ? NpupsColors.darkTextHint
-                              : NpupsColors.textHint)),
+                              ? AppColors.darkTextHint
+                              : AppColors.textHint)),
                   const SizedBox(height: 4),
                   Row(
                     children: [
                       _statusPill(worker.isActive ? 'Active' : 'Inactive',
-                          worker.isActive ? NpupsColors.success : NpupsColors.error),
+                          worker.isActive ? AppColors.success : AppColors.error),
                       const SizedBox(width: 6),
                       _statusPill(
                           worker.verificationLabel,
                           worker.isFullyVerified
-                              ? NpupsColors.success
-                              : NpupsColors.warning),
+                              ? AppColors.success
+                              : AppColors.warning),
                     ],
                   ),
                 ],
@@ -466,15 +466,15 @@ class _HrManagementScreenState extends State<HrManagementScreen>
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(children: [
-              Icon(icon, size: 16, color: NpupsColors.accent),
+              Icon(icon, size: 16, color: AppColors.accent),
               const SizedBox(width: 6),
               Text(title,
                   style: TextStyle(
                       fontWeight: FontWeight.w600,
                       fontSize: 14,
                       color: isDark
-                          ? NpupsColors.darkTextPrimary
-                          : NpupsColors.textPrimary)),
+                          ? AppColors.darkTextPrimary
+                          : AppColors.textPrimary)),
             ]),
             const SizedBox(height: 10),
             ...children,
@@ -495,8 +495,8 @@ class _HrManagementScreenState extends State<HrManagementScreen>
                 style: TextStyle(
                     fontSize: 12,
                     color: isDark
-                        ? NpupsColors.darkTextHint
-                        : NpupsColors.textHint)),
+                        ? AppColors.darkTextHint
+                        : AppColors.textHint)),
           ),
           Expanded(
             child: Text(value,
@@ -504,8 +504,8 @@ class _HrManagementScreenState extends State<HrManagementScreen>
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
                     color: isDark
-                        ? NpupsColors.darkTextPrimary
-                        : NpupsColors.textPrimary)),
+                        ? AppColors.darkTextPrimary
+                        : AppColors.textPrimary)),
           ),
         ],
       ),
@@ -522,7 +522,7 @@ class _HrManagementScreenState extends State<HrManagementScreen>
             Row(
               children: [
                 const Icon(Icons.folder_outlined,
-                    size: 16, color: NpupsColors.accent),
+                    size: 16, color: AppColors.accent),
                 const SizedBox(width: 6),
                 Text(
                   'Documents',
@@ -530,8 +530,8 @@ class _HrManagementScreenState extends State<HrManagementScreen>
                       fontWeight: FontWeight.w600,
                       fontSize: 14,
                       color: isDark
-                          ? NpupsColors.darkTextPrimary
-                          : NpupsColors.textPrimary),
+                          ? AppColors.darkTextPrimary
+                          : AppColors.textPrimary),
                 ),
                 const Spacer(),
                 Text(
@@ -539,8 +539,8 @@ class _HrManagementScreenState extends State<HrManagementScreen>
                   style: TextStyle(
                     fontSize: 12,
                     color: worker.isFullyVerified
-                        ? NpupsColors.success
-                        : NpupsColors.warning,
+                        ? AppColors.success
+                        : AppColors.warning,
                   ),
                 ),
               ],
@@ -557,9 +557,9 @@ class _HrManagementScreenState extends State<HrManagementScreen>
   Widget _buildDocumentRow(
       Worker worker, String docName, WorkerDocument doc, bool isDark) {
     final statusColor = switch (doc.status) {
-      DocumentStatus.uploaded => NpupsColors.success,
-      DocumentStatus.missing => NpupsColors.error,
-      DocumentStatus.pending => NpupsColors.warning,
+      DocumentStatus.uploaded => AppColors.success,
+      DocumentStatus.missing => AppColors.error,
+      DocumentStatus.pending => AppColors.warning,
     };
     final statusIcon = switch (doc.status) {
       DocumentStatus.uploaded => Icons.check_circle,
@@ -581,16 +581,16 @@ class _HrManagementScreenState extends State<HrManagementScreen>
                     style: TextStyle(
                       fontSize: 12,
                       color: isDark
-                          ? NpupsColors.darkTextPrimary
-                          : NpupsColors.textPrimary,
+                          ? AppColors.darkTextPrimary
+                          : AppColors.textPrimary,
                     )),
                 if (doc.fileName != null)
                   Text(doc.fileName!,
                       style: TextStyle(
                           fontSize: 10,
                           color: isDark
-                              ? NpupsColors.darkTextHint
-                              : NpupsColors.textHint)),
+                              ? AppColors.darkTextHint
+                              : AppColors.textHint)),
               ],
             ),
           ),
@@ -598,21 +598,21 @@ class _HrManagementScreenState extends State<HrManagementScreen>
             if (doc.status == DocumentStatus.uploaded)
               _docAction(
                 icon: Icons.check,
-                color: NpupsColors.success,
+                color: AppColors.success,
                 tooltip: 'Approve',
                 onTap: () => _approveDocument(worker, docName),
               ),
             if (doc.status != DocumentStatus.missing)
               _docAction(
                 icon: Icons.close,
-                color: NpupsColors.error,
+                color: AppColors.error,
                 tooltip: 'Reject / Request Re-upload',
                 onTap: () => _rejectDocument(worker, docName, doc),
               ),
             if (doc.status == DocumentStatus.missing)
               _docAction(
                 icon: Icons.upload,
-                color: NpupsColors.accent,
+                color: AppColors.accent,
                 tooltip: 'Mark as Received',
                 onTap: () => _markDocReceived(worker, docName),
               ),
@@ -717,15 +717,15 @@ class _HrManagementScreenState extends State<HrManagementScreen>
           children: [
             Row(children: [
               const Icon(Icons.manage_accounts_outlined,
-                  size: 16, color: NpupsColors.accent),
+                  size: 16, color: AppColors.accent),
               const SizedBox(width: 6),
               Text('Employment Actions',
                   style: TextStyle(
                       fontWeight: FontWeight.w600,
                       fontSize: 14,
                       color: isDark
-                          ? NpupsColors.darkTextPrimary
-                          : NpupsColors.textPrimary)),
+                          ? AppColors.darkTextPrimary
+                          : AppColors.textPrimary)),
             ]),
             const SizedBox(height: 10),
             Wrap(
@@ -736,7 +736,7 @@ class _HrManagementScreenState extends State<HrManagementScreen>
                   _actionButton(
                     label: 'Reinstate',
                     icon: Icons.check_circle_outline,
-                    color: NpupsColors.success,
+                    color: AppColors.success,
                     onTap: () => _changeWorkerStatus(
                         worker, true, 'Worker reinstated'),
                   ),
@@ -744,7 +744,7 @@ class _HrManagementScreenState extends State<HrManagementScreen>
                   _actionButton(
                     label: 'Place on Leave',
                     icon: Icons.event_busy_outlined,
-                    color: NpupsColors.warning,
+                    color: AppColors.warning,
                     onTap: () =>
                         _changeWorkerStatus(worker, false, 'Placed on leave'),
                   ),
@@ -752,7 +752,7 @@ class _HrManagementScreenState extends State<HrManagementScreen>
                   _actionButton(
                     label: 'Deactivate',
                     icon: Icons.block_outlined,
-                    color: NpupsColors.error,
+                    color: AppColors.error,
                     onTap: () =>
                         _confirmDeactivate(worker),
                   ),
@@ -793,15 +793,15 @@ class _HrManagementScreenState extends State<HrManagementScreen>
           children: [
             Row(children: [
               const Icon(Icons.notes_outlined,
-                  size: 16, color: NpupsColors.accent),
+                  size: 16, color: AppColors.accent),
               const SizedBox(width: 6),
               Text('Add HR Note',
                   style: TextStyle(
                       fontWeight: FontWeight.w600,
                       fontSize: 14,
                       color: isDark
-                          ? NpupsColors.darkTextPrimary
-                          : NpupsColors.textPrimary)),
+                          ? AppColors.darkTextPrimary
+                          : AppColors.textPrimary)),
             ]),
             const SizedBox(height: 8),
             Row(
@@ -848,22 +848,22 @@ class _HrManagementScreenState extends State<HrManagementScreen>
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(children: [
-              const Icon(Icons.history, size: 16, color: NpupsColors.accent),
+              const Icon(Icons.history, size: 16, color: AppColors.accent),
               const SizedBox(width: 6),
               Text('Change History (${logs.length})',
                   style: TextStyle(
                       fontWeight: FontWeight.w600,
                       fontSize: 14,
                       color: isDark
-                          ? NpupsColors.darkTextPrimary
-                          : NpupsColors.textPrimary)),
+                          ? AppColors.darkTextPrimary
+                          : AppColors.textPrimary)),
             ]),
             const SizedBox(height: 8),
             ...logs.take(5).map((e) => Padding(
                   padding: const EdgeInsets.only(bottom: 6),
                   child: Row(
                     children: [
-                      Icon(Icons.circle, size: 6, color: NpupsColors.accent),
+                      Icon(Icons.circle, size: 6, color: AppColors.accent),
                       const SizedBox(width: 6),
                       Expanded(
                         child: Text(
@@ -871,8 +871,8 @@ class _HrManagementScreenState extends State<HrManagementScreen>
                           style: TextStyle(
                               fontSize: 11,
                               color: isDark
-                                  ? NpupsColors.darkTextSecondary
-                                  : NpupsColors.textSecondary),
+                                  ? AppColors.darkTextSecondary
+                                  : AppColors.textSecondary),
                         ),
                       ),
                     ],
@@ -901,13 +901,13 @@ class _HrManagementScreenState extends State<HrManagementScreen>
           mainAxisSize: MainAxisSize.min,
           children: [
             const Icon(Icons.check_circle,
-                size: 48, color: NpupsColors.success),
+                size: 48, color: AppColors.success),
             const SizedBox(height: 12),
             Text('All documents are up to date',
                 style: TextStyle(
                     color: isDark
-                        ? NpupsColors.darkTextSecondary
-                        : NpupsColors.textSecondary)),
+                        ? AppColors.darkTextSecondary
+                        : AppColors.textSecondary)),
           ],
         ),
       );
@@ -917,14 +917,14 @@ class _HrManagementScreenState extends State<HrManagementScreen>
       children: [
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-          color: isDark ? NpupsColors.darkCard : Colors.white,
+          color: isDark ? AppColors.darkCard : Colors.white,
           child: Row(children: [
             const Icon(Icons.pending_actions,
-                size: 16, color: NpupsColors.warning),
+                size: 16, color: AppColors.warning),
             const SizedBox(width: 6),
             Text('${pending.length} documents require attention',
                 style: const TextStyle(
-                    fontSize: 13, color: NpupsColors.warning)),
+                    fontSize: 13, color: AppColors.warning)),
           ]),
         ),
         const Divider(height: 1),
@@ -933,7 +933,7 @@ class _HrManagementScreenState extends State<HrManagementScreen>
             itemCount: pending.length,
             separatorBuilder: (_, __) => Divider(
               height: 1,
-              color: isDark ? NpupsColors.darkBorder : NpupsColors.border,
+              color: isDark ? AppColors.darkBorder : AppColors.border,
             ),
             itemBuilder: (_, i) =>
                 _buildQueueItem(pending[i], isDark),
@@ -945,7 +945,7 @@ class _HrManagementScreenState extends State<HrManagementScreen>
 
   Widget _buildQueueItem(_DocQueueItem item, bool isDark) {
     final isMissing = item.doc.status == DocumentStatus.missing;
-    final color = isMissing ? NpupsColors.error : NpupsColors.warning;
+    final color = isMissing ? AppColors.error : AppColors.warning;
     final label = isMissing ? 'Missing' : 'Pending Review';
 
     return ListTile(
@@ -962,14 +962,14 @@ class _HrManagementScreenState extends State<HrManagementScreen>
           style: TextStyle(
               fontSize: 13,
               color: isDark
-                  ? NpupsColors.darkTextPrimary
-                  : NpupsColors.textPrimary)),
+                  ? AppColors.darkTextPrimary
+                  : AppColors.textPrimary)),
       subtitle: Text(item.worker.fullName,
           style: TextStyle(
               fontSize: 11,
               color: isDark
-                  ? NpupsColors.darkTextHint
-                  : NpupsColors.textHint)),
+                  ? AppColors.darkTextHint
+                  : AppColors.textHint)),
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -986,7 +986,7 @@ class _HrManagementScreenState extends State<HrManagementScreen>
             const SizedBox(width: 4),
             IconButton(
               icon: const Icon(Icons.check,
-                  size: 16, color: NpupsColors.success),
+                  size: 16, color: AppColors.success),
               onPressed: () =>
                   _approveDocument(item.worker, item.docName),
               tooltip: 'Approve',
@@ -1079,7 +1079,7 @@ class _HrManagementScreenState extends State<HrManagementScreen>
       builder: (ctx) => AlertDialog(
         title: const Row(
           children: [
-            Icon(Icons.warning_amber, color: NpupsColors.error),
+            Icon(Icons.warning_amber, color: AppColors.error),
             SizedBox(width: 8),
             Text('Deactivate Worker'),
           ],
@@ -1094,7 +1094,7 @@ class _HrManagementScreenState extends State<HrManagementScreen>
           ElevatedButton(
             onPressed: () => Navigator.of(ctx).pop(true),
             style:
-                ElevatedButton.styleFrom(backgroundColor: NpupsColors.error),
+                ElevatedButton.styleFrom(backgroundColor: AppColors.error),
             child: const Text('Deactivate'),
           ),
         ],

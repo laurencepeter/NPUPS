@@ -1,5 +1,5 @@
 // ──────────────────────────────────────────────────────────────────────────────
-// NPUPS Roster Screen
+// WorkForce
 // Fortnightly attendance grid: workers (rows) × days (columns).
 // Mon-Fri defaults to Present (checked). Data entry staff uncheck absences.
 // Admin can configure max-days limit, weekend work, and per-worker overrides.
@@ -11,10 +11,10 @@ import '../models/user_model.dart';
 import '../services/roster_service.dart';
 import '../services/audit_service.dart';
 import '../models/audit_model.dart';
-import '../theme/npups_theme.dart';
+import '../theme/app_theme.dart';
 
 class RosterScreen extends StatefulWidget {
-  final NpupsUser currentUser;
+  final AppUser currentUser;
 
   const RosterScreen({super.key, required this.currentUser});
 
@@ -114,21 +114,21 @@ class _RosterScreenState extends State<RosterScreen> {
         .length;
 
     return Container(
-      color: isDark ? NpupsColors.darkCard : Colors.white,
+      color: isDark ? AppColors.darkCard : Colors.white,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       child: Row(
         children: [
           _summaryChip(
             icon: Icons.people_outline,
             label: '$total Workers',
-            color: NpupsColors.info,
+            color: AppColors.info,
             isDark: isDark,
           ),
           const SizedBox(width: 8),
           _summaryChip(
             icon: Icons.event_available_outlined,
             label: 'Max ${settings.maxDaysPerFortnight} days/fortnight',
-            color: NpupsColors.accent,
+            color: AppColors.accent,
             isDark: isDark,
           ),
           if (overMax > 0) ...[
@@ -136,7 +136,7 @@ class _RosterScreenState extends State<RosterScreen> {
             _summaryChip(
               icon: Icons.warning_amber_outlined,
               label: '$overMax over limit',
-              color: NpupsColors.error,
+              color: AppColors.error,
               isDark: isDark,
             ),
           ],
@@ -145,11 +145,11 @@ class _RosterScreenState extends State<RosterScreen> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
-                color: NpupsColors.warning.withValues(alpha: 0.12),
+                color: AppColors.warning.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(6),
               ),
               child: const Text('View Only',
-                  style: TextStyle(fontSize: 11, color: NpupsColors.warning)),
+                  style: TextStyle(fontSize: 11, color: AppColors.warning)),
             ),
         ],
       ),
@@ -199,15 +199,15 @@ class _RosterScreenState extends State<RosterScreen> {
             Icon(Icons.people_outline,
                 size: 48,
                 color: isDark
-                    ? NpupsColors.darkTextHint
-                    : NpupsColors.textHint),
+                    ? AppColors.darkTextHint
+                    : AppColors.textHint),
             const SizedBox(height: 12),
             Text(
               'No active workers for this corporation',
               style: TextStyle(
                   color: isDark
-                      ? NpupsColors.darkTextSecondary
-                      : NpupsColors.textSecondary),
+                      ? AppColors.darkTextSecondary
+                      : AppColors.textSecondary),
             ),
           ],
         ),
@@ -219,7 +219,7 @@ class _RosterScreenState extends State<RosterScreen> {
     const dayColWidth = 44.0;
     const totalColWidth = 60.0;
 
-    final headerBg = isDark ? NpupsColors.darkCardElevated : NpupsColors.primary;
+    final headerBg = isDark ? AppColors.darkCardElevated : AppColors.primary;
 
     return SingleChildScrollView(
       scrollDirection: Axis.vertical,
@@ -257,9 +257,9 @@ class _RosterScreenState extends State<RosterScreen> {
               final isOver = record.daysPresent > effectiveMax;
               final rowBg = isDark
                   ? (wi.isOdd
-                      ? NpupsColors.darkCard
-                      : NpupsColors.darkSurface)
-                  : (wi.isOdd ? Colors.white : NpupsColors.surface);
+                      ? AppColors.darkCard
+                      : AppColors.darkSurface)
+                  : (wi.isOdd ? Colors.white : AppColors.surface);
 
               return Container(
                 color: rowBg,
@@ -285,8 +285,8 @@ class _RosterScreenState extends State<RosterScreen> {
                                   fontSize: 12,
                                   fontWeight: FontWeight.w500,
                                   color: isDark
-                                      ? NpupsColors.darkTextPrimary
-                                      : NpupsColors.textPrimary,
+                                      ? AppColors.darkTextPrimary
+                                      : AppColors.textPrimary,
                                 ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
@@ -296,8 +296,8 @@ class _RosterScreenState extends State<RosterScreen> {
                                 style: TextStyle(
                                   fontSize: 10,
                                   color: isDark
-                                      ? NpupsColors.darkTextHint
-                                      : NpupsColors.textHint,
+                                      ? AppColors.darkTextHint
+                                      : AppColors.textHint,
                                 ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
@@ -307,7 +307,7 @@ class _RosterScreenState extends State<RosterScreen> {
                                   'Max: ${record.maxDaysOverride}',
                                   style: const TextStyle(
                                     fontSize: 9,
-                                    color: NpupsColors.warning,
+                                    color: AppColors.warning,
                                     fontStyle: FontStyle.italic,
                                   ),
                                 ),
@@ -357,8 +357,8 @@ class _RosterScreenState extends State<RosterScreen> {
                               horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
                             color: isOver
-                                ? NpupsColors.error.withValues(alpha: 0.12)
-                                : NpupsColors.success.withValues(alpha: 0.1),
+                                ? AppColors.error.withValues(alpha: 0.12)
+                                : AppColors.success.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
@@ -367,8 +367,8 @@ class _RosterScreenState extends State<RosterScreen> {
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
                               color: isOver
-                                  ? NpupsColors.error
-                                  : NpupsColors.success,
+                                  ? AppColors.error
+                                  : AppColors.success,
                             ),
                           ),
                         ),
@@ -386,7 +386,7 @@ class _RosterScreenState extends State<RosterScreen> {
 
   Widget _headerCell(String text, double width, bool isDark,
       {bool isName = false, bool isWeekend = false}) {
-    final headerFg = isDark ? NpupsColors.darkTextPrimary : Colors.white;
+    final headerFg = isDark ? AppColors.darkTextPrimary : Colors.white;
     return SizedBox(
       width: width,
       child: Padding(
@@ -663,13 +663,13 @@ class _RosterScreenState extends State<RosterScreen> {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            _legendRow(color: NpupsColors.success, label: 'Present (checked)'),
-            _legendRow(color: NpupsColors.error, label: 'Absent (unchecked)'),
+            _legendRow(color: AppColors.success, label: 'Present (checked)'),
+            _legendRow(color: AppColors.error, label: 'Absent (unchecked)'),
             _legendRow(
-                color: NpupsColors.textHint,
+                color: AppColors.textHint,
                 label: 'Weekend (greyed out when disabled)'),
             _legendRow(
-                color: NpupsColors.warning,
+                color: AppColors.warning,
                 label: 'Worker has custom max-days override'),
             const SizedBox(height: 8),
             const Text('Days count shows "present/max" per worker.',
@@ -727,8 +727,8 @@ class _DayCheckbox extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final Color activeColor = isWeekend ? NpupsColors.accentLight : NpupsColors.success;
-    final Color inactiveColor = isDark ? NpupsColors.darkTextHint : NpupsColors.textHint;
+    final Color activeColor = isWeekend ? AppColors.accentLight : AppColors.success;
+    final Color inactiveColor = isDark ? AppColors.darkTextHint : AppColors.textHint;
 
     return Checkbox(
       value: isPresent,

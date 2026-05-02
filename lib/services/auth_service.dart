@@ -2,19 +2,19 @@ import 'package:flutter/foundation.dart';
 import '../models/user_model.dart';
 
 // ──────────────────────────────────────────────────────────────────────────────
-// NPUPS Authentication Service — Demo Implementation
+// WorkForce
 // 8 demo accounts covering all roles for the timesheet approval pipeline:
 //   Worker, Regional Coordinator, HR, Sub-Accounts, Main Accounts, PS, Admin,
-//   Minister's Department
+//   Executive Department
 //
 // Includes role switcher for demo purposes.
-// Production: Replace with Supabase GoTrue (§2.3, §3.2)
+// Production: Replace with your authentication provider
 // ──────────────────────────────────────────────────────────────────────────────
 
 class AuthResult {
   final bool success;
   final String? errorMessage;
-  final NpupsUser? user;
+  final AppUser? user;
 
   const AuthResult({
     required this.success,
@@ -25,12 +25,12 @@ class AuthResult {
   factory AuthResult.error(String message) =>
       AuthResult(success: false, errorMessage: message);
 
-  factory AuthResult.ok(NpupsUser user) =>
+  factory AuthResult.ok(AppUser user) =>
       AuthResult(success: true, user: user);
 }
 
 class AuthService extends ChangeNotifier {
-  NpupsUser? _currentUser;
+  AppUser? _currentUser;
   bool _isLoading = false;
 
   // Rate limiting: track failed login attempts
@@ -43,7 +43,7 @@ class AuthService extends ChangeNotifier {
   DateTime? _lastActivity;
   static const Duration sessionTimeout = Duration(minutes: 30);
 
-  NpupsUser? get currentUser => _currentUser;
+  AppUser? get currentUser => _currentUser;
   bool get isAuthenticated => _currentUser != null && !_isSessionExpired;
   bool get isLoading => _isLoading;
   bool get isLockedOut =>
@@ -66,85 +66,85 @@ class AuthService extends ChangeNotifier {
 
   // Demo credentials — all roles for pipeline demo
   static final Map<String, _DemoCredential> _demoAccounts = {
-    'admin@npups.gov.tt': _DemoCredential(
+    'admin@workforce.app': _DemoCredential(
       password: 'admin123',
-      user: const NpupsUser(
+      user: const AppUser(
         id: 'USR-001',
-        email: 'admin@npups.gov.tt',
+        email: 'admin@workforce.app',
         fullName: 'System Administrator',
         role: UserRole.systemAdmin,
         corporationName: 'All Corporations',
       ),
     ),
-    'coordinator@npups.gov.tt': _DemoCredential(
+    'coordinator@workforce.app': _DemoCredential(
       password: 'test123',
-      user: const NpupsUser(
+      user: const AppUser(
         id: 'USR-002',
-        email: 'coordinator@npups.gov.tt',
+        email: 'coordinator@workforce.app',
         fullName: 'Marcus Thompson',
         role: UserRole.regionalCoordinator,
         corporationId: '8',
         corporationName: 'Port of Spain City Corporation',
       ),
     ),
-    'hr@npups.gov.tt': _DemoCredential(
+    'hr@workforce.app': _DemoCredential(
       password: 'test123',
-      user: const NpupsUser(
+      user: const AppUser(
         id: 'USR-003',
-        email: 'hr@npups.gov.tt',
+        email: 'hr@workforce.app',
         fullName: 'Priya Maharaj',
         role: UserRole.hr,
         corporationId: '2',
         corporationName: 'Chaguanas Borough Corporation',
       ),
     ),
-    'worker@npups.gov.tt': _DemoCredential(
+    'worker@workforce.app': _DemoCredential(
       password: 'test123',
-      user: const NpupsUser(
+      user: const AppUser(
         id: 'USR-004',
-        email: 'worker@npups.gov.tt',
+        email: 'worker@workforce.app',
         fullName: 'Kevin Rampersad',
         role: UserRole.worker,
         corporationId: '8',
         corporationName: 'Port of Spain City Corporation',
       ),
     ),
-    'accounts@npups.gov.tt': _DemoCredential(
+    'accounts@workforce.app': _DemoCredential(
       password: 'test123',
-      user: const NpupsUser(
+      user: const AppUser(
         id: 'USR-005',
-        email: 'accounts@npups.gov.tt',
+        email: 'accounts@workforce.app',
         fullName: 'James Roberts',
         role: UserRole.subAccounts,
         corporationName: 'All Corporations',
       ),
     ),
-    'ps@npups.gov.tt': _DemoCredential(
+    'ps@workforce.app': _DemoCredential(
       password: 'test123',
-      user: const NpupsUser(
+      user: const AppUser(
         id: 'USR-006',
-        email: 'ps@npups.gov.tt',
+        email: 'ps@workforce.app',
         fullName: 'Dr. Sharon Rowley',
         role: UserRole.ps,
         corporationName: 'All Corporations',
       ),
     ),
-    'mainaccounts@npups.gov.tt': _DemoCredential(
+    'mainaccounts@workforce.app': _DemoCredential(
       password: 'test123',
-      user: const NpupsUser(
+      user: const AppUser(
         id: 'USR-007',
-        email: 'mainaccounts@npups.gov.tt',
+        email: 'mainaccounts@workforce.app',
         fullName: 'Catherine Williams',
         role: UserRole.mainAccounts,
         corporationName: 'All Corporations',
       ),
     ),
-    'minister@npups.gov.tt': _DemoCredential(
+    'executive@workforce.app': _DemoCredential(
       password: 'test123',
-      user: const NpupsUser(
+      user: const AppUser(
         id: 'USR-008',
-        email: 'minister@npups.gov.tt',
-        fullName: 'Hon. Raymond Ali',
+        email: 'executive@workforce.app',
+        fullName: 'Raymond Ali',
         role: UserRole.ministersDepartment,
         corporationName: 'All Corporations',
       ),
@@ -257,7 +257,7 @@ class AuthService extends ChangeNotifier {
 
 class _DemoCredential {
   final String password;
-  final NpupsUser user;
+  final AppUser user;
 
   const _DemoCredential({required this.password, required this.user});
 }

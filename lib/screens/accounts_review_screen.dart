@@ -1,13 +1,13 @@
 // ──────────────────────────────────────────────────────────────────────────────
-// NPUPS Accounts Review Screen
+// WorkForce
 // Receives HR-approved timesheets. Verifies pay calculations, deductions,
 // bank details. Approve for payment or reject back to HR.
-// Triggers .xlsx export matching the exact NPUPS template format.
+// Triggers .xlsx export matching the exact WorkForce template format.
 // ──────────────────────────────────────────────────────────────────────────────
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import '../theme/npups_theme.dart';
+import '../theme/app_theme.dart';
 import '../models/timesheet_model.dart';
 import '../models/user_model.dart';
 import '../models/worker_model.dart';
@@ -17,7 +17,7 @@ import '../services/security_utils.dart';
 import 'package:file_saver/file_saver.dart';
 
 class AccountsReviewScreen extends StatefulWidget {
-  final NpupsUser user;
+  final AppUser user;
   const AccountsReviewScreen({super.key, required this.user});
 
   @override
@@ -51,9 +51,9 @@ class _AccountsReviewScreenState extends State<AccountsReviewScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: NpupsColors.surface,
+      backgroundColor: AppColors.surface,
       appBar: AppBar(
-        backgroundColor: NpupsColors.primary,
+        backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
         title: const Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -93,7 +93,7 @@ class _AccountsReviewScreenState extends State<AccountsReviewScreen>
   Widget _buildPendingTab() {
     final queue = _pendingQueue;
     if (queue.isEmpty) {
-      return const Center(child: Text('No timesheets pending verification', style: TextStyle(color: NpupsColors.textSecondary)));
+      return const Center(child: Text('No timesheets pending verification', style: TextStyle(color: AppColors.textSecondary)));
     }
     return ListView.builder(
       padding: const EdgeInsets.all(16),
@@ -116,8 +116,8 @@ class _AccountsReviewScreenState extends State<AccountsReviewScreen>
               children: [
                 CircleAvatar(
                   radius: 20,
-                  backgroundColor: NpupsColors.accent.withValues(alpha: 0.1),
-                  child: const Icon(Icons.account_balance, color: NpupsColors.accent, size: 20),
+                  backgroundColor: AppColors.accent.withValues(alpha: 0.1),
+                  child: const Icon(Icons.account_balance, color: AppColors.accent, size: 20),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -125,7 +125,7 @@ class _AccountsReviewScreenState extends State<AccountsReviewScreen>
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(ts.workerName, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
-                      Text('${ts.position} | ${ts.corporationName}', style: const TextStyle(fontSize: 12, color: NpupsColors.textSecondary)),
+                      Text('${ts.position} | ${ts.corporationName}', style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
                     ],
                   ),
                 ),
@@ -134,7 +134,7 @@ class _AccountsReviewScreenState extends State<AccountsReviewScreen>
             const Divider(height: 20),
 
             // Pay verification
-            const Text('Pay Verification', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: NpupsColors.primary)),
+            const Text('Pay Verification', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.primary)),
             const SizedBox(height: 8),
             _verifyRow('Days Worked', '${ts.daysWorked}'),
             _verifyRow('Wage', '${ts.daysWorked} x \$${ts.wageRate.toStringAsFixed(0)} = \$${ts.wageTotal.toStringAsFixed(2)}'),
@@ -145,7 +145,7 @@ class _AccountsReviewScreenState extends State<AccountsReviewScreen>
             const SizedBox(height: 12),
 
             // Bank details
-            const Text('Bank Details (Direct Deposit)', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: NpupsColors.primary)),
+            const Text('Bank Details (Direct Deposit)', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.primary)),
             const SizedBox(height: 4),
             _verifyRow('Bank', ts.bankName),
             _verifyRow('Account #', SecurityUtils.maskBankAccount(ts.accountNumber)),
@@ -156,12 +156,12 @@ class _AccountsReviewScreenState extends State<AccountsReviewScreen>
             if (ts.approvalHistory.isNotEmpty)
               Container(
                 padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(color: NpupsColors.success.withValues(alpha: 0.05), borderRadius: BorderRadius.circular(6)),
+                decoration: BoxDecoration(color: AppColors.success.withValues(alpha: 0.05), borderRadius: BorderRadius.circular(6)),
                 child: Row(
                   children: [
-                    const Icon(Icons.check_circle, size: 14, color: NpupsColors.success),
+                    const Icon(Icons.check_circle, size: 14, color: AppColors.success),
                     const SizedBox(width: 6),
-                    Text('HR: ${ts.approvalHistory.last.note ?? 'Approved'}', style: const TextStyle(fontSize: 11, color: NpupsColors.success)),
+                    Text('HR: ${ts.approvalHistory.last.note ?? 'Approved'}', style: const TextStyle(fontSize: 11, color: AppColors.success)),
                   ],
                 ),
               ),
@@ -173,10 +173,10 @@ class _AccountsReviewScreenState extends State<AccountsReviewScreen>
                 Expanded(
                   child: OutlinedButton.icon(
                     onPressed: () => _rejectTimesheet(ts),
-                    icon: const Icon(Icons.reply, size: 16, color: NpupsColors.error),
-                    label: const Text('Reject to HR', style: TextStyle(color: NpupsColors.error, fontSize: 12)),
+                    icon: const Icon(Icons.reply, size: 16, color: AppColors.error),
+                    label: const Text('Reject to HR', style: TextStyle(color: AppColors.error, fontSize: 12)),
                     style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: NpupsColors.error),
+                      side: const BorderSide(color: AppColors.error),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                     ),
                   ),
@@ -187,13 +187,13 @@ class _AccountsReviewScreenState extends State<AccountsReviewScreen>
                     onPressed: () {
                       _store.advanceStage(ts.id, widget.user.fullName, 'Accounts', note: 'Pay calculations verified');
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('${ts.workerName} approved for payment'), backgroundColor: NpupsColors.success),
+                        SnackBar(content: Text('${ts.workerName} approved for payment'), backgroundColor: AppColors.success),
                       );
                     },
                     icon: const Icon(Icons.check, size: 16),
                     label: const Text('Approve for Payment', style: TextStyle(fontSize: 12)),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: NpupsColors.success,
+                      backgroundColor: AppColors.success,
                       foregroundColor: Colors.white,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                     ),
@@ -212,7 +212,7 @@ class _AccountsReviewScreenState extends State<AccountsReviewScreen>
   Widget _buildApprovedTab() {
     final queue = _approvedQueue;
     if (queue.isEmpty) {
-      return const Center(child: Text('No timesheets awaiting export', style: TextStyle(color: NpupsColors.textSecondary)));
+      return const Center(child: Text('No timesheets awaiting export', style: TextStyle(color: AppColors.textSecondary)));
     }
     return Column(
       children: [
@@ -227,7 +227,7 @@ class _AccountsReviewScreenState extends State<AccountsReviewScreen>
                 onPressed: () => _exportToXlsx(queue),
                 icon: const Icon(Icons.download, size: 18),
                 label: const Text('Export to .xlsx'),
-                style: ElevatedButton.styleFrom(backgroundColor: NpupsColors.accent, foregroundColor: Colors.white),
+                style: ElevatedButton.styleFrom(backgroundColor: AppColors.accent, foregroundColor: Colors.white),
               ),
             ],
           ),
@@ -241,10 +241,10 @@ class _AccountsReviewScreenState extends State<AccountsReviewScreen>
               return Card(
                 margin: const EdgeInsets.only(bottom: 8),
                 child: ListTile(
-                  leading: const Icon(Icons.check_circle, color: NpupsColors.success),
+                  leading: const Icon(Icons.check_circle, color: AppColors.success),
                   title: Text(ts.workerName, style: const TextStyle(fontWeight: FontWeight.w600)),
                   subtitle: Text('${ts.corporationName} | \$${ts.grandTotal.toStringAsFixed(2)}'),
-                  trailing: Text('Group ${ts.groupNumber}', style: const TextStyle(color: NpupsColors.textSecondary)),
+                  trailing: Text('Group ${ts.groupNumber}', style: const TextStyle(color: AppColors.textSecondary)),
                 ),
               );
             },
@@ -259,7 +259,7 @@ class _AccountsReviewScreenState extends State<AccountsReviewScreen>
   Widget _buildExportedTab() {
     final queue = _exportedQueue;
     if (queue.isEmpty) {
-      return const Center(child: Text('No exported timesheets', style: TextStyle(color: NpupsColors.textSecondary)));
+      return const Center(child: Text('No exported timesheets', style: TextStyle(color: AppColors.textSecondary)));
     }
     return ListView.builder(
       padding: const EdgeInsets.all(16),
@@ -280,12 +280,12 @@ class _AccountsReviewScreenState extends State<AccountsReviewScreen>
                     onPressed: () {
                       _store.advanceStage(ts.id, widget.user.fullName, 'Accounts', note: 'Direct deposit initiated');
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('${ts.workerName} — direct deposit initiated'), backgroundColor: NpupsColors.success),
+                        SnackBar(content: Text('${ts.workerName} — direct deposit initiated'), backgroundColor: AppColors.success),
                       );
                     },
                     child: const Text('Initiate Deposit', style: TextStyle(fontSize: 12)),
                   )
-                : const Icon(Icons.done_all, color: NpupsColors.success, size: 20),
+                : const Icon(Icons.done_all, color: AppColors.success, size: 20),
           ),
         );
       },
@@ -299,7 +299,7 @@ class _AccountsReviewScreenState extends State<AccountsReviewScreen>
       padding: const EdgeInsets.symmetric(vertical: 2),
       child: Row(
         children: [
-          SizedBox(width: 110, child: Text(label, style: TextStyle(fontSize: 12, color: NpupsColors.textSecondary, fontWeight: bold ? FontWeight.bold : FontWeight.normal))),
+          SizedBox(width: 110, child: Text(label, style: TextStyle(fontSize: 12, color: AppColors.textSecondary, fontWeight: bold ? FontWeight.bold : FontWeight.normal))),
           Expanded(child: Text(value, style: TextStyle(fontSize: 12, fontWeight: bold ? FontWeight.bold : FontWeight.w500))),
         ],
       ),
@@ -333,10 +333,10 @@ class _AccountsReviewScreenState extends State<AccountsReviewScreen>
               _store.rejectTimesheet(ts.id, widget.user.fullName, 'Accounts', controller.text.trim());
               Navigator.pop(ctx);
               ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('${ts.workerName}\'s timesheet rejected to HR'), backgroundColor: NpupsColors.warning),
+                SnackBar(content: Text('${ts.workerName}\'s timesheet rejected to HR'), backgroundColor: AppColors.warning),
               );
             },
-            style: ElevatedButton.styleFrom(backgroundColor: NpupsColors.error),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
             child: const Text('Reject'),
           ),
         ],
@@ -374,7 +374,7 @@ class _AccountsReviewScreenState extends State<AccountsReviewScreen>
     );
 
     final fileName = SecurityUtils.sanitizeFileName(
-      'NPUPS_Paysheet_${DateFormat('yyyyMMdd').format(DateTime.now())}',
+      'Paysheet_${DateFormat('yyyyMMdd').format(DateTime.now())}',
     );
     await FileSaver.instance.saveFile(name: fileName, bytes: bytes, ext: 'xlsx', mimeType: MimeType.microsoftExcel);
 
@@ -385,7 +385,7 @@ class _AccountsReviewScreenState extends State<AccountsReviewScreen>
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('${timesheets.length} timesheets exported to $fileName.xlsx'), backgroundColor: NpupsColors.success),
+        SnackBar(content: Text('${timesheets.length} timesheets exported to $fileName.xlsx'), backgroundColor: AppColors.success),
       );
     }
   }

@@ -1,6 +1,6 @@
 // ──────────────────────────────────────────────────────────────────────────────
-// NPUPS Excel Timesheet Export Service
-// Generates .xlsx files matching the exact NPUPS timesheet template layout.
+// WorkForce
+// Generates .xlsx files matching the exact WorkForce timesheet template layout.
 // Supports:
 //   - Single worker export: one complete timesheet per worker
 //   - Batch export by corporation: all workers stacked down the document,
@@ -120,7 +120,7 @@ class ExcelExportService {
 
       sheet.merge(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: row),
                   CellIndex.indexByColumnRow(columnIndex: 22, rowIndex: row));
-      _setCell(sheet, row, 0, 'National Programme for the Upkeep of Public Spaces (NPUPS)', subHeaderStyle);
+      _setCell(sheet, row, 0, 'WorkForce HR System', subHeaderStyle);
       row++;
 
       // Corporation and Group

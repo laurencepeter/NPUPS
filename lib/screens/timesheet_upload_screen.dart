@@ -1,5 +1,5 @@
 // ──────────────────────────────────────────────────────────────────────────────
-// NPUPS Timesheet Upload Screen
+// WorkForce
 // Corporation personnel can:
 //   1. Download a blank Excel template pre-filled with worker details
 //   2. Upload a completed Excel timesheet (drag-and-drop or file picker)
@@ -11,7 +11,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:file_saver/file_saver.dart';
-import '../theme/npups_theme.dart';
+import '../theme/app_theme.dart';
 import '../models/worker_model.dart';
 import '../models/timesheet_model.dart';
 import '../services/worker_data_store.dart';
@@ -130,7 +130,7 @@ class _TimesheetUploadScreenState extends State<TimesheetUploadScreen>
         final safeName = SecurityUtils.sanitizeFileName(
           _selectedWorker!.fullName.replaceAll(' ', '_'),
         );
-        fileName = 'NPUPS_Template_${safeName}_$dateStr';
+        fileName = 'Template_${safeName}_$dateStr';
       } else {
         bytes = ExcelTemplateService.generateBatchTemplate(
           workers: _corpWorkers,
@@ -141,7 +141,7 @@ class _TimesheetUploadScreenState extends State<TimesheetUploadScreen>
         final safeCorpName = SecurityUtils.sanitizeFileName(
           corpName.replaceAll(' ', '_'),
         );
-        fileName = 'NPUPS_Template_Batch_${safeCorpName}_$dateStr';
+        fileName = 'Template_Batch_${safeCorpName}_$dateStr';
       }
 
       await FileSaver.instance.saveFile(
@@ -157,7 +157,7 @@ class _TimesheetUploadScreenState extends State<TimesheetUploadScreen>
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Template downloaded: $fileName.xlsx'),
-          backgroundColor: NpupsColors.success,
+          backgroundColor: AppColors.success,
           behavior: SnackBarBehavior.floating,
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -169,7 +169,7 @@ class _TimesheetUploadScreenState extends State<TimesheetUploadScreen>
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Download failed: $e'),
-          backgroundColor: NpupsColors.error,
+          backgroundColor: AppColors.error,
           behavior: SnackBarBehavior.floating,
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -196,7 +196,7 @@ class _TimesheetUploadScreenState extends State<TimesheetUploadScreen>
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: const Text('Could not read file data.'),
-            backgroundColor: NpupsColors.error,
+            backgroundColor: AppColors.error,
             behavior: SnackBarBehavior.floating,
             shape:
                 RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -211,7 +211,7 @@ class _TimesheetUploadScreenState extends State<TimesheetUploadScreen>
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Error picking file: $e'),
-          backgroundColor: NpupsColors.error,
+          backgroundColor: AppColors.error,
           behavior: SnackBarBehavior.floating,
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -317,7 +317,7 @@ class _TimesheetUploadScreenState extends State<TimesheetUploadScreen>
       SnackBar(
         content: Text(
             '$created timesheet${created != 1 ? 's' : ''} submitted to pipeline.'),
-        backgroundColor: NpupsColors.success,
+        backgroundColor: AppColors.success,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ),
@@ -331,9 +331,9 @@ class _TimesheetUploadScreenState extends State<TimesheetUploadScreen>
     final fortnightEnd = _fortnightStart.add(const Duration(days: 13));
 
     return Scaffold(
-      backgroundColor: NpupsColors.surface,
+      backgroundColor: AppColors.surface,
       appBar: AppBar(
-        backgroundColor: NpupsColors.primary,
+        backgroundColor: AppColors.primary,
         title: const Text('Timesheet Upload',
             style: TextStyle(fontWeight: FontWeight.w700)),
       ),
@@ -395,10 +395,10 @@ class _TimesheetUploadScreenState extends State<TimesheetUploadScreen>
         Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: NpupsColors.accent.withValues(alpha: 0.1),
+            color: AppColors.accent.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(10),
           ),
-          child: Icon(icon, color: NpupsColors.accent, size: 20),
+          child: Icon(icon, color: AppColors.accent, size: 20),
         ),
         const SizedBox(width: 12),
         Expanded(
@@ -411,7 +411,7 @@ class _TimesheetUploadScreenState extends State<TimesheetUploadScreen>
               if (subtitle != null)
                 Text(subtitle,
                     style: const TextStyle(
-                        fontSize: 12, color: NpupsColors.textSecondary)),
+                        fontSize: 12, color: AppColors.textSecondary)),
             ],
           ),
         ),
@@ -442,7 +442,7 @@ class _TimesheetUploadScreenState extends State<TimesheetUploadScreen>
               style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w500,
-                  color: NpupsColors.textSecondary)),
+                  color: AppColors.textSecondary)),
           const SizedBox(height: 6),
           DropdownButtonFormField<String>(
             value: _selectedCorpId,
@@ -466,7 +466,7 @@ class _TimesheetUploadScreenState extends State<TimesheetUploadScreen>
                 style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w500,
-                    color: NpupsColors.textSecondary)),
+                    color: AppColors.textSecondary)),
             const SizedBox(height: 6),
             DropdownButtonFormField<String>(
               value: _selectedWorkerId,
@@ -499,7 +499,7 @@ class _TimesheetUploadScreenState extends State<TimesheetUploadScreen>
                         style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w500,
-                            color: NpupsColors.textSecondary)),
+                            color: AppColors.textSecondary)),
                     const SizedBox(height: 6),
                     TextFormField(
                       initialValue: _groupNumber,
@@ -519,7 +519,7 @@ class _TimesheetUploadScreenState extends State<TimesheetUploadScreen>
                         style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w500,
-                            color: NpupsColors.textSecondary)),
+                            color: AppColors.textSecondary)),
                     const SizedBox(height: 6),
                     InkWell(
                       onTap: _pickFortnightStart,
@@ -527,14 +527,14 @@ class _TimesheetUploadScreenState extends State<TimesheetUploadScreen>
                       child: Container(
                         padding: const EdgeInsets.all(14),
                         decoration: BoxDecoration(
-                          color: NpupsColors.inputFill,
+                          color: AppColors.inputFill,
                           borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: NpupsColors.border),
+                          border: Border.all(color: AppColors.border),
                         ),
                         child: Row(
                           children: [
                             const Icon(Icons.calendar_today,
-                                size: 18, color: NpupsColors.accent),
+                                size: 18, color: AppColors.accent),
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(
@@ -544,7 +544,7 @@ class _TimesheetUploadScreenState extends State<TimesheetUploadScreen>
                               ),
                             ),
                             const Icon(Icons.edit,
-                                size: 16, color: NpupsColors.textHint),
+                                size: 16, color: AppColors.textHint),
                           ],
                         ),
                       ),
@@ -590,7 +590,7 @@ class _TimesheetUploadScreenState extends State<TimesheetUploadScreen>
     required VoidCallback onTap,
   }) {
     return Material(
-      color: NpupsColors.accent.withValues(alpha: 0.08),
+      color: AppColors.accent.withValues(alpha: 0.08),
       borderRadius: BorderRadius.circular(12),
       child: InkWell(
         onTap: _downloadingTemplate ? null : onTap,
@@ -606,14 +606,14 @@ class _TimesheetUploadScreenState extends State<TimesheetUploadScreen>
                     height: 18,
                     child: CircularProgressIndicator(strokeWidth: 2))
               else
-                Icon(icon, size: 18, color: NpupsColors.accent),
+                Icon(icon, size: 18, color: AppColors.accent),
               const SizedBox(width: 8),
               Flexible(
                 child: Text(label,
                     style: const TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
-                        color: NpupsColors.accent),
+                        color: AppColors.accent),
                     overflow: TextOverflow.ellipsis),
               ),
             ],
@@ -641,13 +641,13 @@ class _TimesheetUploadScreenState extends State<TimesheetUploadScreen>
             padding: const EdgeInsets.symmetric(vertical: 48, horizontal: 24),
             decoration: BoxDecoration(
               color: _isDragHovering
-                  ? NpupsColors.accent.withValues(alpha: 0.08)
+                  ? AppColors.accent.withValues(alpha: 0.08)
                   : Colors.white,
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
                 color: _isDragHovering
-                    ? NpupsColors.accent
-                    : NpupsColors.border
+                    ? AppColors.accent
+                    : AppColors.border
                         .withValues(alpha: 0.6 + pulseValue * 0.4),
                 width: _isDragHovering ? 2 : 1.5,
                 strokeAlign: BorderSide.strokeAlignCenter,
@@ -674,11 +674,11 @@ class _TimesheetUploadScreenState extends State<TimesheetUploadScreen>
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: NpupsColors.accent.withValues(alpha: 0.1),
+                      color: AppColors.accent.withValues(alpha: 0.1),
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(Icons.cloud_upload_outlined,
-                        size: 40, color: NpupsColors.accent),
+                        size: 40, color: AppColors.accent),
                   ),
                   const SizedBox(height: 16),
                   const Text('Click to upload Excel timesheet',
@@ -686,9 +686,9 @@ class _TimesheetUploadScreenState extends State<TimesheetUploadScreen>
                           fontSize: 16, fontWeight: FontWeight.w600)),
                   const SizedBox(height: 6),
                   const Text(
-                    'Supports .xlsx files generated from NPUPS template',
+                    'Supports .xlsx files generated from WorkForce template',
                     style: TextStyle(
-                        fontSize: 12, color: NpupsColors.textSecondary),
+                        fontSize: 12, color: AppColors.textSecondary),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 12),
@@ -696,7 +696,7 @@ class _TimesheetUploadScreenState extends State<TimesheetUploadScreen>
                     padding:
                         const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                     decoration: BoxDecoration(
-                      color: NpupsColors.accent,
+                      color: AppColors.accent,
                       borderRadius: BorderRadius.circular(24),
                     ),
                     child: const Text('Browse Files',
@@ -720,7 +720,7 @@ class _TimesheetUploadScreenState extends State<TimesheetUploadScreen>
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: NpupsColors.success.withValues(alpha: 0.3)),
+        border: Border.all(color: AppColors.success.withValues(alpha: 0.3)),
         boxShadow: [
           BoxShadow(
               color: Colors.black.withValues(alpha: 0.04),
@@ -733,11 +733,11 @@ class _TimesheetUploadScreenState extends State<TimesheetUploadScreen>
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: NpupsColors.success.withValues(alpha: 0.1),
+              color: AppColors.success.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(10),
             ),
             child: const Icon(Icons.description,
-                color: NpupsColors.success, size: 24),
+                color: AppColors.success, size: 24),
           ),
           const SizedBox(width: 14),
           Expanded(
@@ -755,8 +755,8 @@ class _TimesheetUploadScreenState extends State<TimesheetUploadScreen>
                   style: TextStyle(
                     fontSize: 12,
                     color: _importResult?.success == true
-                        ? NpupsColors.success
-                        : NpupsColors.textSecondary,
+                        ? AppColors.success
+                        : AppColors.textSecondary,
                   ),
                 ),
               ],
@@ -787,22 +787,22 @@ class _TimesheetUploadScreenState extends State<TimesheetUploadScreen>
       return Container(
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: NpupsColors.error.withValues(alpha: 0.05),
+          color: AppColors.error.withValues(alpha: 0.05),
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: NpupsColors.error.withValues(alpha: 0.2)),
+          border: Border.all(color: AppColors.error.withValues(alpha: 0.2)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Row(
               children: [
-                Icon(Icons.error_outline, color: NpupsColors.error, size: 20),
+                Icon(Icons.error_outline, color: AppColors.error, size: 20),
                 SizedBox(width: 8),
                 Text('Import Errors',
                     style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
-                        color: NpupsColors.error)),
+                        color: AppColors.error)),
               ],
             ),
             const SizedBox(height: 12),
@@ -812,11 +812,11 @@ class _TimesheetUploadScreenState extends State<TimesheetUploadScreen>
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text('  \u2022  ',
-                          style: TextStyle(color: NpupsColors.error)),
+                          style: TextStyle(color: AppColors.error)),
                       Expanded(
                           child: Text(e,
                               style: const TextStyle(
-                                  fontSize: 13, color: NpupsColors.error))),
+                                  fontSize: 13, color: AppColors.error))),
                     ],
                   ),
                 )),
@@ -844,7 +844,7 @@ class _TimesheetUploadScreenState extends State<TimesheetUploadScreen>
           Row(
             children: [
               const Icon(Icons.check_circle,
-                  color: NpupsColors.success, size: 20),
+                  color: AppColors.success, size: 20),
               const SizedBox(width: 8),
               Text(
                 '${result.entries.length} Timesheet${result.entries.length != 1 ? 's' : ''} Ready',
@@ -861,12 +861,12 @@ class _TimesheetUploadScreenState extends State<TimesheetUploadScreen>
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Icon(Icons.warning_amber,
-                          size: 14, color: NpupsColors.warning),
+                          size: 14, color: AppColors.warning),
                       const SizedBox(width: 6),
                       Expanded(
                           child: Text(e,
                               style: const TextStyle(
-                                  fontSize: 11, color: NpupsColors.warning))),
+                                  fontSize: 11, color: AppColors.warning))),
                     ],
                   ),
                 )),
@@ -895,7 +895,7 @@ class _TimesheetUploadScreenState extends State<TimesheetUploadScreen>
                 style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w800,
-                    color: NpupsColors.accent),
+                    color: AppColors.accent),
               ),
             ],
           ),
@@ -918,14 +918,14 @@ class _TimesheetUploadScreenState extends State<TimesheetUploadScreen>
             height: 28,
             alignment: Alignment.center,
             decoration: BoxDecoration(
-              color: NpupsColors.accent.withValues(alpha: 0.1),
+              color: AppColors.accent.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Text('$index',
                 style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
-                    color: NpupsColors.accent)),
+                    color: AppColors.accent)),
           ),
           const SizedBox(width: 12),
           // Worker info
@@ -949,13 +949,13 @@ class _TimesheetUploadScreenState extends State<TimesheetUploadScreen>
                         padding: const EdgeInsets.symmetric(
                             horizontal: 6, vertical: 2),
                         decoration: BoxDecoration(
-                          color: NpupsColors.success.withValues(alpha: 0.1),
+                          color: AppColors.success.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: const Text('Matched',
                             style: TextStyle(
                                 fontSize: 9,
-                                color: NpupsColors.success,
+                                color: AppColors.success,
                                 fontWeight: FontWeight.w600)),
                       ),
                   ],
@@ -963,7 +963,7 @@ class _TimesheetUploadScreenState extends State<TimesheetUploadScreen>
                 Text(
                   '${entry.position ?? "—"} | ${entry.daysWorked} days | ${entry.nisNumber ?? "No NIS"}',
                   style: const TextStyle(
-                      fontSize: 11, color: NpupsColors.textSecondary),
+                      fontSize: 11, color: AppColors.textSecondary),
                 ),
               ],
             ),
@@ -976,10 +976,10 @@ class _TimesheetUploadScreenState extends State<TimesheetUploadScreen>
                   style: const TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w700,
-                      color: NpupsColors.accent)),
+                      color: AppColors.accent)),
               Text('${entry.daysWorked}d worked',
                   style: const TextStyle(
-                      fontSize: 10, color: NpupsColors.textSecondary)),
+                      fontSize: 10, color: AppColors.textSecondary)),
             ],
           ),
         ],
@@ -1012,7 +1012,7 @@ class _TimesheetUploadScreenState extends State<TimesheetUploadScreen>
           style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
         ),
         style: ElevatedButton.styleFrom(
-          backgroundColor: NpupsColors.accent,
+          backgroundColor: AppColors.accent,
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
         ),
@@ -1025,24 +1025,24 @@ class _TimesheetUploadScreenState extends State<TimesheetUploadScreen>
       width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: NpupsColors.success.withValues(alpha: 0.08),
+        color: AppColors.success.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: NpupsColors.success.withValues(alpha: 0.3)),
+        border: Border.all(color: AppColors.success.withValues(alpha: 0.3)),
       ),
       child: Column(
         children: [
           const Icon(Icons.check_circle,
-              color: NpupsColors.success, size: 40),
+              color: AppColors.success, size: 40),
           const SizedBox(height: 12),
           const Text('Timesheets Submitted Successfully',
               style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
-                  color: NpupsColors.success)),
+                  color: AppColors.success)),
           const SizedBox(height: 6),
           const Text(
             'Timesheets have been added to the approval pipeline and are now pending coordinator review.',
-            style: TextStyle(fontSize: 12, color: NpupsColors.textSecondary),
+            style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 16),

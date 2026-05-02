@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import '../theme/npups_theme.dart';
+import '../theme/app_theme.dart';
 import '../models/user_model.dart';
 import '../services/auth_service.dart';
 
 // ──────────────────────────────────────────────────────────────────────────────
-// NPUPS Role-Based Dashboard
-// Implements §5.2 Dashboard (Role-Specific) and §7 Wireframe (P0)
+// WorkForce
+// Dashboard Screen
 //
 // Each role sees different KPI cards and pending actions per the process map.
 // Admin sees all data; test users see their corporation-scoped view.
@@ -63,12 +63,12 @@ class _DashboardScreenState extends State<DashboardScreen>
     super.dispose();
   }
 
-  NpupsUser get _user => widget.authService.currentUser!;
+  AppUser get _user => widget.authService.currentUser!;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: NpupsColors.surface,
+      backgroundColor: AppColors.surface,
       body: CustomScrollView(
         slivers: [
           _buildAppBar(),
@@ -97,7 +97,7 @@ class _DashboardScreenState extends State<DashboardScreen>
     return SliverAppBar(
       expandedHeight: 120,
       pinned: true,
-      backgroundColor: NpupsColors.primary,
+      backgroundColor: AppColors.primary,
       flexibleSpace: FlexibleSpaceBar(
         titlePadding: const EdgeInsets.only(left: 16, bottom: 14),
         title: Column(
@@ -105,7 +105,7 @@ class _DashboardScreenState extends State<DashboardScreen>
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'NPUPS',
+              'WorkForce',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w800,
@@ -124,7 +124,7 @@ class _DashboardScreenState extends State<DashboardScreen>
           ],
         ),
         background: Container(
-          decoration: const BoxDecoration(gradient: NpupsColors.primaryGradient),
+          decoration: const BoxDecoration(gradient: AppColors.primaryGradient),
           child: Align(
             alignment: Alignment.centerRight,
             child: Padding(
@@ -138,11 +138,11 @@ class _DashboardScreenState extends State<DashboardScreen>
         ),
       ),
       actions: [
-        // Notification bell (§5.7)
+        // Notification bell
         IconButton(
           icon: Badge(
             smallSize: 8,
-            backgroundColor: NpupsColors.trinidadRed,
+            backgroundColor: AppColors.brandRed,
             child: const Icon(Icons.notifications_outlined, color: Colors.white),
           ),
           onPressed: () => _showSnack('Notification centre coming soon.'),
@@ -155,7 +155,7 @@ class _DashboardScreenState extends State<DashboardScreen>
             padding: const EdgeInsets.symmetric(horizontal: 12),
             child: CircleAvatar(
               radius: 16,
-              backgroundColor: NpupsColors.accent,
+              backgroundColor: AppColors.accent,
               child: Text(
                 _user.initials,
                 style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
@@ -168,11 +168,11 @@ class _DashboardScreenState extends State<DashboardScreen>
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(_user.fullName, style: const TextStyle(fontWeight: FontWeight.w600, color: NpupsColors.textPrimary)),
-                  Text(_user.email, style: const TextStyle(fontSize: 12, color: NpupsColors.textSecondary)),
+                  Text(_user.fullName, style: const TextStyle(fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
+                  Text(_user.email, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
                   if (_user.corporationName != null) ...[
                     const SizedBox(height: 4),
-                    Text(_user.corporationName!, style: const TextStyle(fontSize: 11, color: NpupsColors.accent)),
+                    Text(_user.corporationName!, style: const TextStyle(fontSize: 11, color: AppColors.accent)),
                   ],
                 ],
               ),
@@ -182,9 +182,9 @@ class _DashboardScreenState extends State<DashboardScreen>
               onTap: widget.onLogout,
               child: const Row(
                 children: [
-                  Icon(Icons.logout, size: 18, color: NpupsColors.error),
+                  Icon(Icons.logout, size: 18, color: AppColors.error),
                   SizedBox(width: 8),
-                  Text('Sign Out', style: TextStyle(color: NpupsColors.error)),
+                  Text('Sign Out', style: TextStyle(color: AppColors.error)),
                 ],
               ),
             ),
@@ -202,14 +202,14 @@ class _DashboardScreenState extends State<DashboardScreen>
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [NpupsColors.accent, NpupsColors.accent.withValues(alpha: 0.8)],
+            colors: [AppColors.accent, AppColors.accent.withValues(alpha: 0.8)],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: NpupsColors.accent.withValues(alpha: 0.3),
+              color: AppColors.accent.withValues(alpha: 0.3),
               blurRadius: 12,
               offset: const Offset(0, 4),
             ),
@@ -280,7 +280,7 @@ class _DashboardScreenState extends State<DashboardScreen>
           children: [
             const Text(
               'Overview',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: NpupsColors.textPrimary),
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
             ),
             const SizedBox(height: 12),
             GridView.count(
@@ -306,28 +306,28 @@ class _DashboardScreenState extends State<DashboardScreen>
   List<_KpiData> _getKpisForRole() {
     return switch (_user.role) {
       UserRole.systemAdmin => [
-        _KpiData('Active Workers', '2,847', Icons.people, NpupsColors.accent, '+12%'),
-        _KpiData('Corporations', '14', Icons.location_city, NpupsColors.success, 'Active'),
-        _KpiData('Pending Approvals', '23', Icons.pending_actions, NpupsColors.warning, 'Action'),
-        _KpiData('This Fortnight', '\$1.2M', Icons.payments, NpupsColors.trinidadRed, 'Payroll'),
+        _KpiData('Active Workers', '2,847', Icons.people, AppColors.accent, '+12%'),
+        _KpiData('Corporations', '14', Icons.location_city, AppColors.success, 'Active'),
+        _KpiData('Pending Approvals', '23', Icons.pending_actions, AppColors.warning, 'Action'),
+        _KpiData('This Fortnight', '\$1.2M', Icons.payments, AppColors.brandRed, 'Payroll'),
       ],
       UserRole.regionalCoordinator => [
-        _KpiData('My Workers', '48', Icons.people, NpupsColors.accent, 'Assigned'),
-        _KpiData('Timesheets Due', '3', Icons.timer, NpupsColors.warning, 'Pending'),
-        _KpiData('Docs Complete', '92%', Icons.check_circle, NpupsColors.success, 'Progress'),
-        _KpiData('This Fortnight', '\$72K', Icons.payments, NpupsColors.trinidadRed, 'Payroll'),
+        _KpiData('My Workers', '48', Icons.people, AppColors.accent, 'Assigned'),
+        _KpiData('Timesheets Due', '3', Icons.timer, AppColors.warning, 'Pending'),
+        _KpiData('Docs Complete', '92%', Icons.check_circle, AppColors.success, 'Progress'),
+        _KpiData('This Fortnight', '\$72K', Icons.payments, AppColors.brandRed, 'Payroll'),
       ],
       UserRole.hr => [
-        _KpiData('Payroll Queue', '8', Icons.receipt_long, NpupsColors.accent, 'Pending'),
-        _KpiData('Employment Notes', '5', Icons.description, NpupsColors.warning, 'PS Review'),
-        _KpiData('Workers Onboarded', '156', Icons.person_add, NpupsColors.success, 'This Cycle'),
-        _KpiData('Packages Sent', '12', Icons.send, NpupsColors.trinidadRed, 'To Accounts'),
+        _KpiData('Payroll Queue', '8', Icons.receipt_long, AppColors.accent, 'Pending'),
+        _KpiData('Employment Notes', '5', Icons.description, AppColors.warning, 'PS Review'),
+        _KpiData('Workers Onboarded', '156', Icons.person_add, AppColors.success, 'This Cycle'),
+        _KpiData('Packages Sent', '12', Icons.send, AppColors.brandRed, 'To Accounts'),
       ],
       _ => [
-        _KpiData('Active Workers', '2,847', Icons.people, NpupsColors.accent, '+12%'),
-        _KpiData('Pending Items', '15', Icons.pending_actions, NpupsColors.warning, 'Action'),
-        _KpiData('Completed', '89%', Icons.check_circle, NpupsColors.success, 'Progress'),
-        _KpiData('This Fortnight', '\$1.2M', Icons.payments, NpupsColors.trinidadRed, 'Payroll'),
+        _KpiData('Active Workers', '2,847', Icons.people, AppColors.accent, '+12%'),
+        _KpiData('Pending Items', '15', Icons.pending_actions, AppColors.warning, 'Action'),
+        _KpiData('Completed', '89%', Icons.check_circle, AppColors.success, 'Progress'),
+        _KpiData('This Fortnight', '\$1.2M', Icons.payments, AppColors.brandRed, 'Payroll'),
       ],
     };
   }
@@ -379,11 +379,11 @@ class _DashboardScreenState extends State<DashboardScreen>
             children: [
               Text(
                 kpi.value,
-                style: TextStyle(fontSize: compact ? 16 : 22, fontWeight: FontWeight.w800, color: NpupsColors.textPrimary),
+                style: TextStyle(fontSize: compact ? 16 : 22, fontWeight: FontWeight.w800, color: AppColors.textPrimary),
               ),
               Text(
                 kpi.label,
-                style: TextStyle(fontSize: compact ? 10 : 11, color: NpupsColors.textSecondary),
+                style: TextStyle(fontSize: compact ? 10 : 11, color: AppColors.textSecondary),
                 overflow: TextOverflow.ellipsis,
               ),
             ],
@@ -402,7 +402,7 @@ class _DashboardScreenState extends State<DashboardScreen>
         children: [
           const Text(
             'Quick Actions',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: NpupsColors.textPrimary),
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
           ),
           const SizedBox(height: 12),
           Wrap(
@@ -459,11 +459,11 @@ class _DashboardScreenState extends State<DashboardScreen>
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(action.icon, size: 18, color: NpupsColors.accent),
+              Icon(action.icon, size: 18, color: AppColors.accent),
               const SizedBox(width: 8),
               Text(
                 action.label,
-                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: NpupsColors.textPrimary),
+                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: AppColors.textPrimary),
               ),
             ],
           ),
@@ -481,7 +481,7 @@ class _DashboardScreenState extends State<DashboardScreen>
         children: [
           const Text(
             'Recent Activity',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: NpupsColors.textPrimary),
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
           ),
           const SizedBox(height: 12),
           Container(
@@ -498,28 +498,28 @@ class _DashboardScreenState extends State<DashboardScreen>
                   'Timesheet submitted for Port of Spain — Group 3',
                   '2 hours ago',
                   Icons.check_circle,
-                  NpupsColors.success,
+                  AppColors.success,
                 ),
                 const Divider(height: 1, indent: 56),
                 _buildActivityItem(
                   'Payroll package approved by PS',
                   '5 hours ago',
                   Icons.thumb_up,
-                  NpupsColors.accent,
+                  AppColors.accent,
                 ),
                 const Divider(height: 1, indent: 56),
                 _buildActivityItem(
                   '3 worker documents pending verification',
                   'Yesterday',
                   Icons.warning_amber,
-                  NpupsColors.warning,
+                  AppColors.warning,
                 ),
                 const Divider(height: 1, indent: 56),
                 _buildActivityItem(
                   'New workers registered: Kevin Rampersad, Sasha Mohammed',
                   'Yesterday',
                   Icons.person_add,
-                  NpupsColors.info,
+                  AppColors.info,
                 ),
               ],
             ),
@@ -547,9 +547,9 @@ class _DashboardScreenState extends State<DashboardScreen>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(text, style: const TextStyle(fontSize: 13, color: NpupsColors.textPrimary)),
+                Text(text, style: const TextStyle(fontSize: 13, color: AppColors.textPrimary)),
                 const SizedBox(height: 2),
-                Text(time, style: const TextStyle(fontSize: 11, color: NpupsColors.textSecondary)),
+                Text(time, style: const TextStyle(fontSize: 11, color: AppColors.textSecondary)),
               ],
             ),
           ),
@@ -577,7 +577,7 @@ class _DashboardScreenState extends State<DashboardScreen>
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(msg),
-        backgroundColor: NpupsColors.info,
+        backgroundColor: AppColors.info,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ),

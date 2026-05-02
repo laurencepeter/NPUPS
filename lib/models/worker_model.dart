@@ -1,5 +1,5 @@
 // ──────────────────────────────────────────────────────────────────────────────
-// NPUPS Worker Model
+// WorkForce
 // Represents a registered worker with personal info, employment details,
 // bank info, and document verification status.
 // ──────────────────────────────────────────────────────────────────────────────

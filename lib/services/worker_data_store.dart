@@ -1,5 +1,5 @@
 // ──────────────────────────────────────────────────────────────────────────────
-// NPUPS Worker Data Store
+// WorkForce
 // In-memory store with demo workers across multiple corporations.
 // All mutations emit audit events via the AuditService when an actor is supplied.
 // ──────────────────────────────────────────────────────────────────────────────
@@ -71,7 +71,7 @@ class WorkerDataStore extends ChangeNotifier {
 
   // ── Mutations ──────────────────────────────────────────────────────────────
 
-  void addWorker(Worker worker, {NpupsUser? actor}) {
+  void addWorker(Worker worker, {AppUser? actor}) {
     _workers.add(worker);
     if (actor != null) {
       _audit.log(
@@ -95,7 +95,7 @@ class WorkerDataStore extends ChangeNotifier {
     notifyListeners();
   }
 
-  void updateWorker(Worker updated, {NpupsUser? actor}) {
+  void updateWorker(Worker updated, {AppUser? actor}) {
     final index = _workers.indexWhere((w) => w.id == updated.id);
     if (index == -1) return;
 
@@ -118,7 +118,7 @@ class WorkerDataStore extends ChangeNotifier {
     notifyListeners();
   }
 
-  void deactivateWorker(String workerId, {NpupsUser? actor}) {
+  void deactivateWorker(String workerId, {AppUser? actor}) {
     final worker = getById(workerId);
     if (worker == null) return;
 
@@ -145,7 +145,7 @@ class WorkerDataStore extends ChangeNotifier {
     String docName,
     DocumentStatus status, {
     String? fileName,
-    NpupsUser? actor,
+    AppUser? actor,
   }) {
     final worker = getById(workerId);
     if (worker == null) return;
@@ -186,7 +186,7 @@ class WorkerDataStore extends ChangeNotifier {
     notifyListeners();
   }
 
-  void addReplacement(WorkerReplacement replacement, {NpupsUser? actor}) {
+  void addReplacement(WorkerReplacement replacement, {AppUser? actor}) {
     _replacements.removeWhere(
         (r) => r.originalWorkerId == replacement.originalWorkerId);
     _replacements.add(replacement);

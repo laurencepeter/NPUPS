@@ -1,12 +1,12 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import '../theme/npups_theme.dart';
+import '../theme/app_theme.dart';
 import '../services/auth_service.dart';
 
 // ──────────────────────────────────────────────────────────────────────────────
-// NPUPS Login Screen
-// Implements §5.1 Authentication & Onboarding + §7 Wireframe (Login / SSO — P0)
+// WorkForce
+// Login Screen
 //
 // Features:
 //   - Staggered entrance animations for polished UX
@@ -15,7 +15,7 @@ import '../services/auth_service.dart';
 //   - Demo account quick-fill bottom sheet
 //   - Password visibility toggle
 //   - Error/success feedback with animated snackbars
-//   - Government branding per §8.1 colour palette
+//   - Brand colours per design system palette
 // ──────────────────────────────────────────────────────────────────────────────
 
 class LoginScreen extends StatefulWidget {
@@ -263,7 +263,7 @@ class _LoginScreenState extends State<LoginScreen>
           return Stack(
             children: [
               // Gradient background
-              Container(decoration: const BoxDecoration(gradient: NpupsColors.loginGradient)),
+              Container(decoration: const BoxDecoration(gradient: AppColors.loginGradient)),
 
               // Floating particles — bounded to avoid full-tree repaints
               RepaintBoundary(
@@ -335,7 +335,7 @@ class _LoginScreenState extends State<LoginScreen>
             border: Border.all(color: Colors.white.withValues(alpha: 0.2), width: 2),
             boxShadow: [
               BoxShadow(
-                color: NpupsColors.accent.withValues(alpha: 0.3),
+                color: AppColors.accent.withValues(alpha: 0.3),
                 blurRadius: 30,
                 spreadRadius: 2,
               ),
@@ -362,36 +362,26 @@ class _LoginScreenState extends State<LoginScreen>
         child: Column(
           children: [
             const Text(
-              'NUPS',
+              'WorkForce',
               style: TextStyle(
                 fontSize: 32,
                 fontWeight: FontWeight.w800,
                 color: Colors.white,
-                letterSpacing: 6,
+                letterSpacing: 4,
               ),
             ),
             const SizedBox(height: 6),
-            Text(
-              'National Upkeep Programme System',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w400,
-                color: Colors.white.withValues(alpha: 0.7),
-                letterSpacing: 3,
-              ),
-            ),
-            const SizedBox(height: 4),
             Container(
               width: 40,
               height: 2,
               decoration: BoxDecoration(
-                color: NpupsColors.accent,
+                color: AppColors.accent,
                 borderRadius: BorderRadius.circular(1),
               ),
             ),
             const SizedBox(height: 10),
             Text(
-              'National Programme for the\nUpkeep of Public Spaces',
+              'Digital workflow for employee enrollment,\npayroll processing, and HR reporting',
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 11,
@@ -434,7 +424,7 @@ class _LoginScreenState extends State<LoginScreen>
               offset: const Offset(0, 10),
             ),
             BoxShadow(
-              color: NpupsColors.accent.withValues(alpha: 0.08),
+              color: AppColors.accent.withValues(alpha: 0.08),
               blurRadius: 60,
               offset: const Offset(0, 20),
             ),
@@ -454,7 +444,7 @@ class _LoginScreenState extends State<LoginScreen>
                       width: 4,
                       height: 24,
                       decoration: BoxDecoration(
-                        color: NpupsColors.accent,
+                        color: AppColors.accent,
                         borderRadius: BorderRadius.circular(2),
                       ),
                     ),
@@ -464,17 +454,17 @@ class _LoginScreenState extends State<LoginScreen>
                       style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.w700,
-                        color: NpupsColors.textPrimary,
+                        color: AppColors.textPrimary,
                       ),
                     ),
                     const Spacer(),
                     // Demo accounts button
                     TextButton.icon(
                       onPressed: _showDemoAccounts,
-                      icon: Icon(Icons.info_outline, size: 16, color: NpupsColors.accent.withValues(alpha: 0.8)),
+                      icon: Icon(Icons.info_outline, size: 16, color: AppColors.accent.withValues(alpha: 0.8)),
                       label: Text(
                         'Demo',
-                        style: TextStyle(fontSize: 12, color: NpupsColors.accent.withValues(alpha: 0.8)),
+                        style: TextStyle(fontSize: 12, color: AppColors.accent.withValues(alpha: 0.8)),
                       ),
                       style: TextButton.styleFrom(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -486,8 +476,8 @@ class _LoginScreenState extends State<LoginScreen>
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  'Access your NUPS dashboard',
-                  style: TextStyle(fontSize: 13, color: NpupsColors.textSecondary.withValues(alpha: 0.8)),
+                  'Access your WorkForce dashboard',
+                  style: TextStyle(fontSize: 13, color: AppColors.textSecondary.withValues(alpha: 0.8)),
                 ),
                 const SizedBox(height: 24),
 
@@ -509,18 +499,18 @@ class _LoginScreenState extends State<LoginScreen>
                           margin: const EdgeInsets.only(bottom: 16),
                           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                           decoration: BoxDecoration(
-                            color: NpupsColors.error.withValues(alpha: 0.08),
+                            color: AppColors.error.withValues(alpha: 0.08),
                             borderRadius: BorderRadius.circular(10),
-                            border: Border.all(color: NpupsColors.error.withValues(alpha: 0.2)),
+                            border: Border.all(color: AppColors.error.withValues(alpha: 0.2)),
                           ),
                           child: Row(
                             children: [
-                              const Icon(Icons.error_outline, color: NpupsColors.error, size: 18),
+                              const Icon(Icons.error_outline, color: AppColors.error, size: 18),
                               const SizedBox(width: 10),
                               Expanded(
                                 child: Text(
                                   _errorMessage!,
-                                  style: const TextStyle(fontSize: 13, color: NpupsColors.error),
+                                  style: const TextStyle(fontSize: 13, color: AppColors.error),
                                 ),
                               ),
                             ],
@@ -540,9 +530,9 @@ class _LoginScreenState extends State<LoginScreen>
                   autofillHints: const [AutofillHints.email],
                   onFieldSubmitted: (_) => _passwordFocus.requestFocus(),
                   decoration: InputDecoration(
-                    hintText: 'you@npups.gov.tt',
-                    prefixIcon: const Icon(Icons.email_outlined, size: 20, color: NpupsColors.textHint),
-                    fillColor: NpupsColors.inputFill,
+                    hintText: 'you@workforce.app',
+                    prefixIcon: const Icon(Icons.email_outlined, size: 20, color: AppColors.textHint),
+                    fillColor: AppColors.inputFill,
                   ),
                   validator: (v) {
                     if (v == null || v.trim().isEmpty) return 'Email is required';
@@ -564,7 +554,7 @@ class _LoginScreenState extends State<LoginScreen>
                   onFieldSubmitted: (_) => _handleLogin(),
                   decoration: InputDecoration(
                     hintText: 'Enter your password',
-                    prefixIcon: const Icon(Icons.lock_outline, size: 20, color: NpupsColors.textHint),
+                    prefixIcon: const Icon(Icons.lock_outline, size: 20, color: AppColors.textHint),
                     suffixIcon: IconButton(
                       icon: AnimatedSwitcher(
                         duration: const Duration(milliseconds: 200),
@@ -574,12 +564,12 @@ class _LoginScreenState extends State<LoginScreen>
                           _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
                           key: ValueKey(_obscurePassword),
                           size: 20,
-                          color: NpupsColors.textHint,
+                          color: AppColors.textHint,
                         ),
                       ),
                       onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
                     ),
-                    fillColor: NpupsColors.inputFill,
+                    fillColor: AppColors.inputFill,
                   ),
                   validator: (v) {
                     if (v == null || v.isEmpty) return 'Password is required';
@@ -596,7 +586,7 @@ class _LoginScreenState extends State<LoginScreen>
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: const Text('Password reset will be available in production.'),
-                          backgroundColor: NpupsColors.info,
+                          backgroundColor: AppColors.info,
                           behavior: SnackBarBehavior.floating,
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                         ),
@@ -611,7 +601,7 @@ class _LoginScreenState extends State<LoginScreen>
                       'Forgot password?',
                       style: TextStyle(
                         fontSize: 12,
-                        color: NpupsColors.accent.withValues(alpha: 0.8),
+                        color: AppColors.accent.withValues(alpha: 0.8),
                       ),
                     ),
                   ),
@@ -629,7 +619,7 @@ class _LoginScreenState extends State<LoginScreen>
                             ? null
                             : [
                                 BoxShadow(
-                                  color: NpupsColors.accent.withValues(alpha: 0.15 + _pulseAnimation.value * 0.15),
+                                  color: AppColors.accent.withValues(alpha: 0.15 + _pulseAnimation.value * 0.15),
                                   blurRadius: 12 + _pulseAnimation.value * 8,
                                   offset: const Offset(0, 4),
                                 ),
@@ -643,9 +633,9 @@ class _LoginScreenState extends State<LoginScreen>
                     child: ElevatedButton(
                       onPressed: _isLoading ? null : _handleLogin,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: NpupsColors.accent,
+                        backgroundColor: AppColors.accent,
                         foregroundColor: Colors.white,
-                        disabledBackgroundColor: NpupsColors.accent.withValues(alpha: 0.6),
+                        disabledBackgroundColor: AppColors.accent.withValues(alpha: 0.6),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         elevation: 0,
                       ),
@@ -682,15 +672,15 @@ class _LoginScreenState extends State<LoginScreen>
                 ),
                 const SizedBox(height: 16),
 
-                // SSO divider (per §5.1 optional SSO via iGovTT)
+                // SSO divider
                 Row(
                   children: [
-                    Expanded(child: Divider(color: NpupsColors.border, thickness: 1)),
+                    Expanded(child: Divider(color: AppColors.border, thickness: 1)),
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 12),
-                      child: Text('or', style: TextStyle(fontSize: 12, color: NpupsColors.textHint)),
+                      child: Text('or', style: TextStyle(fontSize: 12, color: AppColors.textHint)),
                     ),
-                    Expanded(child: Divider(color: NpupsColors.border, thickness: 1)),
+                    Expanded(child: Divider(color: AppColors.border, thickness: 1)),
                   ],
                 ),
                 const SizedBox(height: 16),
@@ -700,18 +690,18 @@ class _LoginScreenState extends State<LoginScreen>
                   onPressed: () {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: const Text('iGovTT SSO integration coming in production.'),
-                        backgroundColor: NpupsColors.info,
+                        content: const Text('SSO integration coming in production.'),
+                        backgroundColor: AppColors.info,
                         behavior: SnackBarBehavior.floating,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                       ),
                     );
                   },
                   icon: const Icon(Icons.security, size: 18),
-                  label: const Text('Sign in with iGovTT SSO'),
+                  label: const Text('Sign in with SSO'),
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: NpupsColors.textSecondary,
-                    side: const BorderSide(color: NpupsColors.border),
+                    foregroundColor: AppColors.textSecondary,
+                    side: const BorderSide(color: AppColors.border),
                     padding: const EdgeInsets.symmetric(vertical: 13),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
@@ -730,7 +720,7 @@ class _LoginScreenState extends State<LoginScreen>
       style: const TextStyle(
         fontSize: 13,
         fontWeight: FontWeight.w600,
-        color: NpupsColors.textPrimary,
+        color: AppColors.textPrimary,
       ),
     );
   }
@@ -876,7 +866,7 @@ class _DemoAccountsSheet extends StatelessWidget {
             width: 40,
             height: 4,
             decoration: BoxDecoration(
-              color: NpupsColors.border,
+              color: AppColors.border,
               borderRadius: BorderRadius.circular(2),
             ),
           ),
@@ -885,14 +875,14 @@ class _DemoAccountsSheet extends StatelessWidget {
             padding: EdgeInsets.symmetric(horizontal: 24),
             child: Row(
               children: [
-                Icon(Icons.people_outline, color: NpupsColors.accent, size: 22),
+                Icon(Icons.people_outline, color: AppColors.accent, size: 22),
                 SizedBox(width: 10),
                 Text(
                   'Demo Accounts',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w700,
-                    color: NpupsColors.textPrimary,
+                    color: AppColors.textPrimary,
                   ),
                 ),
               ],
@@ -903,7 +893,7 @@ class _DemoAccountsSheet extends StatelessWidget {
             padding: EdgeInsets.symmetric(horizontal: 24),
             child: Text(
               'Tap an account to auto-fill credentials',
-              style: TextStyle(fontSize: 13, color: NpupsColors.textSecondary),
+              style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
             ),
           ),
           const SizedBox(height: 16),
@@ -923,10 +913,10 @@ class _DemoAccountsSheet extends StatelessWidget {
     };
 
     final roleColor = switch (account.role) {
-      'System Admin' => NpupsColors.trinidadRed,
-      'Regional Coordinator' => NpupsColors.success,
-      'HR Department' => NpupsColors.accent,
-      _ => NpupsColors.textSecondary,
+      'System Admin' => AppColors.brandRed,
+      'Regional Coordinator' => AppColors.success,
+      'HR Department' => AppColors.accent,
+      _ => AppColors.textSecondary,
     };
 
     return InkWell(
@@ -954,13 +944,13 @@ class _DemoAccountsSheet extends StatelessWidget {
                     style: const TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
-                      color: NpupsColors.textPrimary,
+                      color: AppColors.textPrimary,
                     ),
                   ),
                   const SizedBox(height: 2),
                   Text(
                     account.email,
-                    style: const TextStyle(fontSize: 12, color: NpupsColors.textSecondary),
+                    style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
                   ),
                 ],
               ),

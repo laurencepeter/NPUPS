@@ -1,5 +1,5 @@
 // ──────────────────────────────────────────────────────────────────────────────
-// NPUPS Excel Timesheet Template Generator
+// WorkForce
 // Generates blank .xlsx templates pre-populated with worker details.
 // Corporation personnel download these, fill in time-in/time-out data,
 // then upload them back via the Timesheet Upload screen.
@@ -130,7 +130,7 @@ class ExcelTemplateService {
     _setCell(sheet, row, 0,
         'INSTRUCTIONS: Fill in the yellow-highlighted cells with time values (e.g. 7:00, 15:00). '
         'Do not modify worker details, corporation, or structure. '
-        'Upload completed file via the NPUPS Timesheet Upload screen.',
+        'Upload completed file via the WorkForce Timesheet Upload screen.',
         instructionStyle);
     row += 2;
 
@@ -150,7 +150,7 @@ class ExcelTemplateService {
         CellIndex.indexByColumnRow(columnIndex: 22, rowIndex: row),
       );
       _setCell(sheet, row, 0,
-          'National Programme for the Upkeep of Public Spaces (NPUPS)',
+          'WorkForce HR System',
           subHeaderStyle);
       row++;
 
