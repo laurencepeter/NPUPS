@@ -21,6 +21,8 @@ import 'screens/audit_log_screen.dart';
 import 'screens/roster_screen.dart';
 import 'screens/employee_import_screen.dart';
 import 'screens/hr_management_screen.dart';
+import 'screens/payroll_breakdown_screen.dart';
+import 'screens/backpay_screen.dart';
 
 // ──────────────────────────────────────────────────────────────────────────────
 // WorkForce — Digital HR & Payroll System
@@ -243,18 +245,23 @@ class _AuthenticatedShellState extends State<_AuthenticatedShell> {
           _TabConfig('Roster', Icons.calendar_month_outlined,
               Icons.calendar_month,
               () => RosterScreen(
-                  key: const ValueKey('roster'), currentUser: _user)),
+                  key: const ValueKey('roster'), currentUser: _user),
+              category: _TabCategory.operations),
           _TabConfig('Timesheet', Icons.edit_calendar_outlined,
               Icons.edit_calendar,
-              () => const TimesheetEntryScreen(key: ValueKey('timesheet'))),
+              () => const TimesheetEntryScreen(key: ValueKey('timesheet')),
+              category: _TabCategory.operations),
           _TabConfig('Review', Icons.rate_review_outlined, Icons.rate_review,
               () => CoordinatorReviewScreen(
-                  key: const ValueKey('coord-review'), user: _user)),
+                  key: const ValueKey('coord-review'), user: _user),
+              category: _TabCategory.operations),
           _TabConfig('Upload', Icons.upload_file_outlined, Icons.upload_file,
-              () => const TimesheetUploadScreen(key: ValueKey('upload'))),
+              () => const TimesheetUploadScreen(key: ValueKey('upload')),
+              category: _TabCategory.operations),
           _TabConfig('Workers', Icons.people_outlined, Icons.people,
               () => WorkerListScreen(
-                  key: const ValueKey('workers'), currentUser: _user)),
+                  key: const ValueKey('workers'), currentUser: _user),
+              category: _TabCategory.people),
         ],
       UserRole.hr => [
           _TabConfig('Dashboard', Icons.dashboard_outlined, Icons.dashboard,
@@ -268,18 +275,32 @@ class _AuthenticatedShellState extends State<_AuthenticatedShell> {
                   )),
           _TabConfig('HR Review', Icons.badge_outlined, Icons.badge,
               () => HrReviewScreen(
-                  key: const ValueKey('hr-review'), user: _user)),
+                  key: const ValueKey('hr-review'), user: _user),
+              category: _TabCategory.people),
           _TabConfig('HR Mgmt', Icons.manage_accounts_outlined,
               Icons.manage_accounts,
               () => HrManagementScreen(
-                  key: const ValueKey('hr-mgmt'), currentUser: _user)),
+                  key: const ValueKey('hr-mgmt'), currentUser: _user),
+              category: _TabCategory.people),
           _TabConfig('Workers', Icons.people_outlined, Icons.people,
               () => WorkerListScreen(
-                  key: const ValueKey('workers'), currentUser: _user)),
-          _TabConfig('Audit Log', Icons.history_edu_outlined,
+                  key: const ValueKey('workers'), currentUser: _user),
+              category: _TabCategory.people),
+          _TabConfig('Payroll', Icons.payments_outlined, Icons.payments,
+              () => PayrollBreakdownScreen(
+                  key: const ValueKey('payroll-breakdown'),
+                  currentUser: _user),
+              category: _TabCategory.payroll),
+          _TabConfig('Backpay', Icons.history_edu_outlined,
               Icons.history_edu,
+              () => BackpayScreen(
+                  key: const ValueKey('backpay'), currentUser: _user),
+              category: _TabCategory.payroll),
+          _TabConfig('Audit Log', Icons.fact_check_outlined,
+              Icons.fact_check,
               () => AuditLogScreen(
-                  key: const ValueKey('audit'), currentUser: _user)),
+                  key: const ValueKey('audit'), currentUser: _user),
+              category: _TabCategory.compliance),
         ],
       UserRole.subAccounts || UserRole.mainAccounts => [
           _TabConfig('Dashboard', Icons.dashboard_outlined, Icons.dashboard,
@@ -296,11 +317,19 @@ class _AuthenticatedShellState extends State<_AuthenticatedShell> {
               Icons.account_balance_outlined,
               Icons.account_balance,
               () => AccountsReviewScreen(
-                  key: const ValueKey('accounts-review'), user: _user)),
+                  key: const ValueKey('accounts-review'), user: _user),
+              category: _TabCategory.payroll),
+          _TabConfig('Payroll', Icons.payments_outlined, Icons.payments,
+              () => PayrollBreakdownScreen(
+                  key: const ValueKey('payroll-breakdown'),
+                  currentUser: _user),
+              category: _TabCategory.payroll),
           _TabConfig('Upload', Icons.upload_file_outlined, Icons.upload_file,
-              () => const TimesheetUploadScreen(key: ValueKey('upload'))),
+              () => const TimesheetUploadScreen(key: ValueKey('upload')),
+              category: _TabCategory.operations),
           _TabConfig('Export', Icons.download_outlined, Icons.download,
-              () => const ExportScreen(key: ValueKey('export'))),
+              () => const ExportScreen(key: ValueKey('export')),
+              category: _TabCategory.reports),
         ],
       UserRole.ps => [
           _TabConfig('Pipeline', Icons.dashboard_outlined, Icons.dashboard,
@@ -308,13 +337,21 @@ class _AuthenticatedShellState extends State<_AuthenticatedShell> {
                   key: const ValueKey('ps-dashboard'), user: _user)),
           _TabConfig('Workers', Icons.people_outlined, Icons.people,
               () => WorkerListScreen(
-                  key: const ValueKey('workers'), currentUser: _user)),
+                  key: const ValueKey('workers'), currentUser: _user),
+              category: _TabCategory.people),
+          _TabConfig('Payroll', Icons.payments_outlined, Icons.payments,
+              () => PayrollBreakdownScreen(
+                  key: const ValueKey('payroll-breakdown'),
+                  currentUser: _user),
+              category: _TabCategory.payroll),
           _TabConfig('Export', Icons.download_outlined, Icons.download,
-              () => const ExportScreen(key: ValueKey('export'))),
+              () => const ExportScreen(key: ValueKey('export')),
+              category: _TabCategory.reports),
           _TabConfig('Audit Log', Icons.history_edu_outlined,
               Icons.history_edu,
               () => AuditLogScreen(
-                  key: const ValueKey('audit'), currentUser: _user)),
+                  key: const ValueKey('audit'), currentUser: _user),
+              category: _TabCategory.compliance),
         ],
       UserRole.ministersDepartment => [
           _TabConfig('Workers', Icons.people_outlined, Icons.people,
@@ -323,7 +360,8 @@ class _AuthenticatedShellState extends State<_AuthenticatedShell> {
           _TabConfig('Registry', Icons.person_search_outlined,
               Icons.person_search,
               () => WorkerListScreen(
-                  key: const ValueKey('workers-list'), currentUser: _user)),
+                  key: const ValueKey('workers-list'), currentUser: _user),
+              category: _TabCategory.people),
         ],
       UserRole.systemAdmin || UserRole.dmcr => [
           _TabConfig('Dashboard', Icons.dashboard_outlined, Icons.dashboard,
@@ -338,26 +376,43 @@ class _AuthenticatedShellState extends State<_AuthenticatedShell> {
           _TabConfig('Roster', Icons.calendar_month_outlined,
               Icons.calendar_month,
               () => RosterScreen(
-                  key: const ValueKey('roster'), currentUser: _user)),
+                  key: const ValueKey('roster'), currentUser: _user),
+              category: _TabCategory.operations),
           _TabConfig('Timesheet', Icons.edit_calendar_outlined,
               Icons.edit_calendar,
-              () => const TimesheetEntryScreen(key: ValueKey('timesheet'))),
+              () => const TimesheetEntryScreen(key: ValueKey('timesheet')),
+              category: _TabCategory.operations),
           _TabConfig('HR Mgmt', Icons.manage_accounts_outlined,
               Icons.manage_accounts,
               () => HrManagementScreen(
-                  key: const ValueKey('hr-mgmt'), currentUser: _user)),
+                  key: const ValueKey('hr-mgmt'), currentUser: _user),
+              category: _TabCategory.people),
           _TabConfig('Workers', Icons.people_outlined, Icons.people,
               () => WorkerListScreen(
-                  key: const ValueKey('workers'), currentUser: _user)),
+                  key: const ValueKey('workers'), currentUser: _user),
+              category: _TabCategory.people),
           _TabConfig('Import', Icons.upload_outlined, Icons.upload,
               () => EmployeeImportScreen(
-                  key: const ValueKey('import'), currentUser: _user)),
-          _TabConfig('Audit Log', Icons.history_edu_outlined,
+                  key: const ValueKey('import'), currentUser: _user),
+              category: _TabCategory.people),
+          _TabConfig('Payroll', Icons.payments_outlined, Icons.payments,
+              () => PayrollBreakdownScreen(
+                  key: const ValueKey('payroll-breakdown'),
+                  currentUser: _user),
+              category: _TabCategory.payroll),
+          _TabConfig('Backpay', Icons.history_edu_outlined,
               Icons.history_edu,
+              () => BackpayScreen(
+                  key: const ValueKey('backpay'), currentUser: _user),
+              category: _TabCategory.payroll),
+          _TabConfig('Audit Log', Icons.fact_check_outlined,
+              Icons.fact_check,
               () => AuditLogScreen(
-                  key: const ValueKey('audit'), currentUser: _user)),
+                  key: const ValueKey('audit'), currentUser: _user),
+              category: _TabCategory.compliance),
           _TabConfig('Export', Icons.download_outlined, Icons.download,
-              () => const ExportScreen(key: ValueKey('export'))),
+              () => const ExportScreen(key: ValueKey('export')),
+              category: _TabCategory.reports),
         ],
     };
   }
@@ -383,31 +438,11 @@ class _AuthenticatedShellState extends State<_AuthenticatedShell> {
         mainAxisSize: MainAxisSize.min,
         children: [
           _buildRoleSwitcher(isDark),
-          NavigationBar(
+          _AdaptiveBottomNav(
+            tabs: tabs,
             selectedIndex: _currentIndex.clamp(0, tabs.length - 1),
-            onDestinationSelected: _onTabChanged,
-            backgroundColor:
-                isDark ? AppColors.darkCard : Colors.white,
-            elevation: 8,
-            shadowColor: Colors.black38,
-            indicatorColor: isDark
-                ? AppColors.darkAccent.withValues(alpha: 0.2)
-                : AppColors.accent.withValues(alpha: 0.12),
-            labelBehavior:
-                NavigationDestinationLabelBehavior.alwaysShow,
-            animationDuration: const Duration(milliseconds: 400),
-            destinations: tabs
-                .map((tab) => NavigationDestination(
-                      icon: Icon(tab.icon),
-                      selectedIcon: Icon(
-                        tab.selectedIcon,
-                        color: isDark
-                            ? AppColors.darkAccentLight
-                            : AppColors.accent,
-                      ),
-                      label: tab.label,
-                    ))
-                .toList(),
+            onSelect: _onTabChanged,
+            isDark: isDark,
           ),
         ],
       ),
@@ -508,11 +543,301 @@ class _AuthenticatedShellState extends State<_AuthenticatedShell> {
   }
 }
 
+enum _TabCategory {
+  primary('Main'),
+  operations('Operations'),
+  people('People'),
+  payroll('Payroll'),
+  compliance('Compliance'),
+  reports('Reports');
+
+  const _TabCategory(this.label);
+  final String label;
+}
+
 class _TabConfig {
   final String label;
   final IconData icon;
   final IconData selectedIcon;
   final Widget Function() builder;
+  final _TabCategory category;
 
-  _TabConfig(this.label, this.icon, this.selectedIcon, this.builder);
+  _TabConfig(this.label, this.icon, this.selectedIcon, this.builder,
+      {this.category = _TabCategory.primary});
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Adaptive bottom navigation
+//
+// Wide screens (≥600px) → standard NavigationBar with all tabs.
+// Mobile / narrow → first 4 primary tabs are pinned, the remainder collapse
+// into a "More" overflow that opens a category-grouped bottom sheet.
+// ──────────────────────────────────────────────────────────────────────────────
+
+class _AdaptiveBottomNav extends StatelessWidget {
+  final List<_TabConfig> tabs;
+  final int selectedIndex;
+  final ValueChanged<int> onSelect;
+  final bool isDark;
+
+  static const double _wideBreakpoint = 600;
+  static const int _mobilePrimarySlots = 4;
+
+  const _AdaptiveBottomNav({
+    required this.tabs,
+    required this.selectedIndex,
+    required this.onSelect,
+    required this.isDark,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final width = MediaQuery.of(context).size.width;
+    final isWide = width >= _wideBreakpoint;
+
+    // Wide screens or short tab lists fit fine.
+    if (isWide || tabs.length <= _mobilePrimarySlots + 1) {
+      return _buildStandardBar(context, tabs, selectedIndex);
+    }
+
+    // Mobile with overflow.
+    final primary = tabs.take(_mobilePrimarySlots - 1).toList();
+    final overflow = tabs.skip(_mobilePrimarySlots - 1).toList();
+    final selectedInOverflow = selectedIndex >= primary.length;
+
+    final visible = <_TabConfig>[
+      ...primary,
+      _TabConfig(
+        'More',
+        Icons.menu_outlined,
+        Icons.menu,
+        () => const SizedBox.shrink(),
+      ),
+    ];
+
+    final visibleSelected = selectedInOverflow
+        ? primary.length // highlight "More"
+        : selectedIndex;
+
+    return NavigationBar(
+      selectedIndex: visibleSelected.clamp(0, visible.length - 1),
+      backgroundColor: isDark ? AppColors.darkCard : Colors.white,
+      elevation: 8,
+      shadowColor: Colors.black38,
+      indicatorColor: isDark
+          ? AppColors.darkAccent.withValues(alpha: 0.2)
+          : AppColors.accent.withValues(alpha: 0.12),
+      labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+      animationDuration: const Duration(milliseconds: 400),
+      onDestinationSelected: (i) {
+        if (i == primary.length) {
+          _showMoreSheet(context, overflow, primary.length);
+        } else {
+          onSelect(i);
+        }
+      },
+      destinations: visible.map((t) {
+        return NavigationDestination(
+          icon: Icon(t.icon),
+          selectedIcon: Icon(
+            t.selectedIcon,
+            color:
+                isDark ? AppColors.darkAccentLight : AppColors.accent,
+          ),
+          label: t.label,
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildStandardBar(
+      BuildContext context, List<_TabConfig> visible, int selected) {
+    return NavigationBar(
+      selectedIndex: selected.clamp(0, visible.length - 1),
+      onDestinationSelected: onSelect,
+      backgroundColor: isDark ? AppColors.darkCard : Colors.white,
+      elevation: 8,
+      shadowColor: Colors.black38,
+      indicatorColor: isDark
+          ? AppColors.darkAccent.withValues(alpha: 0.2)
+          : AppColors.accent.withValues(alpha: 0.12),
+      labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+      animationDuration: const Duration(milliseconds: 400),
+      destinations: visible.map((tab) {
+        return NavigationDestination(
+          icon: Icon(tab.icon),
+          selectedIcon: Icon(
+            tab.selectedIcon,
+            color:
+                isDark ? AppColors.darkAccentLight : AppColors.accent,
+          ),
+          label: tab.label,
+        );
+      }).toList(),
+    );
+  }
+
+  void _showMoreSheet(
+      BuildContext context, List<_TabConfig> overflow, int firstOverflowIndex) {
+    // Group by category for browsable navigation.
+    final byCategory = <_TabCategory, List<_TabConfigEntry>>{};
+    for (var i = 0; i < overflow.length; i++) {
+      final t = overflow[i];
+      byCategory
+          .putIfAbsent(t.category, () => [])
+          .add(_TabConfigEntry(t, firstOverflowIndex + i));
+    }
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: isDark ? AppColors.darkCard : Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius:
+            BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (sheetCtx) {
+        return SafeArea(
+          child: Padding(
+            padding:
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 36,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: isDark
+                            ? AppColors.darkBorder
+                            : AppColors.border,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    'More',
+                    style: Theme.of(sheetCtx).textTheme.titleMedium,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Browse the rest of your tools by category.',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: isDark
+                          ? AppColors.darkTextSecondary
+                          : AppColors.textSecondary,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  ...byCategory.entries.map((entry) {
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Padding(
+                          padding:
+                              const EdgeInsets.only(top: 8, bottom: 6),
+                          child: Text(
+                            entry.key.label.toUpperCase(),
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 1.0,
+                              color: isDark
+                                  ? AppColors.darkTextHint
+                                  : AppColors.textHint,
+                            ),
+                          ),
+                        ),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: entry.value.map((e) {
+                            final selected =
+                                e.absoluteIndex == selectedIndex;
+                            return InkWell(
+                              borderRadius: BorderRadius.circular(12),
+                              onTap: () {
+                                Navigator.of(sheetCtx).pop();
+                                onSelect(e.absoluteIndex);
+                              },
+                              child: Container(
+                                padding:
+                                    const EdgeInsets.symmetric(
+                                        horizontal: 12, vertical: 10),
+                                decoration: BoxDecoration(
+                                  color: selected
+                                      ? AppColors.accent
+                                          .withValues(alpha: 0.12)
+                                      : (isDark
+                                          ? AppColors.darkInputFill
+                                          : AppColors.inputFill),
+                                  borderRadius:
+                                      BorderRadius.circular(12),
+                                  border: selected
+                                      ? Border.all(
+                                          color: AppColors.accent,
+                                          width: 1)
+                                      : null,
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      selected
+                                          ? e.tab.selectedIcon
+                                          : e.tab.icon,
+                                      size: 18,
+                                      color: selected
+                                          ? AppColors.accent
+                                          : (isDark
+                                              ? AppColors
+                                                  .darkTextSecondary
+                                              : AppColors
+                                                  .textSecondary),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      e.tab.label,
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: selected
+                                            ? FontWeight.w600
+                                            : FontWeight.w500,
+                                        color: selected
+                                            ? AppColors.accent
+                                            : (isDark
+                                                ? AppColors
+                                                    .darkTextPrimary
+                                                : AppColors
+                                                    .textPrimary),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      ],
+                    );
+                  }),
+                  const SizedBox(height: 12),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _TabConfigEntry {
+  final _TabConfig tab;
+  final int absoluteIndex;
+  _TabConfigEntry(this.tab, this.absoluteIndex);
 }

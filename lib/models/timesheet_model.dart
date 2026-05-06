@@ -6,6 +6,7 @@
 // ──────────────────────────────────────────────────────────────────────────────
 
 import 'package:flutter/material.dart';
+import 'payroll_deductions_model.dart';
 
 enum TimesheetStage {
   notStarted('Not Started', Icons.hourglass_empty, Color(0xFF9CA3AF)),
@@ -133,6 +134,15 @@ class Timesheet {
   double get colaTotal => daysWorked * colaRate;
   double get allowanceTotal => allowanceDays * allowanceRate;
   double get grandTotal => wageTotal + colaTotal + allowanceTotal;
+
+  // Statutory deductions — gross is wage + cola (allowance is non-taxable).
+  double get grossSalary => wageTotal + colaTotal;
+  DeductionBreakdown get deductions =>
+      DeductionBreakdown.compute(grossSalary: grossSalary);
+  double get nisEmployee => deductions.nisEmployee;
+  double get nisEmployer => deductions.nisEmployer;
+  double get healthSurcharge => deductions.healthSurcharge;
+  double get netPay => grandTotal - deductions.totalEmployeeDeductions;
 
   // Pipeline helpers
   bool get isEditable => stage == TimesheetStage.notStarted || stage == TimesheetStage.draft;

@@ -25,7 +25,15 @@ enum AuditAction {
   settingsChange('Settings Changed'),
   replacementAdded('Replacement Added'),
   stageAdvanced('Stage Advanced'),
-  stageRejected('Stage Rejected');
+  stageRejected('Stage Rejected'),
+  attachmentAdded('Attachment Added'),
+  attachmentRemoved('Attachment Removed'),
+  wageRateChanged('Wage Rate Changed'),
+  backpayCalculated('Backpay Calculated'),
+  backpayApproved('Backpay Approved'),
+  backpayDisbursed('Backpay Disbursed'),
+  paymentRecorded('Payment Recorded'),
+  paymentReversed('Payment Reversed');
 
   const AuditAction(this.displayName);
   final String displayName;
@@ -38,10 +46,43 @@ enum AuditEntityType {
   userAccount('User Account'),
   rosterEntry('Roster Entry'),
   rosterSettings('Roster Settings'),
+  payroll('Payroll Batch'),
+  payment('Payment'),
+  backpay('Backpay'),
+  attachment('Supporting Attachment'),
   system('System');
 
   const AuditEntityType(this.displayName);
   final String displayName;
+}
+
+/// A supporting document referenced by an audit entry — e.g. the signed
+/// timesheet PDF that was the basis for an approval, or the cheque image
+/// attached to a payment record.
+class AuditAttachment {
+  final String id;
+  final String fileName;
+  final String mimeType;
+  final int sizeBytes;
+  /// SHA-256 of the file content; the audit chain hash incorporates this so
+  /// any swap of the underlying file invalidates the chain.
+  final String contentHash;
+  final DateTime uploadedAt;
+
+  const AuditAttachment({
+    required this.id,
+    required this.fileName,
+    required this.mimeType,
+    required this.sizeBytes,
+    required this.contentHash,
+    required this.uploadedAt,
+  });
+
+  String get readableSize {
+    if (sizeBytes < 1024) return '${sizeBytes}B';
+    if (sizeBytes < 1024 * 1024) return '${(sizeBytes / 1024).toStringAsFixed(1)}KB';
+    return '${(sizeBytes / (1024 * 1024)).toStringAsFixed(2)}MB';
+  }
 }
 
 // A single field-level change recorded within an audit entry.
@@ -72,8 +113,11 @@ class AuditLogEntry {
   final String entityId;
   final String entityDisplayName;
   final List<AuditFieldChange> fieldChanges;
+  final List<AuditAttachment> attachments;
   final String? note;
-  // SHA-256(prevHash + id + timestamp + userId + action + entityType + entityId + changes)
+  /// IP address or device fingerprint of the actor (best-effort).
+  final String? actorContext;
+  // SHA-256(prevHash + id + timestamp + userId + action + entityType + entityId + changes + attachmentHashes)
   final String hash;
   // The hash of the immediately preceding entry (empty string for genesis)
   final String previousHash;
@@ -90,10 +134,14 @@ class AuditLogEntry {
     required this.entityId,
     required this.entityDisplayName,
     this.fieldChanges = const [],
+    this.attachments = const [],
     this.note,
+    this.actorContext,
     required this.hash,
     required this.previousHash,
   });
+
+  bool get hasAttachments => attachments.isNotEmpty;
 
   String get formattedTimestamp {
     final d = timestamp;
