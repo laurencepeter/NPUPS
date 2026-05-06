@@ -446,7 +446,63 @@ class _AuditLogScreenState extends State<AuditLogScreen> {
             const SizedBox(height: 6),
             ...entry.fieldChanges.map((fc) => _buildFieldChange(fc, isDark)),
           ],
+
+          // Supporting attachments — supplies the documentary evidence trail.
+          if (entry.hasAttachments) ...[
+            const SizedBox(height: 10),
+            Text('Supporting Attachments',
+                style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: textColor)),
+            const SizedBox(height: 6),
+            ...entry.attachments.map((a) => _buildAttachment(a, isDark)),
+          ],
         ],
+      ),
+    );
+  }
+
+  Widget _buildAttachment(AuditAttachment a, bool isDark) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+        decoration: BoxDecoration(
+          color: AppColors.info.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(color: AppColors.info.withValues(alpha: 0.3)),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.attach_file, size: 14, color: AppColors.info),
+            const SizedBox(width: 6),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(a.fileName,
+                      style: const TextStyle(
+                          fontSize: 11, fontWeight: FontWeight.w600)),
+                  Text(
+                    '${a.mimeType} • ${a.readableSize}',
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: isDark
+                          ? AppColors.darkTextHint
+                          : AppColors.textHint,
+                    ),
+                  ),
+                  Text('SHA-256: ${a.contentHash.substring(0, 16)}…',
+                      style: const TextStyle(
+                          fontFamily: 'monospace',
+                          fontSize: 9,
+                          color: AppColors.info)),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -601,6 +657,17 @@ class _AuditLogScreenState extends State<AuditLogScreen> {
       AuditAction.export || AuditAction.import => AppColors.accentDark,
       AuditAction.rosterUpdate => AppColors.warning,
       AuditAction.documentUpload => AppColors.info,
+      AuditAction.attachmentAdded => AppColors.info,
+      AuditAction.attachmentRemoved => AppColors.error,
+      AuditAction.wageRateChanged => AppColors.warning,
+      AuditAction.backpayCalculated => AppColors.warning,
+      AuditAction.backpayApproved => AppColors.success,
+      AuditAction.backpayDisbursed => AppColors.primary,
+      AuditAction.paymentRecorded => AppColors.success,
+      AuditAction.paymentReversed => AppColors.error,
+      AuditAction.allowanceAdded => AppColors.success,
+      AuditAction.allowanceUpdated => AppColors.info,
+      AuditAction.allowanceRemoved => AppColors.error,
       _ => AppColors.textSecondary,
     };
   }
@@ -626,6 +693,17 @@ class _AuditLogScreenState extends State<AuditLogScreen> {
       AuditAction.replacementAdded => Icons.swap_horiz,
       AuditAction.stageAdvanced => Icons.arrow_forward_outlined,
       AuditAction.stageRejected => Icons.arrow_back_outlined,
+      AuditAction.attachmentAdded => Icons.attach_file_outlined,
+      AuditAction.attachmentRemoved => Icons.link_off_outlined,
+      AuditAction.wageRateChanged => Icons.trending_up_outlined,
+      AuditAction.backpayCalculated => Icons.calculate_outlined,
+      AuditAction.backpayApproved => Icons.task_alt_outlined,
+      AuditAction.backpayDisbursed => Icons.payments_outlined,
+      AuditAction.paymentRecorded => Icons.account_balance_wallet_outlined,
+      AuditAction.paymentReversed => Icons.undo_outlined,
+      AuditAction.allowanceAdded => Icons.add_card_outlined,
+      AuditAction.allowanceUpdated => Icons.tune_outlined,
+      AuditAction.allowanceRemoved => Icons.remove_circle_outline,
     };
   }
 

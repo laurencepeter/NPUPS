@@ -30,6 +30,10 @@ class AuthResult {
 }
 
 class AuthService extends ChangeNotifier {
+  static final AuthService _instance = AuthService._internal();
+  factory AuthService() => _instance;
+  AuthService._internal();
+
   AppUser? _currentUser;
   bool _isLoading = false;
 
