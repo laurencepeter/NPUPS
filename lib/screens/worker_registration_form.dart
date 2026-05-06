@@ -44,7 +44,9 @@ class _WorkerRegistrationFormState extends State<WorkerRegistrationForm> {
   DateTime? _endDate;
   final _referenceNumberCtrl = TextEditingController();
   final _wageRateCtrl = TextEditingController(text: '150.00');
-  final _colaRateCtrl = TextEditingController(text: '25.00');
+  // COLA is optional — leave blank or 0 to skip; can be set later from
+  // the worker detail screen.
+  final _colaRateCtrl = TextEditingController();
   final _allowanceRateCtrl = TextEditingController(text: '40.00');
 
   // ── Bank Info ──────────────────────────────────────────────────────────────
@@ -128,7 +130,7 @@ class _WorkerRegistrationFormState extends State<WorkerRegistrationForm> {
     _endDate = w.endDate;
     _referenceNumberCtrl.text = w.referenceNumber ?? '';
     _wageRateCtrl.text = w.wageRate.toStringAsFixed(2);
-    _colaRateCtrl.text = w.colaRate.toStringAsFixed(2);
+    _colaRateCtrl.text = w.colaRate > 0 ? w.colaRate.toStringAsFixed(2) : '';
     _allowanceRateCtrl.text = w.allowanceRate.toStringAsFixed(2);
     _bankNameCtrl.text = w.bankInfo.bankName;
     _accountNumberCtrl.text = w.bankInfo.accountNumber;
@@ -229,7 +231,7 @@ class _WorkerRegistrationFormState extends State<WorkerRegistrationForm> {
       corporationName: _selectedCorporationName!,
       electoralDistrict: _selectedDistrict!,
       wageRate: double.tryParse(_wageRateCtrl.text) ?? 150.0,
-      colaRate: double.tryParse(_colaRateCtrl.text) ?? 25.0,
+      colaRate: double.tryParse(_colaRateCtrl.text) ?? 0.0,
       allowanceRate: double.tryParse(_allowanceRateCtrl.text) ?? 40.0,
       bankInfo: BankInfo(
         bankName: _bankNameCtrl.text.trim(),
@@ -238,6 +240,9 @@ class _WorkerRegistrationFormState extends State<WorkerRegistrationForm> {
       ),
       documents: documents,
       dateRegistered: _isEditing ? widget.existingWorker!.dateRegistered : DateTime.now(),
+      // Preserve any custom allowances already attached to the worker.
+      customAllowances:
+          _isEditing ? widget.existingWorker!.customAllowances : null,
       contact: _contactCtrl.text.trim().isEmpty ? null : _contactCtrl.text.trim(),
       address: _addressCtrl.text.trim().isEmpty ? null : _addressCtrl.text.trim(),
       birNumber: _birCtrl.text.trim().isEmpty ? null : _birCtrl.text.trim(),
@@ -436,10 +441,10 @@ class _WorkerRegistrationFormState extends State<WorkerRegistrationForm> {
                 const SizedBox(width: 8),
                 Expanded(child: _textField(
                   controller: _colaRateCtrl,
-                  label: 'COLA Rate (\$/day)',
+                  label: 'COLA Rate (\$/day, optional)',
                   keyboardType: const TextInputType.numberWithOptions(decimal: true),
                   inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[\d.]'))],
-                  required: true,
+                  required: false,
                 )),
                 const SizedBox(width: 8),
                 Expanded(child: _textField(

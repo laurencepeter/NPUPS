@@ -665,6 +665,9 @@ class _AuditLogScreenState extends State<AuditLogScreen> {
       AuditAction.backpayDisbursed => AppColors.primary,
       AuditAction.paymentRecorded => AppColors.success,
       AuditAction.paymentReversed => AppColors.error,
+      AuditAction.allowanceAdded => AppColors.success,
+      AuditAction.allowanceUpdated => AppColors.info,
+      AuditAction.allowanceRemoved => AppColors.error,
       _ => AppColors.textSecondary,
     };
   }
@@ -698,6 +701,9 @@ class _AuditLogScreenState extends State<AuditLogScreen> {
       AuditAction.backpayDisbursed => Icons.payments_outlined,
       AuditAction.paymentRecorded => Icons.account_balance_wallet_outlined,
       AuditAction.paymentReversed => Icons.undo_outlined,
+      AuditAction.allowanceAdded => Icons.add_card_outlined,
+      AuditAction.allowanceUpdated => Icons.tune_outlined,
+      AuditAction.allowanceRemoved => Icons.remove_circle_outline,
     };
   }
 

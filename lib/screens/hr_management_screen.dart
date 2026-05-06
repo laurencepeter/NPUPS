@@ -1036,6 +1036,7 @@ class _HrManagementScreenState extends State<HrManagementScreen>
             documents: worker.documents,
             dateRegistered: worker.dateRegistered,
             isActive: true,
+            customAllowances: worker.customAllowances,
             contact: worker.contact,
             address: worker.address,
             birNumber: worker.birNumber,

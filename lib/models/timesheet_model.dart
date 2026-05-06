@@ -105,7 +105,7 @@ class Timesheet {
     required this.idNumber,
     required this.nisNumber,
     required this.wageRate,
-    required this.colaRate,
+    this.colaRate = 0.0,
     required this.allowanceRate,
     required this.corporationId,
     required this.corporationName,

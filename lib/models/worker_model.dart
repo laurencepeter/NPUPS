@@ -33,6 +33,52 @@ class WorkerDocument {
   }
 }
 
+/// User-defined allowance attached to a single worker (e.g. Travel, Hazard,
+/// Acting Pay). Either paid per day worked (`perDayWorked = true`) or as a
+/// flat amount per fortnight (`perDayWorked = false`).
+class WorkerAllowance {
+  final String id;
+  final String name;
+  final double rate;
+  final bool perDayWorked;
+  final bool isActive;
+  final DateTime createdAt;
+  final String? note;
+
+  const WorkerAllowance({
+    required this.id,
+    required this.name,
+    required this.rate,
+    this.perDayWorked = true,
+    this.isActive = true,
+    required this.createdAt,
+    this.note,
+  });
+
+  WorkerAllowance copyWith({
+    String? name,
+    double? rate,
+    bool? perDayWorked,
+    bool? isActive,
+    String? note,
+  }) {
+    return WorkerAllowance(
+      id: id,
+      name: name ?? this.name,
+      rate: rate ?? this.rate,
+      perDayWorked: perDayWorked ?? this.perDayWorked,
+      isActive: isActive ?? this.isActive,
+      createdAt: createdAt,
+      note: note ?? this.note,
+    );
+  }
+
+  double amountFor(int daysWorked) {
+    if (!isActive) return 0;
+    return perDayWorked ? rate * daysWorked : rate;
+  }
+}
+
 class BankInfo {
   final String bankName;
   final String accountNumber;
@@ -56,12 +102,19 @@ class Worker {
   final String corporationName;
   final String electoralDistrict;
   final double wageRate;
+  /// Cost-of-Living Allowance rate per day. Optional — defaults to 0 so
+  /// workers can be registered without a COLA and have it set later from
+  /// the worker detail screen if/when one is introduced.
   final double colaRate;
   final double allowanceRate;
   final BankInfo bankInfo;
   final Map<String, WorkerDocument> documents;
   final DateTime dateRegistered;
   bool isActive;
+
+  /// User-defined allowances (Travel, Hazard, Acting, etc.) attached to this
+  /// worker. Mutable — added/removed via WorkerDataStore.
+  List<WorkerAllowance> customAllowances;
 
   // Extended fields for full worker profile
   final String? contact;        // Phone number
@@ -82,19 +135,28 @@ class Worker {
     required this.corporationName,
     required this.electoralDistrict,
     required this.wageRate,
-    required this.colaRate,
+    this.colaRate = 0.0,
     required this.allowanceRate,
     required this.bankInfo,
     required this.documents,
     required this.dateRegistered,
     this.isActive = true,
+    List<WorkerAllowance>? customAllowances,
     this.contact,
     this.address,
     this.birNumber,
     this.startDate,
     this.endDate,
     this.referenceNumber,
-  });
+  }) : customAllowances = customAllowances ?? [];
+
+  /// Sum of all active custom allowances for the given days-worked count.
+  double customAllowanceTotal(int daysWorked) =>
+      customAllowances.fold(0.0, (s, a) => s + a.amountFor(daysWorked));
+
+  bool get hasCola => colaRate > 0;
+  List<WorkerAllowance> get activeAllowances =>
+      customAllowances.where((a) => a.isActive).toList();
 
   String get initials {
     final parts = fullName.split(' ');

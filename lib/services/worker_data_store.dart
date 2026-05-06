@@ -118,6 +118,174 @@ class WorkerDataStore extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Update a worker's COLA rate without rebuilding the whole Worker object.
+  /// Logged as a wage-rate-class change so it appears in the deductions trail.
+  void setColaRate(String workerId, double newRate, {AppUser? actor}) {
+    final worker = getById(workerId);
+    if (worker == null) return;
+    final oldRate = worker.colaRate;
+    if (oldRate == newRate) return;
+
+    final updated = Worker(
+      id: worker.id,
+      fullName: worker.fullName,
+      nisNumber: worker.nisNumber,
+      dateOfBirth: worker.dateOfBirth,
+      position: worker.position,
+      idNumber: worker.idNumber,
+      corporationId: worker.corporationId,
+      corporationName: worker.corporationName,
+      electoralDistrict: worker.electoralDistrict,
+      wageRate: worker.wageRate,
+      colaRate: newRate,
+      allowanceRate: worker.allowanceRate,
+      bankInfo: worker.bankInfo,
+      documents: worker.documents,
+      dateRegistered: worker.dateRegistered,
+      isActive: worker.isActive,
+      customAllowances: worker.customAllowances,
+      contact: worker.contact,
+      address: worker.address,
+      birNumber: worker.birNumber,
+      startDate: worker.startDate,
+      endDate: worker.endDate,
+      referenceNumber: worker.referenceNumber,
+    );
+
+    final index = _workers.indexWhere((w) => w.id == workerId);
+    _workers[index] = updated;
+
+    if (actor != null) {
+      _audit.log(
+        actor: actor,
+        action: AuditAction.update,
+        entityType: AuditEntityType.worker,
+        entityId: worker.id,
+        entityDisplayName: worker.fullName,
+        fieldChanges: [
+          AuditFieldChange(
+            fieldName: 'COLA Rate',
+            oldValue: oldRate.toStringAsFixed(2),
+            newValue: newRate.toStringAsFixed(2),
+          ),
+        ],
+      );
+    }
+
+    notifyListeners();
+  }
+
+  // ── Custom allowances ────────────────────────────────────────────────────
+
+  void addAllowance(String workerId, WorkerAllowance allowance,
+      {AppUser? actor}) {
+    final worker = getById(workerId);
+    if (worker == null) return;
+    worker.customAllowances.add(allowance);
+
+    if (actor != null) {
+      _audit.log(
+        actor: actor,
+        action: AuditAction.allowanceAdded,
+        entityType: AuditEntityType.worker,
+        entityId: worker.id,
+        entityDisplayName: worker.fullName,
+        fieldChanges: [
+          AuditFieldChange(fieldName: 'Allowance', newValue: allowance.name),
+          AuditFieldChange(
+              fieldName: 'Rate',
+              newValue:
+                  '${allowance.rate.toStringAsFixed(2)} ${allowance.perDayWorked ? "/day" : "/fortnight"}'),
+          AuditFieldChange(
+              fieldName: 'Active',
+              newValue: allowance.isActive ? 'Yes' : 'No'),
+        ],
+        note: allowance.note,
+      );
+    }
+    notifyListeners();
+  }
+
+  void updateAllowance(String workerId, WorkerAllowance updated,
+      {AppUser? actor}) {
+    final worker = getById(workerId);
+    if (worker == null) return;
+    final i = worker.customAllowances.indexWhere((a) => a.id == updated.id);
+    if (i == -1) return;
+    final old = worker.customAllowances[i];
+    worker.customAllowances[i] = updated;
+
+    if (actor != null) {
+      final changes = <AuditFieldChange>[];
+      if (old.name != updated.name) {
+        changes.add(AuditFieldChange(
+            fieldName: 'Name', oldValue: old.name, newValue: updated.name));
+      }
+      if (old.rate != updated.rate) {
+        changes.add(AuditFieldChange(
+            fieldName: 'Rate',
+            oldValue: old.rate.toStringAsFixed(2),
+            newValue: updated.rate.toStringAsFixed(2)));
+      }
+      if (old.perDayWorked != updated.perDayWorked) {
+        changes.add(AuditFieldChange(
+            fieldName: 'Pay Basis',
+            oldValue: old.perDayWorked ? 'Per day' : 'Per fortnight',
+            newValue: updated.perDayWorked ? 'Per day' : 'Per fortnight'));
+      }
+      if (old.isActive != updated.isActive) {
+        changes.add(AuditFieldChange(
+            fieldName: 'Active',
+            oldValue: old.isActive ? 'Yes' : 'No',
+            newValue: updated.isActive ? 'Yes' : 'No'));
+      }
+      if (changes.isNotEmpty) {
+        _audit.log(
+          actor: actor,
+          action: AuditAction.allowanceUpdated,
+          entityType: AuditEntityType.worker,
+          entityId: worker.id,
+          entityDisplayName: '${worker.fullName} – ${updated.name}',
+          fieldChanges: changes,
+        );
+      }
+    }
+    notifyListeners();
+  }
+
+  void removeAllowance(String workerId, String allowanceId,
+      {AppUser? actor}) {
+    final worker = getById(workerId);
+    if (worker == null) return;
+    final i = worker.customAllowances.indexWhere((a) => a.id == allowanceId);
+    if (i == -1) return;
+    final removed = worker.customAllowances.removeAt(i);
+
+    if (actor != null) {
+      _audit.log(
+        actor: actor,
+        action: AuditAction.allowanceRemoved,
+        entityType: AuditEntityType.worker,
+        entityId: worker.id,
+        entityDisplayName: '${worker.fullName} – ${removed.name}',
+        fieldChanges: [
+          AuditFieldChange(
+              fieldName: 'Allowance Removed', oldValue: removed.name),
+          AuditFieldChange(
+              fieldName: 'Rate',
+              oldValue:
+                  '${removed.rate.toStringAsFixed(2)} ${removed.perDayWorked ? "/day" : "/fortnight"}'),
+        ],
+      );
+    }
+    notifyListeners();
+  }
+
+  String generateAllowanceId() {
+    final ts = DateTime.now().microsecondsSinceEpoch;
+    return 'ALW-${ts.toRadixString(36).toUpperCase()}';
+  }
+
   void deactivateWorker(String workerId, {AppUser? actor}) {
     final worker = getById(workerId);
     if (worker == null) return;

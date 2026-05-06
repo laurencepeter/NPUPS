@@ -33,7 +33,10 @@ enum AuditAction {
   backpayApproved('Backpay Approved'),
   backpayDisbursed('Backpay Disbursed'),
   paymentRecorded('Payment Recorded'),
-  paymentReversed('Payment Reversed');
+  paymentReversed('Payment Reversed'),
+  allowanceAdded('Allowance Added'),
+  allowanceUpdated('Allowance Updated'),
+  allowanceRemoved('Allowance Removed');
 
   const AuditAction(this.displayName);
   final String displayName;
