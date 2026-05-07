@@ -8,17 +8,39 @@
 import 'package:flutter/foundation.dart';
 import '../models/roster_model.dart';
 import '../models/worker_model.dart';
+import 'api_client.dart';
 import 'worker_data_store.dart';
 
 class RosterService extends ChangeNotifier {
   static final RosterService _instance = RosterService._internal();
   factory RosterService() => _instance;
-  RosterService._internal() {
-    _initSettings();
-    _buildCurrentRosters();
-  }
+  RosterService._internal();
 
   final WorkerDataStore _workerStore = WorkerDataStore();
+  final ApiClient _api = ApiClient();
+  bool _loaded = false;
+  bool get isLoaded => _loaded;
+
+  /// Hydrate settings + rosters from the backend. Settings are seeded with
+  /// per-corporation defaults in db/domain_schema.sql; rosters are fetched
+  /// in full (worker_records and 14-day day_entries inline).
+  Future<void> loadFromBackend({bool force = false}) async {
+    if (_loaded && !force) return;
+    _settings.clear();
+    final settingsJson = await _api.getList('/api/roster-settings');
+    for (final s in settingsJson) {
+      final r = RosterSettings.fromJson(s as Map<String, dynamic>);
+      _settings[r.corporationId] = r;
+    }
+    _rosters.clear();
+    final rostersJson = await _api.getList('/api/rosters');
+    for (final j in rostersJson) {
+      final r = FortnightRoster.fromJson(j as Map<String, dynamic>);
+      _rosters[r.id] = r;
+    }
+    _loaded = true;
+    notifyListeners();
+  }
 
   // corporationId → settings
   final Map<String, RosterSettings> _settings = {};
@@ -181,64 +203,8 @@ class RosterService extends ChangeNotifier {
     );
   }
 
-  void _initSettings() {
-    // Pre-seed settings for known corporations
-    for (final corpId in ['2', '3', '8']) {
-      _settings[corpId] = RosterSettings(corporationId: corpId);
-    }
-  }
-
-  void _buildCurrentRosters() {
-    // Build rosters for each known corporation for the current and previous fortnight
-    final corps = [
-      ('2', 'Chaguanas Borough Corporation'),
-      ('3', 'San Fernando City Corporation'),
-      ('8', 'Port of Spain City Corporation'),
-    ];
-
-    final now = DateTime.now();
-    final currentStart = _fortnightStart(now);
-    final prevStart = currentStart.subtract(const Duration(days: 14));
-
-    for (final (corpId, corpName) in corps) {
-      for (final start in [currentStart, prevStart]) {
-        final id = _rosterId(corpId, start);
-        final workers = _workerStore.getActiveByCorpId(corpId);
-        if (workers.isEmpty) continue;
-        final roster = _buildRoster(
-          id: id,
-          corporationId: corpId,
-          corporationName: corpName,
-          start: start,
-          end: start.add(const Duration(days: 13)),
-          workers: workers,
-        );
-        _rosters[id] = roster;
-      }
-    }
-
-    // Inject a couple of demo absences
-    _injectDemoAbsences();
-  }
-
-  void _injectDemoAbsences() {
-    for (final roster in _rosters.values) {
-      if (roster.workerRecords.isEmpty) continue;
-      // Mark day index 1 (Tuesday) absent for first worker
-      final first = roster.workerRecords.first;
-      if (first.days.length > 1) {
-        first.days[1].isPresent = false;
-        first.days[1].absenceReason = 'Sick leave';
-      }
-      // Mark day index 3 (Thursday) absent for second worker if present
-      if (roster.workerRecords.length > 1) {
-        final second = roster.workerRecords[1];
-        if (second.days.length > 3) {
-          second.days[3].isPresent = false;
-        }
-      }
-    }
-  }
+  // Demo settings seeding and demo-absence injection have been removed —
+  // both now live in db/domain_schema.sql and arrive via loadFromBackend().
 
   // Calculate the start of the fortnight that contains [date].
   // Fortnight 1: 1st–14th, Fortnight 2: 15th–28th/last of month.

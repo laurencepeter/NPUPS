@@ -15,6 +15,7 @@ import '../models/audit_model.dart';
 import '../models/backpay_model.dart';
 import '../models/timesheet_model.dart';
 import '../models/user_model.dart';
+import 'api_client.dart';
 import 'audit_service.dart';
 import 'timesheet_data_store.dart';
 
@@ -25,9 +26,27 @@ class BackpayService extends ChangeNotifier {
 
   final List<BackpayRecord> _records = [];
   int _seq = 0;
+  bool _loaded = false;
+  bool get isLoaded => _loaded;
 
   final AuditService _audit = AuditService();
   final TimesheetDataStore _timesheets = TimesheetDataStore();
+  final ApiClient _api = ApiClient();
+
+  /// Pull historical backpay records from the backend (seeded by
+  /// db/domain_schema.sql). Subsequent calculations made via
+  /// `calculateForWorker` will be persisted to the API as well.
+  Future<void> loadFromBackend({bool force = false}) async {
+    if (_loaded && !force) return;
+    final json = await _api.getList('/api/backpay-records');
+    _records
+      ..clear()
+      ..addAll(
+          json.map((j) => BackpayRecord.fromJson(j as Map<String, dynamic>)));
+    _seq = _records.length;
+    _loaded = true;
+    notifyListeners();
+  }
 
   List<BackpayRecord> get records => List.unmodifiable(_records);
 

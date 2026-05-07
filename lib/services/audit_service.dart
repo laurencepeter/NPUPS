@@ -11,12 +11,37 @@ import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
 import '../models/audit_model.dart';
 import '../models/user_model.dart';
+import 'api_client.dart';
 
 class AuditService extends ChangeNotifier {
   static final AuditService _instance = AuditService._internal();
   factory AuditService() => _instance;
-  AuditService._internal() {
-    _seedDemoLogs();
+  AuditService._internal();
+
+  final ApiClient _api = ApiClient();
+  bool _loaded = false;
+  bool get isLoaded => _loaded;
+
+  /// Pull the audit chain from the backend. The seeded "genesis prefix"
+  /// rows in db/domain_schema.sql carry deterministic synthetic hashes;
+  /// once a real backend takes over writing entries, the chain hashes are
+  /// computed by the application code (see _computeHash) and remain stable.
+  Future<void> loadFromBackend({bool force = false}) async {
+    if (_loaded && !force) return;
+    final json = await _api.getList('/api/audit-logs');
+    _entries
+      ..clear()
+      ..addAll(
+          json.map((j) => AuditLogEntry.fromJson(j as Map<String, dynamic>)));
+    if (_entries.isNotEmpty) {
+      _latestHash = _entries.last.hash;
+      _sequenceCounter = _entries.length;
+    } else {
+      _latestHash = '';
+      _sequenceCounter = 0;
+    }
+    _loaded = true;
+    notifyListeners();
   }
 
   final List<AuditLogEntry> _entries = [];
@@ -322,274 +347,11 @@ class AuditService extends ChangeNotifier {
     };
   }
 
-  // ── Demo Seed Data ──────────────────────────────────────────────────────────
 
-  void _seedDemoLogs() {
-    const demoUser = AppUser(
-      id: 'admin',
-      email: 'admin@workforce.app',
-      fullName: 'System Administrator',
-      role: UserRole.systemAdmin,
-    );
-
-    const hrUser = AppUser(
-      id: 'hr-001',
-      email: 'hr@workforce.app',
-      fullName: 'HR Officer',
-      role: UserRole.hr,
-      corporationId: '2',
-      corporationName: 'Chaguanas Borough Corporation',
-    );
-
-    const coordUser = AppUser(
-      id: 'coord-001',
-      email: 'coordinator@workforce.app',
-      fullName: 'Regional Coordinator',
-      role: UserRole.regionalCoordinator,
-      corporationId: '8',
-      corporationName: 'Port of Spain City Corporation',
-    );
-
-    // Seed historic entries so the log is non-empty on first launch
-    _seedEntry(
-      actor: demoUser,
-      action: AuditAction.login,
-      entityType: AuditEntityType.userAccount,
-      entityId: 'admin',
-      entityDisplayName: 'System Administrator',
-      note: 'Initial system login',
-      daysAgo: 30,
-    );
-
-    _seedEntry(
-      actor: demoUser,
-      action: AuditAction.create,
-      entityType: AuditEntityType.worker,
-      entityId: 'WRK-001',
-      entityDisplayName: 'Kevin Rampersad',
-      fieldChanges: [
-        const AuditFieldChange(fieldName: 'Full Name', newValue: 'Kevin Rampersad'),
-        const AuditFieldChange(fieldName: 'NIS Number', newValue: 'NIS-2024-00147'),
-        const AuditFieldChange(fieldName: 'Position', newValue: 'General Worker'),
-        const AuditFieldChange(fieldName: 'Corporation', newValue: 'Port of Spain City Corporation'),
-      ],
-      daysAgo: 28,
-    );
-
-    _seedEntry(
-      actor: hrUser,
-      action: AuditAction.documentUpload,
-      entityType: AuditEntityType.document,
-      entityId: 'WRK-001-NIS',
-      entityDisplayName: 'Kevin Rampersad – NIS Registration',
-      fieldChanges: [
-        const AuditFieldChange(fieldName: 'Status', oldValue: 'Missing', newValue: 'Uploaded'),
-        const AuditFieldChange(fieldName: 'File', newValue: 'nis_registration.pdf'),
-      ],
-      daysAgo: 25,
-    );
-
-    _seedEntry(
-      actor: hrUser,
-      action: AuditAction.documentApprove,
-      entityType: AuditEntityType.document,
-      entityId: 'WRK-001-NIS',
-      entityDisplayName: 'Kevin Rampersad – NIS Registration',
-      note: 'Document verified and approved',
-      daysAgo: 24,
-    );
-
-    _seedEntry(
-      actor: coordUser,
-      action: AuditAction.create,
-      entityType: AuditEntityType.timesheet,
-      entityId: 'TS-001',
-      entityDisplayName: 'Kevin Rampersad – Fortnight 17/03/2026',
-      fieldChanges: [
-        const AuditFieldChange(fieldName: 'Stage', newValue: 'Draft'),
-        const AuditFieldChange(fieldName: 'Days Worked', newValue: '10'),
-      ],
-      daysAgo: 20,
-    );
-
-    _seedEntry(
-      actor: coordUser,
-      action: AuditAction.stageAdvanced,
-      entityType: AuditEntityType.timesheet,
-      entityId: 'TS-001',
-      entityDisplayName: 'Kevin Rampersad – Fortnight 17/03/2026',
-      fieldChanges: [
-        const AuditFieldChange(fieldName: 'Stage', oldValue: 'Submitted', newValue: 'Coordinator Review'),
-      ],
-      note: 'Time entries verified in field',
-      daysAgo: 18,
-    );
-
-    _seedEntry(
-      actor: hrUser,
-      action: AuditAction.update,
-      entityType: AuditEntityType.worker,
-      entityId: 'WRK-003',
-      entityDisplayName: 'Andre Williams',
-      fieldChanges: [
-        const AuditFieldChange(fieldName: 'Phone Number', oldValue: '868-555-0303', newValue: '868-777-0303'),
-        const AuditFieldChange(fieldName: 'Address', oldValue: '22 Montrose Road, Chaguanas', newValue: '45 Montrose Road, Chaguanas'),
-      ],
-      daysAgo: 10,
-    );
-
-    _seedEntry(
-      actor: demoUser,
-      action: AuditAction.replacementAdded,
-      entityType: AuditEntityType.worker,
-      entityId: 'WRK-006',
-      entityDisplayName: 'Marcia Boodoo (replaced by Patricia Hernandez)',
-      note: 'Repeated absenteeism and conduct issues',
-      fieldChanges: [
-        const AuditFieldChange(fieldName: 'Status', oldValue: 'Active', newValue: 'Inactive'),
-        const AuditFieldChange(fieldName: 'Replacement Worker', newValue: 'Patricia Hernandez (WRK-011)'),
-      ],
-      daysAgo: 7,
-    );
-
-    _seedEntry(
-      actor: hrUser,
-      action: AuditAction.rosterUpdate,
-      entityType: AuditEntityType.rosterEntry,
-      entityId: 'ROSTER-2026-04-11',
-      entityDisplayName: 'Chaguanas Borough Corporation – Fortnight 11/04/2026',
-      fieldChanges: [
-        const AuditFieldChange(fieldName: 'Andre Williams – Mon 13/04', oldValue: 'Present', newValue: 'Absent'),
-        const AuditFieldChange(fieldName: 'Lisa Doodnath – Fri 17/04', oldValue: 'Present', newValue: 'Absent'),
-      ],
-      note: 'Updated absences for fortnight',
-      daysAgo: 3,
-    );
-
-    _seedEntry(
-      actor: demoUser,
-      action: AuditAction.export,
-      entityType: AuditEntityType.timesheet,
-      entityId: 'BATCH-2026-04',
-      entityDisplayName: 'Payroll Export – April 2026 (Port of Spain)',
-      note: '12 timesheets exported to XLSX',
-      daysAgo: 1,
-    );
-
-    // Wage rate change — basis for backpay calculation downstream.
-    _seedEntry(
-      actor: demoUser,
-      action: AuditAction.wageRateChanged,
-      entityType: AuditEntityType.worker,
-      entityId: 'WRK-001',
-      entityDisplayName: 'Kevin Rampersad',
-      fieldChanges: [
-        const AuditFieldChange(
-            fieldName: 'Wage Rate', oldValue: '140.00', newValue: '150.00'),
-        const AuditFieldChange(
-            fieldName: 'Effective From', newValue: '2026-01-01'),
-      ],
-      note: 'Annual collective-agreement increase',
-      daysAgo: 14,
-    );
-
-    // Backpay calculation seeded so the system shows a backpay history.
-    _seedEntry(
-      actor: demoUser,
-      action: AuditAction.backpayCalculated,
-      entityType: AuditEntityType.backpay,
-      entityId: 'BP-2026-001',
-      entityDisplayName: 'Q1 2026 Backpay – Kevin Rampersad',
-      fieldChanges: [
-        const AuditFieldChange(fieldName: 'Old Rate', newValue: '140.00'),
-        const AuditFieldChange(fieldName: 'New Rate', newValue: '150.00'),
-        const AuditFieldChange(fieldName: 'Fortnights Affected', newValue: '6'),
-        const AuditFieldChange(fieldName: 'Backpay Amount', newValue: '600.00'),
-      ],
-      note: 'Retroactive to 01/01/2026',
-      daysAgo: 5,
-    );
-
-    // Payroll batch with supporting attachments.
-    _seedEntry(
-      actor: demoUser,
-      action: AuditAction.paymentRecorded,
-      entityType: AuditEntityType.payment,
-      entityId: 'PAY-2026-04-A',
-      entityDisplayName: 'Direct Deposit Run – Port of Spain (April 2026)',
-      attachments: [
-        AuditAttachment(
-          id: 'ATT-001',
-          fileName: 'paysheet_pos_april_2026.xlsx',
-          mimeType:
-              'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-          sizeBytes: 24576,
-          contentHash:
-              'a4f2b7c91d8e6053e2f471aa9c3d6b8852f1c0d7e6b9a4f3c1d8e6053e2f471aa', // demo placeholder hash
-          uploadedAt: DateTime.now().subtract(const Duration(days: 1)),
-        ),
-        AuditAttachment(
-          id: 'ATT-002',
-          fileName: 'bank_remittance_advice.pdf',
-          mimeType: 'application/pdf',
-          sizeBytes: 152432,
-          contentHash:
-              'b9c3d6f2e1a87045d3c5b9e8f0a172bd5e84c2f9a1b6d307f4e8c2b1d50a9f6e',
-          uploadedAt: DateTime.now().subtract(const Duration(days: 1)),
-        ),
-      ],
-      note: '12 workers paid via direct deposit',
-      daysAgo: 1,
-    );
-  }
-
-  void _seedEntry({
-    required AppUser actor,
-    required AuditAction action,
-    required AuditEntityType entityType,
-    required String entityId,
-    required String entityDisplayName,
-    List<AuditFieldChange> fieldChanges = const [],
-    List<AuditAttachment> attachments = const [],
-    String? note,
-    required int daysAgo,
-  }) {
-    _sequenceCounter++;
-    final id = 'AUDIT-${_sequenceCounter.toString().padLeft(6, '0')}';
-    final now = DateTime.now().subtract(Duration(days: daysAgo, hours: daysAgo % 8));
-
-    final hash = _computeHash(
-      previousHash: _latestHash,
-      id: id,
-      timestamp: now,
-      userId: actor.id,
-      action: action,
-      entityType: entityType,
-      entityId: entityId,
-      fieldChanges: fieldChanges,
-      attachments: attachments,
-    );
-
-    _entries.add(AuditLogEntry(
-      id: id,
-      timestamp: now,
-      userId: actor.id,
-      userName: actor.fullName,
-      userRole: _roleLabel(actor.role),
-      sessionId: 'demo-session-${actor.id}',
-      action: action,
-      entityType: entityType,
-      entityId: entityId,
-      entityDisplayName: entityDisplayName,
-      fieldChanges: fieldChanges,
-      attachments: attachments,
-      note: note,
-      hash: hash,
-      previousHash: _latestHash,
-    ));
-
-    _latestHash = hash;
-  }
+  // ── Demo seed removed ──────────────────────────────────────────────────
+  // The 13 historical audit entries that previously lived here have been
+  // moved to db/domain_schema.sql (see app_audit_logs / app_audit_field_changes
+  // / app_audit_attachments). loadFromBackend() above pulls them from the API.
 }
 
 class ChainVerificationResult {

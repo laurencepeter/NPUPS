@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'theme/app_theme.dart';
 import 'models/user_model.dart';
 import 'services/auth_service.dart';
+import 'services/bootstrap.dart';
 import 'screens/login_screen.dart';
 import 'screens/dashboard_screen.dart';
 import 'screens/timesheet_screen.dart';
@@ -157,8 +158,15 @@ class _AuthenticatedShellState extends State<_AuthenticatedShell> {
   int _currentIndex = 0;
   List<_TabConfig>? _cachedTabs;
   UserRole? _cachedRole;
+  late Future<void> _bootstrap;
 
   AppUser get _user => widget.authService.currentUser!;
+
+  @override
+  void initState() {
+    super.initState();
+    _bootstrap = Bootstrap.loadAll();
+  }
 
   void _onTabChanged(int index) {
     if (index != _currentIndex) {
@@ -426,13 +434,29 @@ class _AuthenticatedShellState extends State<_AuthenticatedShell> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      body: AnimatedSwitcher(
-        duration: const Duration(milliseconds: 400),
-        switchInCurve: Curves.easeOutCubic,
-        transitionBuilder: (child, animation) {
-          return FadeTransition(opacity: animation, child: child);
+      body: FutureBuilder<void>(
+        future: _bootstrap,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState != ConnectionState.done) {
+            return const _BootstrapLoadingScreen();
+          }
+          if (snapshot.hasError) {
+            return _BootstrapErrorScreen(
+              error: snapshot.error,
+              onRetry: () => setState(() {
+                _bootstrap = Bootstrap.loadAll(force: true);
+              }),
+            );
+          }
+          return AnimatedSwitcher(
+            duration: const Duration(milliseconds: 400),
+            switchInCurve: Curves.easeOutCubic,
+            transitionBuilder: (child, animation) {
+              return FadeTransition(opacity: animation, child: child);
+            },
+            child: _buildPage(),
+          );
         },
-        child: _buildPage(),
       ),
       bottomNavigationBar: Column(
         mainAxisSize: MainAxisSize.min,
@@ -840,4 +864,65 @@ class _TabConfigEntry {
   final _TabConfig tab;
   final int absoluteIndex;
   _TabConfigEntry(this.tab, this.absoluteIndex);
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Bootstrap (post-login data load) status screens
+// ──────────────────────────────────────────────────────────────────────────────
+
+class _BootstrapLoadingScreen extends StatelessWidget {
+  const _BootstrapLoadingScreen();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          CircularProgressIndicator(),
+          SizedBox(height: 16),
+          Text('Loading workforce data…'),
+        ],
+      ),
+    );
+  }
+}
+
+class _BootstrapErrorScreen extends StatelessWidget {
+  final Object? error;
+  final VoidCallback onRetry;
+  const _BootstrapErrorScreen({required this.error, required this.onRetry});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.cloud_off, size: 48, color: AppColors.error),
+            const SizedBox(height: 12),
+            const Text(
+              'Could not load data from the backend.',
+              style: TextStyle(fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              error?.toString() ?? 'Unknown error',
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                  fontSize: 12, color: AppColors.textSecondary),
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton.icon(
+              onPressed: onRetry,
+              icon: const Icon(Icons.refresh),
+              label: const Text('Retry'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }

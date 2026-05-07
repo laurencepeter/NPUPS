@@ -57,6 +57,22 @@ class ApprovalRecord {
     this.note,
     required this.timestamp,
   });
+
+  factory ApprovalRecord.fromJson(Map<String, dynamic> j) => ApprovalRecord(
+        reviewerName: j['reviewer_name'] as String,
+        reviewerRole: j['reviewer_role'] as String,
+        state: ApprovalState.values.byName(j['state'] as String),
+        note: j['note'] as String?,
+        timestamp: DateTime.parse(j['ts'] as String),
+      );
+
+  Map<String, dynamic> toJson() => {
+        'reviewer_name': reviewerName,
+        'reviewer_role': reviewerRole,
+        'state': state.name,
+        'note': note,
+        'ts': timestamp.toIso8601String(),
+      };
 }
 
 class TimesheetDailyEntry {
@@ -64,6 +80,28 @@ class TimesheetDailyEntry {
   TimeOfDay? timeOut;
   TimesheetDailyEntry({this.timeIn, this.timeOut});
   bool get isPresent => timeIn != null && timeOut != null;
+
+  static TimeOfDay? _parseTime(String? s) {
+    if (s == null || s.isEmpty) return null;
+    final parts = s.split(':');
+    if (parts.length < 2) return null;
+    return TimeOfDay(hour: int.parse(parts[0]), minute: int.parse(parts[1]));
+  }
+
+  static String? _formatTime(TimeOfDay? t) => t == null
+      ? null
+      : '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
+
+  factory TimesheetDailyEntry.fromJson(Map<String, dynamic> j) =>
+      TimesheetDailyEntry(
+        timeIn: _parseTime(j['time_in'] as String?),
+        timeOut: _parseTime(j['time_out'] as String?),
+      );
+
+  Map<String, dynamic> toJson() => {
+        'time_in': _formatTime(timeIn),
+        'time_out': _formatTime(timeOut),
+      };
 }
 
 class Timesheet {
@@ -191,4 +229,71 @@ class Timesheet {
     stage = prev;
     updatedAt = DateTime.now();
   }
+
+  factory Timesheet.fromJson(Map<String, dynamic> j) {
+    final entries = (j['daily_entries'] as List? ?? const [])
+        .map((e) => TimesheetDailyEntry.fromJson(e as Map<String, dynamic>))
+        .toList();
+    while (entries.length < 14) {
+      entries.add(TimesheetDailyEntry());
+    }
+    return Timesheet(
+      id: j['id'] as String,
+      workerId: j['worker_id'] as String,
+      workerName: j['worker_name'] as String,
+      position: j['position'] as String,
+      idNumber: j['id_number'] as String,
+      nisNumber: j['nis_number'] as String,
+      wageRate: (j['wage_rate'] as num).toDouble(),
+      colaRate: (j['cola_rate'] as num?)?.toDouble() ?? 0.0,
+      allowanceRate: (j['allowance_rate'] as num).toDouble(),
+      corporationId: j['corporation_id'] as String,
+      corporationName: j['corporation_name'] as String,
+      electoralDistrict: j['electoral_district'] as String,
+      groupNumber: j['group_number'] as String,
+      fortnightStart: DateTime.parse(j['fortnight_start'] as String),
+      fortnightEnd: DateTime.parse(j['fortnight_end'] as String),
+      bankName: j['bank_name'] as String,
+      accountNumber: j['account_number'] as String,
+      branchName: j['branch_name'] as String,
+      dailyEntries: entries,
+      allowanceDays: j['allowance_days'] as int? ?? 0,
+      remarks: j['remarks'] as String? ?? '',
+      stage: TimesheetStage.values.byName(j['stage'] as String),
+      approvalHistory: (j['approval_history'] as List? ?? const [])
+          .map((e) => ApprovalRecord.fromJson(e as Map<String, dynamic>))
+          .toList(),
+      createdAt: DateTime.parse(j['created_at'] as String),
+      updatedAt: DateTime.parse(j['updated_at'] as String),
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'worker_id': workerId,
+        'worker_name': workerName,
+        'position': position,
+        'id_number': idNumber,
+        'nis_number': nisNumber,
+        'wage_rate': wageRate,
+        'cola_rate': colaRate,
+        'allowance_rate': allowanceRate,
+        'corporation_id': corporationId,
+        'corporation_name': corporationName,
+        'electoral_district': electoralDistrict,
+        'group_number': groupNumber,
+        'fortnight_start': fortnightStart.toIso8601String(),
+        'fortnight_end': fortnightEnd.toIso8601String(),
+        'bank_name': bankName,
+        'account_number': accountNumber,
+        'branch_name': branchName,
+        'daily_entries': dailyEntries.map((e) => e.toJson()).toList(),
+        'allowance_days': allowanceDays,
+        'remarks': remarks,
+        'stage': stage.name,
+        'approval_history':
+            approvalHistory.map((a) => a.toJson()).toList(),
+        'created_at': createdAt.toIso8601String(),
+        'updated_at': updatedAt.toIso8601String(),
+      };
 }

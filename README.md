@@ -36,6 +36,11 @@ Dashboard cards: Staggered slide-up entrance per card
 
 # Demo Accounts
 
+These are the **only** hardcoded values left in the frontend — they exist as
+proof-of-concept credentials so a freshly deployed demo can be signed into
+without the auth backend wired up. All other data (workers, timesheets,
+rosters, audit logs, backpay) has been moved to the PostgreSQL database.
+
 | Email | Password | Role |
 |---|---|---|
 | admin@workforce.app | admin123 | System Admin — views all data |
@@ -46,3 +51,49 @@ Dashboard cards: Staggered slide-up entrance per card
 | ps@workforce.app | test123 | Director |
 | mainaccounts@workforce.app | test123 | Main Accounts Clerk |
 | executive@workforce.app | test123 | Executive Department |
+
+# Database
+
+The frontend no longer carries any hardcoded worker/timesheet/roster/audit
+data — every row originates in PostgreSQL.
+
+```sh
+# Apply the RBAC schema first, then the domain schema + seed.
+psql "$DATABASE_URL" -f db/rbac_schema.sql
+psql "$DATABASE_URL" -f db/domain_schema.sql
+```
+
+Sanity-check the seed counts:
+
+```sql
+SELECT count(*) FROM workers;                  -- 19
+SELECT count(*) FROM timesheets;               -- 17
+SELECT count(*) FROM timesheet_daily_entries;  -- 238
+SELECT count(*) FROM rosters;                  -- 6
+SELECT count(*) FROM app_audit_logs;           -- 13
+```
+
+# Wiring the frontend to the backend
+
+The Flutter app talks to the backend exclusively through
+`lib/services/api_client.dart`. The base URL is supplied at build time:
+
+```sh
+flutter run --dart-define=API_BASE_URL=http://localhost:8080
+flutter build web --release --dart-define=API_BASE_URL=https://api.example.com
+```
+
+When `API_BASE_URL` is unset the client returns empty results so the UI
+renders blank lists — useful when the database has been seeded but no
+backend service has been stood up yet. After login,
+`Bootstrap.loadAll()` fans out to:
+
+| Endpoint | Store |
+|---|---|
+| `GET /api/workers` | `WorkerDataStore` |
+| `GET /api/worker-replacements` | `WorkerDataStore` |
+| `GET /api/timesheets` | `TimesheetDataStore` |
+| `GET /api/audit-logs` | `AuditService` |
+| `GET /api/roster-settings` | `RosterService` |
+| `GET /api/rosters` | `RosterService` |
+| `GET /api/backpay-records` | `BackpayService` |
