@@ -31,6 +31,22 @@ class WorkerDocument {
       uploadedAt: uploadedAt ?? this.uploadedAt,
     );
   }
+
+  factory WorkerDocument.fromJson(Map<String, dynamic> j) => WorkerDocument(
+        name: j['name'] as String,
+        status: DocumentStatus.values.byName(j['status'] as String? ?? 'missing'),
+        fileName: j['file_name'] as String?,
+        uploadedAt: j['uploaded_at'] != null
+            ? DateTime.parse(j['uploaded_at'] as String)
+            : null,
+      );
+
+  Map<String, dynamic> toJson() => {
+        'name': name,
+        'status': status.name,
+        'file_name': fileName,
+        'uploaded_at': uploadedAt?.toIso8601String(),
+      };
 }
 
 /// User-defined allowance attached to a single worker (e.g. Travel, Hazard,
@@ -77,6 +93,26 @@ class WorkerAllowance {
     if (!isActive) return 0;
     return perDayWorked ? rate * daysWorked : rate;
   }
+
+  factory WorkerAllowance.fromJson(Map<String, dynamic> j) => WorkerAllowance(
+        id: j['id'] as String,
+        name: j['name'] as String,
+        rate: (j['rate'] as num).toDouble(),
+        perDayWorked: j['per_day_worked'] as bool? ?? true,
+        isActive: j['is_active'] as bool? ?? true,
+        createdAt: DateTime.parse(j['created_at'] as String),
+        note: j['note'] as String?,
+      );
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'name': name,
+        'rate': rate,
+        'per_day_worked': perDayWorked,
+        'is_active': isActive,
+        'created_at': createdAt.toIso8601String(),
+        'note': note,
+      };
 }
 
 class BankInfo {
@@ -189,6 +225,80 @@ class Worker {
     'National ID Card',
     'Police Certificate of Good Character',
   ];
+
+  factory Worker.fromJson(Map<String, dynamic> j) {
+    final docsList = (j['documents'] as List? ?? const [])
+        .map((e) => WorkerDocument.fromJson(e as Map<String, dynamic>))
+        .toList();
+    final docsMap = {for (final d in docsList) d.name: d};
+    for (final required in requiredDocumentNames) {
+      docsMap.putIfAbsent(required, () => WorkerDocument(name: required));
+    }
+    return Worker(
+      id: j['id'] as String,
+      fullName: j['full_name'] as String,
+      nisNumber: j['nis_number'] as String,
+      dateOfBirth: DateTime.parse(j['date_of_birth'] as String),
+      position: j['position'] as String,
+      idNumber: j['id_number'] as String,
+      corporationId: j['corporation_id'] as String,
+      corporationName: j['corporation_name'] as String,
+      electoralDistrict: j['electoral_district'] as String,
+      wageRate: (j['wage_rate'] as num).toDouble(),
+      colaRate: (j['cola_rate'] as num?)?.toDouble() ?? 0.0,
+      allowanceRate: (j['allowance_rate'] as num).toDouble(),
+      bankInfo: BankInfo(
+        bankName: j['bank_name'] as String,
+        accountNumber: j['account_number'] as String,
+        branchName: j['branch_name'] as String,
+      ),
+      documents: docsMap,
+      dateRegistered: DateTime.parse(j['date_registered'] as String),
+      isActive: j['is_active'] as bool? ?? true,
+      customAllowances: (j['custom_allowances'] as List? ?? const [])
+          .map((e) => WorkerAllowance.fromJson(e as Map<String, dynamic>))
+          .toList(),
+      contact: j['contact'] as String?,
+      address: j['address'] as String?,
+      birNumber: j['bir_number'] as String?,
+      startDate: j['start_date'] != null
+          ? DateTime.parse(j['start_date'] as String)
+          : null,
+      endDate: j['end_date'] != null
+          ? DateTime.parse(j['end_date'] as String)
+          : null,
+      referenceNumber: j['reference_number'] as String?,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'full_name': fullName,
+        'nis_number': nisNumber,
+        'date_of_birth': dateOfBirth.toIso8601String(),
+        'position': position,
+        'id_number': idNumber,
+        'corporation_id': corporationId,
+        'corporation_name': corporationName,
+        'electoral_district': electoralDistrict,
+        'wage_rate': wageRate,
+        'cola_rate': colaRate,
+        'allowance_rate': allowanceRate,
+        'bank_name': bankInfo.bankName,
+        'account_number': bankInfo.accountNumber,
+        'branch_name': bankInfo.branchName,
+        'documents': documents.values.map((d) => d.toJson()).toList(),
+        'custom_allowances':
+            customAllowances.map((a) => a.toJson()).toList(),
+        'date_registered': dateRegistered.toIso8601String(),
+        'is_active': isActive,
+        'contact': contact,
+        'address': address,
+        'bir_number': birNumber,
+        'start_date': startDate?.toIso8601String(),
+        'end_date': endDate?.toIso8601String(),
+        'reference_number': referenceNumber,
+      };
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -213,4 +323,23 @@ class WorkerReplacement {
     required this.reason,
     required this.replacedAt,
   });
+
+  factory WorkerReplacement.fromJson(Map<String, dynamic> j) =>
+      WorkerReplacement(
+        id: j['id'] as String,
+        originalWorkerId: j['original_worker_id'] as String,
+        replacementWorkerId: j['replacement_worker_id'] as String,
+        daysMissed: j['days_missed'] as int,
+        reason: j['reason'] as String,
+        replacedAt: DateTime.parse(j['replaced_at'] as String),
+      );
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'original_worker_id': originalWorkerId,
+        'replacement_worker_id': replacementWorkerId,
+        'days_missed': daysMissed,
+        'reason': reason,
+        'replaced_at': replacedAt.toIso8601String(),
+      };
 }

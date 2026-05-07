@@ -86,6 +86,24 @@ class AuditAttachment {
     if (sizeBytes < 1024 * 1024) return '${(sizeBytes / 1024).toStringAsFixed(1)}KB';
     return '${(sizeBytes / (1024 * 1024)).toStringAsFixed(2)}MB';
   }
+
+  factory AuditAttachment.fromJson(Map<String, dynamic> j) => AuditAttachment(
+        id: j['id'] as String,
+        fileName: j['file_name'] as String,
+        mimeType: j['mime_type'] as String,
+        sizeBytes: (j['size_bytes'] as num).toInt(),
+        contentHash: j['content_hash'] as String,
+        uploadedAt: DateTime.parse(j['uploaded_at'] as String),
+      );
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'file_name': fileName,
+        'mime_type': mimeType,
+        'size_bytes': sizeBytes,
+        'content_hash': contentHash,
+        'uploaded_at': uploadedAt.toIso8601String(),
+      };
 }
 
 // A single field-level change recorded within an audit entry.
@@ -102,6 +120,18 @@ class AuditFieldChange {
 
   @override
   String toString() => '$fieldName: "$oldValue" → "$newValue"';
+
+  factory AuditFieldChange.fromJson(Map<String, dynamic> j) => AuditFieldChange(
+        fieldName: j['field_name'] as String,
+        oldValue: j['old_value'] as String?,
+        newValue: j['new_value'] as String?,
+      );
+
+  Map<String, dynamic> toJson() => {
+        'field_name': fieldName,
+        'old_value': oldValue,
+        'new_value': newValue,
+      };
 }
 
 class AuditLogEntry {
@@ -162,4 +192,47 @@ class AuditLogEntry {
   }
 
   bool get hasFieldChanges => fieldChanges.isNotEmpty;
+
+  factory AuditLogEntry.fromJson(Map<String, dynamic> j) => AuditLogEntry(
+        id: j['id'] as String,
+        timestamp: DateTime.parse(j['timestamp'] as String),
+        userId: j['user_id'] as String,
+        userName: j['user_name'] as String,
+        userRole: j['user_role'] as String,
+        sessionId: j['session_id'] as String,
+        action: AuditAction.values.byName(j['action'] as String),
+        entityType:
+            AuditEntityType.values.byName(j['entity_type'] as String),
+        entityId: j['entity_id'] as String,
+        entityDisplayName: j['entity_display_name'] as String,
+        fieldChanges: (j['field_changes'] as List? ?? const [])
+            .map((e) => AuditFieldChange.fromJson(e as Map<String, dynamic>))
+            .toList(),
+        attachments: (j['attachments'] as List? ?? const [])
+            .map((e) => AuditAttachment.fromJson(e as Map<String, dynamic>))
+            .toList(),
+        note: j['note'] as String?,
+        actorContext: j['actor_context'] as String?,
+        hash: j['hash'] as String,
+        previousHash: j['previous_hash'] as String? ?? '',
+      );
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'timestamp': timestamp.toIso8601String(),
+        'user_id': userId,
+        'user_name': userName,
+        'user_role': userRole,
+        'session_id': sessionId,
+        'action': action.name,
+        'entity_type': entityType.name,
+        'entity_id': entityId,
+        'entity_display_name': entityDisplayName,
+        'field_changes': fieldChanges.map((f) => f.toJson()).toList(),
+        'attachments': attachments.map((a) => a.toJson()).toList(),
+        'note': note,
+        'actor_context': actorContext,
+        'hash': hash,
+        'previous_hash': previousHash,
+      };
 }
