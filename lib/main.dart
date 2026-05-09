@@ -911,7 +911,7 @@ class _BootstrapErrorScreen extends StatelessWidget {
             Text(
               error?.toString() ?? 'Unknown error',
               textAlign: TextAlign.center,
-              style: const TextStyle(
+              style: TextStyle(
                   fontSize: 12, color: AppColors.textSecondary),
             ),
             const SizedBox(height: 16),

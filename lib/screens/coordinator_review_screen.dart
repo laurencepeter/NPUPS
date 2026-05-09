@@ -86,7 +86,7 @@ class _CoordinatorReviewScreenState extends State<CoordinatorReviewScreen> {
   }
 
   Widget _buildEmptyQueue() {
-    return const Center(
+    return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
@@ -104,7 +104,7 @@ class _CoordinatorReviewScreenState extends State<CoordinatorReviewScreen> {
     final totalWorkers = queue.length;
     final totalPay = queue.fold<double>(0, (sum, t) => sum + t.grandTotal);
     return Container(
-      color: Colors.white,
+      color: AppColors.card,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Row(
         children: [
@@ -182,7 +182,7 @@ class _CoordinatorReviewScreenState extends State<CoordinatorReviewScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(ts.workerName, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
-                        Text('${ts.position} | ${ts.electoralDistrict}', style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                        Text('${ts.position} | ${ts.electoralDistrict}', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
                       ],
                     ),
                   ),
@@ -208,9 +208,9 @@ class _CoordinatorReviewScreenState extends State<CoordinatorReviewScreen> {
               Row(
                 children: [
                   Text('Fortnight: ${DateFormat('dd/MM').format(ts.fortnightStart)} - ${DateFormat('dd/MM').format(ts.fortnightEnd)}',
-                      style: const TextStyle(fontSize: 11, color: AppColors.textSecondary)),
+                      style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
                   const Spacer(),
-                  Text('Group: ${ts.groupNumber}', style: const TextStyle(fontSize: 11, color: AppColors.textSecondary)),
+                  Text('Group: ${ts.groupNumber}', style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
                 ],
               ),
               const SizedBox(height: 12),
@@ -252,7 +252,7 @@ class _CoordinatorReviewScreenState extends State<CoordinatorReviewScreen> {
   Widget _detailItem(String label, String value, {bool bold = false}) {
     return Column(
       children: [
-        Text(label, style: const TextStyle(fontSize: 10, color: AppColors.textSecondary)),
+        Text(label, style: TextStyle(fontSize: 10, color: AppColors.textSecondary)),
         const SizedBox(height: 2),
         Text(value, style: TextStyle(fontSize: bold ? 14 : 12, fontWeight: bold ? FontWeight.bold : FontWeight.w600)),
       ],

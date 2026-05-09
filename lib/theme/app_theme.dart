@@ -30,17 +30,35 @@ class AppColors {
   static const Color error = Color(0xFFC0392B);
   static const Color info = Color(0xFF2980B9);
 
-  // Light surfaces
-  static const Color surface = Color(0xFFF8FAFB);
-  static const Color card = Colors.white;
-  static const Color inputFill = Color(0xFFF0F4F8);
-  static const Color border = Color(0xFFDDE8F2);
+  // Light surfaces (raw constants — used inside theme definitions only)
+  static const Color lightSurface = Color(0xFFF8FAFB);
+  static const Color lightCard = Colors.white;
+  static const Color lightInputFill = Color(0xFFF0F4F8);
+  static const Color lightBorder = Color(0xFFDDE8F2);
 
-  // Light text
-  static const Color textPrimary = Color(0xFF1A252F);
-  static const Color textSecondary = Color(0xFF666666);
+  // Light text (raw constants)
+  static const Color lightTextPrimary = Color(0xFF1A252F);
+  static const Color lightTextSecondary = Color(0xFF666666);
   static const Color textOnPrimary = Colors.white;
-  static const Color textHint = Color(0xFF9CA3AF);
+  static const Color lightTextHint = Color(0xFF9CA3AF);
+
+  // ── Theme-aware accessors ─────────────────────────────────────────────────
+  // These resolve to light/dark variants based on the active ThemeModeNotifier.
+  // They cannot be used inside `const` expressions — remove `const` from any
+  // widget literal that references them.
+  static bool get _isDark => ThemeModeNotifier().isDark;
+
+  static Color get surface => _isDark ? darkBackground : lightSurface;
+  static Color get card => _isDark ? darkCard : lightCard;
+  static Color get cardElevated => _isDark ? darkCardElevated : lightCard;
+  static Color get inputFill => _isDark ? darkInputFill : lightInputFill;
+  static Color get border => _isDark ? darkBorder : lightBorder;
+  static Color get textPrimary => _isDark ? darkTextPrimary : lightTextPrimary;
+  static Color get textSecondary =>
+      _isDark ? darkTextSecondary : lightTextSecondary;
+  static Color get textHint => _isDark ? darkTextHint : lightTextHint;
+  static Color get scaffoldBackground =>
+      _isDark ? darkBackground : lightSurface;
 
   // ── Dark theme surfaces (navy-based, matches brand identity) ──────────────
   static const Color darkBackground = Color(0xFF0D1520);
@@ -94,10 +112,10 @@ class AppTheme {
         seedColor: AppColors.primary,
         primary: AppColors.primary,
         secondary: AppColors.accent,
-        surface: AppColors.surface,
+        surface: AppColors.lightSurface,
         error: AppColors.error,
       ),
-      scaffoldBackgroundColor: AppColors.surface,
+      scaffoldBackgroundColor: AppColors.lightSurface,
       appBarTheme: const AppBarTheme(
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
@@ -107,7 +125,7 @@ class AppTheme {
       cardTheme: CardThemeData(
         elevation: 2,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        color: AppColors.card,
+        color: AppColors.lightCard,
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
@@ -125,15 +143,15 @@ class AppTheme {
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: AppColors.inputFill,
+        fillColor: AppColors.lightInputFill,
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: AppColors.border),
+          borderSide: const BorderSide(color: AppColors.lightBorder),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: AppColors.border),
+          borderSide: const BorderSide(color: AppColors.lightBorder),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
@@ -143,14 +161,15 @@ class AppTheme {
           borderRadius: BorderRadius.circular(10),
           borderSide: const BorderSide(color: AppColors.error),
         ),
-        hintStyle: const TextStyle(color: AppColors.textHint, fontSize: 14),
-        labelStyle: const TextStyle(color: AppColors.textSecondary, fontSize: 14),
+        hintStyle: const TextStyle(color: AppColors.lightTextHint, fontSize: 14),
+        labelStyle:
+            const TextStyle(color: AppColors.lightTextSecondary, fontSize: 14),
       ),
-      dividerTheme: const DividerThemeData(color: AppColors.border),
+      dividerTheme: const DividerThemeData(color: AppColors.lightBorder),
       chipTheme: ChipThemeData(
-        backgroundColor: AppColors.inputFill,
+        backgroundColor: AppColors.lightInputFill,
         selectedColor: AppColors.accent.withValues(alpha: 0.15),
-        labelStyle: const TextStyle(color: AppColors.textPrimary),
+        labelStyle: const TextStyle(color: AppColors.lightTextPrimary),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       ),
     );

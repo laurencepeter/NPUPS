@@ -125,7 +125,7 @@ class _EmployeeImportScreenState extends State<EmployeeImportScreen> {
         width: double.infinity,
         padding: const EdgeInsets.symmetric(vertical: 28),
         decoration: BoxDecoration(
-          color: isDark ? AppColors.darkCard : Colors.white,
+          color: isDark ? AppColors.darkCard : AppColors.card,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: _importState == _ImportState.idle
@@ -331,7 +331,7 @@ class _EmployeeImportScreenState extends State<EmployeeImportScreen> {
     final rowBg = emp.isValid
         ? (isSelected
             ? AppColors.accent.withValues(alpha: 0.07)
-            : (isDark ? AppColors.darkCard : Colors.white))
+            : (isDark ? AppColors.darkCard : AppColors.card))
         : (isDark
             ? AppColors.error.withValues(alpha: 0.08)
             : AppColors.error.withValues(alpha: 0.04));

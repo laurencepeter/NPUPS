@@ -415,7 +415,7 @@ class _LoginScreenState extends State<LoginScreen>
       },
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppColors.card,
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
@@ -449,7 +449,7 @@ class _LoginScreenState extends State<LoginScreen>
                       ),
                     ),
                     const SizedBox(width: 10),
-                    const Text(
+                    Text(
                       'Sign In',
                       style: TextStyle(
                         fontSize: 20,
@@ -531,7 +531,7 @@ class _LoginScreenState extends State<LoginScreen>
                   onFieldSubmitted: (_) => _passwordFocus.requestFocus(),
                   decoration: InputDecoration(
                     hintText: 'you@workforce.app',
-                    prefixIcon: const Icon(Icons.email_outlined, size: 20, color: AppColors.textHint),
+                    prefixIcon: Icon(Icons.email_outlined, size: 20, color: AppColors.textHint),
                     fillColor: AppColors.inputFill,
                   ),
                   validator: (v) {
@@ -554,7 +554,7 @@ class _LoginScreenState extends State<LoginScreen>
                   onFieldSubmitted: (_) => _handleLogin(),
                   decoration: InputDecoration(
                     hintText: 'Enter your password',
-                    prefixIcon: const Icon(Icons.lock_outline, size: 20, color: AppColors.textHint),
+                    prefixIcon: Icon(Icons.lock_outline, size: 20, color: AppColors.textHint),
                     suffixIcon: IconButton(
                       icon: AnimatedSwitcher(
                         duration: const Duration(milliseconds: 200),
@@ -701,7 +701,7 @@ class _LoginScreenState extends State<LoginScreen>
                   label: const Text('Sign in with SSO'),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: AppColors.textSecondary,
-                    side: const BorderSide(color: AppColors.border),
+                    side: BorderSide(color: AppColors.border),
                     padding: const EdgeInsets.symmetric(vertical: 13),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
@@ -717,7 +717,7 @@ class _LoginScreenState extends State<LoginScreen>
   Widget _buildFieldLabel(String text) {
     return Text(
       text,
-      style: const TextStyle(
+      style: TextStyle(
         fontSize: 13,
         fontWeight: FontWeight.w600,
         color: AppColors.textPrimary,
@@ -853,9 +853,9 @@ class _DemoAccountsSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      decoration: BoxDecoration(
+        color: AppColors.card,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -871,12 +871,12 @@ class _DemoAccountsSheet extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 20),
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 24),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
             child: Row(
               children: [
                 Icon(Icons.people_outline, color: AppColors.accent, size: 22),
-                SizedBox(width: 10),
+                const SizedBox(width: 10),
                 Text(
                   'Demo Accounts',
                   style: TextStyle(
@@ -889,8 +889,8 @@ class _DemoAccountsSheet extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 6),
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 24),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
             child: Text(
               'Tap an account to auto-fill credentials',
               style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
@@ -941,7 +941,7 @@ class _DemoAccountsSheet extends StatelessWidget {
                 children: [
                   Text(
                     account.name,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
                       color: AppColors.textPrimary,
@@ -950,7 +950,7 @@ class _DemoAccountsSheet extends StatelessWidget {
                   const SizedBox(height: 2),
                   Text(
                     account.email,
-                    style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                    style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
                   ),
                 ],
               ),

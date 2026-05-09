@@ -47,7 +47,7 @@ class _HrReviewScreenState extends State<HrReviewScreen> {
         builder: (context, _) {
           final queue = _queue;
           if (queue.isEmpty) {
-            return const Center(
+            return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -79,7 +79,7 @@ class _HrReviewScreenState extends State<HrReviewScreen> {
 
   Widget _buildSummaryBar(List<Timesheet> queue) {
     return Container(
-      color: Colors.white,
+      color: AppColors.card,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Row(
         children: [
@@ -124,7 +124,7 @@ class _HrReviewScreenState extends State<HrReviewScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(ts.workerName, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
-                      Text('${ts.position} | ${ts.corporationName}', style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                      Text('${ts.position} | ${ts.corporationName}', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
                     ],
                   ),
                 ),
@@ -155,7 +155,7 @@ class _HrReviewScreenState extends State<HrReviewScreen> {
             ),
             const SizedBox(height: 8),
             Text('Fortnight: ${DateFormat('dd/MM').format(ts.fortnightStart)} - ${DateFormat('dd/MM').format(ts.fortnightEnd)} | Group: ${ts.groupNumber}',
-                style: const TextStyle(fontSize: 11, color: AppColors.textSecondary)),
+                style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
             const SizedBox(height: 4),
 
             // Coordinator approval note
@@ -222,7 +222,7 @@ class _HrReviewScreenState extends State<HrReviewScreen> {
         children: [
           Icon(passed ? Icons.check_circle : Icons.error, size: 14, color: passed ? AppColors.success : AppColors.error),
           const SizedBox(width: 8),
-          SizedBox(width: 100, child: Text(label, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary))),
+          SizedBox(width: 100, child: Text(label, style: TextStyle(fontSize: 12, color: AppColors.textSecondary))),
           Expanded(child: Text(value, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500))),
         ],
       ),
@@ -232,7 +232,7 @@ class _HrReviewScreenState extends State<HrReviewScreen> {
   Widget _detailItem(String label, String value, {bool bold = false}) {
     return Column(
       children: [
-        Text(label, style: const TextStyle(fontSize: 10, color: AppColors.textSecondary)),
+        Text(label, style: TextStyle(fontSize: 10, color: AppColors.textSecondary)),
         const SizedBox(height: 2),
         Text(value, style: TextStyle(fontSize: bold ? 14 : 12, fontWeight: bold ? FontWeight.bold : FontWeight.w600)),
       ],

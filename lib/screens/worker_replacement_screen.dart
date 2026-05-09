@@ -141,16 +141,16 @@ class _ReplacementSummaryBanner extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Replacement Record', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
+                Text('Replacement Record', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
                 const SizedBox(height: 4),
                 Text(
                   'Replacement ID: ${replacement.id}  •  Days missed: ${replacement.daysMissed}',
-                  style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                  style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   'Date: ${DateFormat('d MMM yyyy').format(replacement.replacedAt)}',
-                  style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                  style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
                 ),
               ],
             ),
@@ -181,7 +181,7 @@ class _WorkerCard extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.card,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: headerColor.withValues(alpha: 0.3), width: 1.5),
         boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 3))],
@@ -218,7 +218,7 @@ class _WorkerCard extends StatelessWidget {
                       const SizedBox(height: 2),
                       Text(
                         worker.fullName,
-                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
                       ),
                     ],
                   ),
@@ -282,7 +282,7 @@ class _WorkerCard extends StatelessWidget {
           ? Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(label, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                Text(label, style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
                 const SizedBox(height: 2),
                 Text(value, style: TextStyle(fontSize: 13, fontWeight: valueFontWeight, color: valueColor)),
               ],
@@ -292,7 +292,7 @@ class _WorkerCard extends StatelessWidget {
               children: [
                 SizedBox(
                   width: 120,
-                  child: Text(label, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                  child: Text(label, style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
                 ),
                 Expanded(
                   child: Text(
@@ -317,7 +317,7 @@ class _NoReplacementCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(32),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.card,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: AppColors.border, width: 1.5),
       ),
@@ -326,12 +326,12 @@ class _NoReplacementCard extends StatelessWidget {
         children: [
           Icon(Icons.person_search, size: 48, color: AppColors.textHint),
           const SizedBox(height: 12),
-          const Text(
+          Text(
             'No Replacement Assigned',
             style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.textSecondary),
           ),
           const SizedBox(height: 6),
-          const Text(
+          Text(
             'A replacement worker has not been registered for this position yet.',
             style: TextStyle(fontSize: 12, color: AppColors.textHint),
             textAlign: TextAlign.center,

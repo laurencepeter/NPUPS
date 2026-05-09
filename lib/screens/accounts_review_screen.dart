@@ -93,7 +93,7 @@ class _AccountsReviewScreenState extends State<AccountsReviewScreen>
   Widget _buildPendingTab() {
     final queue = _pendingQueue;
     if (queue.isEmpty) {
-      return const Center(child: Text('No timesheets pending verification', style: TextStyle(color: AppColors.textSecondary)));
+      return Center(child: Text('No timesheets pending verification', style: TextStyle(color: AppColors.textSecondary)));
     }
     return ListView.builder(
       padding: const EdgeInsets.all(16),
@@ -125,7 +125,7 @@ class _AccountsReviewScreenState extends State<AccountsReviewScreen>
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(ts.workerName, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
-                      Text('${ts.position} | ${ts.corporationName}', style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                      Text('${ts.position} | ${ts.corporationName}', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
                     ],
                   ),
                 ),
@@ -212,12 +212,12 @@ class _AccountsReviewScreenState extends State<AccountsReviewScreen>
   Widget _buildApprovedTab() {
     final queue = _approvedQueue;
     if (queue.isEmpty) {
-      return const Center(child: Text('No timesheets awaiting export', style: TextStyle(color: AppColors.textSecondary)));
+      return Center(child: Text('No timesheets awaiting export', style: TextStyle(color: AppColors.textSecondary)));
     }
     return Column(
       children: [
         Container(
-          color: Colors.white,
+          color: AppColors.card,
           padding: const EdgeInsets.all(16),
           child: Row(
             children: [
@@ -244,7 +244,7 @@ class _AccountsReviewScreenState extends State<AccountsReviewScreen>
                   leading: const Icon(Icons.check_circle, color: AppColors.success),
                   title: Text(ts.workerName, style: const TextStyle(fontWeight: FontWeight.w600)),
                   subtitle: Text('${ts.corporationName} | \$${ts.grandTotal.toStringAsFixed(2)}'),
-                  trailing: Text('Group ${ts.groupNumber}', style: const TextStyle(color: AppColors.textSecondary)),
+                  trailing: Text('Group ${ts.groupNumber}', style: TextStyle(color: AppColors.textSecondary)),
                 ),
               );
             },
@@ -259,7 +259,7 @@ class _AccountsReviewScreenState extends State<AccountsReviewScreen>
   Widget _buildExportedTab() {
     final queue = _exportedQueue;
     if (queue.isEmpty) {
-      return const Center(child: Text('No exported timesheets', style: TextStyle(color: AppColors.textSecondary)));
+      return Center(child: Text('No exported timesheets', style: TextStyle(color: AppColors.textSecondary)));
     }
     return ListView.builder(
       padding: const EdgeInsets.all(16),
