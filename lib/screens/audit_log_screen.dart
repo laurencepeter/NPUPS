@@ -704,6 +704,7 @@ class _AuditLogScreenState extends State<AuditLogScreen> {
       AuditAction.allowanceAdded => Icons.add_card_outlined,
       AuditAction.allowanceUpdated => Icons.tune_outlined,
       AuditAction.allowanceRemoved => Icons.remove_circle_outline,
+      AuditAction.duplicateIdAttempt => Icons.warning_amber_outlined,
     };
   }
 
