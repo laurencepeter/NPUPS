@@ -114,7 +114,7 @@ class _RosterScreenState extends State<RosterScreen> {
         .length;
 
     return Container(
-      color: isDark ? AppColors.darkCard : Colors.white,
+      color: isDark ? AppColors.darkCard : AppColors.card,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       child: Row(
         children: [
@@ -259,7 +259,7 @@ class _RosterScreenState extends State<RosterScreen> {
                   ? (wi.isOdd
                       ? AppColors.darkCard
                       : AppColors.darkSurface)
-                  : (wi.isOdd ? Colors.white : AppColors.surface);
+                  : (wi.isOdd ? AppColors.card : AppColors.surface);
 
               return Container(
                 color: rowBg,

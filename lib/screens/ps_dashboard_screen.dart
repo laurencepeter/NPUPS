@@ -138,13 +138,13 @@ class _PsDashboardScreenState extends State<PsDashboardScreen>
         const SizedBox(height: 16),
 
         // Pipeline Flow (Horizontal)
-        const Text('Pipeline Flow', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+        Text('Pipeline Flow', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
         const SizedBox(height: 12),
         _buildPipelineFlow(counts),
         const SizedBox(height: 20),
 
         // Stage Breakdown Cards
-        const Text('Stage Details', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+        Text('Stage Details', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
         const SizedBox(height: 12),
         ...TimesheetStage.values.map((stage) => _buildStageCard(stage, counts[stage] ?? 0, filtered)),
       ],
@@ -162,7 +162,7 @@ class _PsDashboardScreenState extends State<PsDashboardScreen>
       ),
       child: Row(
         children: [
-          const Icon(Icons.filter_alt, size: 16, color: AppColors.accent),
+          Icon(Icons.filter_alt, size: 16, color: AppColors.accent),
           const SizedBox(width: 8),
           Expanded(
             child: Wrap(
@@ -218,7 +218,7 @@ class _PsDashboardScreenState extends State<PsDashboardScreen>
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppColors.card,
           borderRadius: BorderRadius.circular(12),
           boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 8, offset: const Offset(0, 2))],
         ),
@@ -227,7 +227,7 @@ class _PsDashboardScreenState extends State<PsDashboardScreen>
             Icon(icon, size: 20, color: color),
             const SizedBox(height: 4),
             Text(value, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: color)),
-            Text(label, style: const TextStyle(fontSize: 10, color: AppColors.textSecondary)),
+            Text(label, style: TextStyle(fontSize: 10, color: AppColors.textSecondary)),
           ],
         ),
       ),
@@ -322,7 +322,7 @@ class _PsDashboardScreenState extends State<PsDashboardScreen>
         ),
         title: Text(stage.displayName, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
         subtitle: Text('\$${stageTimesheets.fold<double>(0, (s, t) => s + t.grandTotal).toStringAsFixed(0)} total',
-            style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+            style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
         children: stageTimesheets.map((ts) => ListTile(
           dense: true,
           title: Text(ts.workerName, style: const TextStyle(fontSize: 13)),
@@ -352,7 +352,7 @@ class _PsDashboardScreenState extends State<PsDashboardScreen>
     }
 
     if (byCorpMap.isEmpty) {
-      return const Center(child: Text('No data matching filters', style: TextStyle(color: AppColors.textSecondary)));
+      return Center(child: Text('No data matching filters', style: TextStyle(color: AppColors.textSecondary)));
     }
 
     return ListView(
@@ -380,7 +380,7 @@ class _PsDashboardScreenState extends State<PsDashboardScreen>
       child: ExpansionTile(
         title: Text(corpName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
         subtitle: Text('${timesheets.length} workers | \$${totalPay.toStringAsFixed(0)} total',
-            style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+            style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
         leading: CircleAvatar(
           backgroundColor: AppColors.accent.withValues(alpha: 0.1),
           child: Text('${timesheets.length}', style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.accent)),
@@ -453,11 +453,11 @@ class _PsDashboardScreenState extends State<PsDashboardScreen>
               children: [
                 const Icon(Icons.timer, color: AppColors.warning),
                 const SizedBox(width: 12),
-                const Expanded(
+                Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Stalled Threshold', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                      const Text('Stalled Threshold', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
                       Text('Timesheets stuck longer than this are flagged', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
                     ],
                   ),
@@ -497,7 +497,7 @@ class _PsDashboardScreenState extends State<PsDashboardScreen>
                       Text('${stalled.length} Stalled Timesheet${stalled.length == 1 ? '' : 's'}',
                           style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.error)),
                       Text('Exceeding ${_stalledThreshold.inHours}h threshold',
-                          style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                          style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
                     ],
                   ),
                 ),
@@ -535,7 +535,7 @@ class _PsDashboardScreenState extends State<PsDashboardScreen>
                             children: [
                               Text(stage.displayName, style: TextStyle(fontWeight: FontWeight.bold, color: stage.color)),
                               Text('${items.length} stalled | Responsible: ${items.first.stageOwner}',
-                                  style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                                  style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
                             ],
                           ),
                         ),
@@ -578,7 +578,7 @@ class _PsDashboardScreenState extends State<PsDashboardScreen>
           const Text('No Bottlenecks Detected', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.success)),
           const SizedBox(height: 8),
           Text('All timesheets are flowing within the ${_stalledThreshold.inHours}h threshold.',
-              style: const TextStyle(color: AppColors.textSecondary), textAlign: TextAlign.center),
+              style: TextStyle(color: AppColors.textSecondary), textAlign: TextAlign.center),
         ],
       ),
     );
@@ -712,7 +712,7 @@ class _PsDashboardScreenState extends State<PsDashboardScreen>
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(ts.workerName, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                      Text('${ts.position} | ${ts.corporationName}', style: const TextStyle(color: AppColors.textSecondary)),
+                      Text('${ts.position} | ${ts.corporationName}', style: TextStyle(color: AppColors.textSecondary)),
                     ],
                   ),
                 ),
@@ -761,7 +761,7 @@ class _PsDashboardScreenState extends State<PsDashboardScreen>
             const Text('Approval History', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
             if (ts.approvalHistory.isEmpty)
-              const Text('No approvals yet', style: TextStyle(color: AppColors.textSecondary))
+              Text('No approvals yet', style: TextStyle(color: AppColors.textSecondary))
             else
               ...ts.approvalHistory.map((record) => Padding(
                 padding: const EdgeInsets.only(bottom: 8),
@@ -779,8 +779,8 @@ class _PsDashboardScreenState extends State<PsDashboardScreen>
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text('${record.reviewerName} (${record.reviewerRole})', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
-                          if (record.note != null) Text(record.note!, style: const TextStyle(fontSize: 11, color: AppColors.textSecondary)),
-                          Text(DateFormat('dd/MM/yyyy HH:mm').format(record.timestamp), style: const TextStyle(fontSize: 10, color: AppColors.textSecondary)),
+                          if (record.note != null) Text(record.note!, style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
+                          Text(DateFormat('dd/MM/yyyy HH:mm').format(record.timestamp), style: TextStyle(fontSize: 10, color: AppColors.textSecondary)),
                         ],
                       ),
                     ),
@@ -799,7 +799,7 @@ class _PsDashboardScreenState extends State<PsDashboardScreen>
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(width: 110, child: Text(label, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary))),
+          SizedBox(width: 110, child: Text(label, style: TextStyle(fontSize: 12, color: AppColors.textSecondary))),
           Expanded(child: Text(value, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500))),
         ],
       ),

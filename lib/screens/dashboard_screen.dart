@@ -168,8 +168,8 @@ class _DashboardScreenState extends State<DashboardScreen>
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(_user.fullName, style: const TextStyle(fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
-                  Text(_user.email, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                  Text(_user.fullName, style: TextStyle(fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
+                  Text(_user.email, style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
                   if (_user.corporationName != null) ...[
                     const SizedBox(height: 4),
                     Text(_user.corporationName!, style: const TextStyle(fontSize: 11, color: AppColors.accent)),
@@ -278,7 +278,7 @@ class _DashboardScreenState extends State<DashboardScreen>
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               'Overview',
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
             ),
@@ -336,7 +336,7 @@ class _DashboardScreenState extends State<DashboardScreen>
     return Container(
       padding: EdgeInsets.all(compact ? 10 : 16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.card,
         borderRadius: BorderRadius.circular(compact ? 10 : 14),
         boxShadow: [
           BoxShadow(
@@ -400,7 +400,7 @@ class _DashboardScreenState extends State<DashboardScreen>
       Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'Quick Actions',
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
           ),
@@ -448,7 +448,7 @@ class _DashboardScreenState extends State<DashboardScreen>
 
   Widget _buildActionChip(_ActionData action) {
     return Material(
-      color: Colors.white,
+      color: AppColors.card,
       borderRadius: BorderRadius.circular(12),
       elevation: 1,
       child: InkWell(
@@ -463,7 +463,7 @@ class _DashboardScreenState extends State<DashboardScreen>
               const SizedBox(width: 8),
               Text(
                 action.label,
-                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: AppColors.textPrimary),
+                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: AppColors.textPrimary),
               ),
             ],
           ),
@@ -479,14 +479,14 @@ class _DashboardScreenState extends State<DashboardScreen>
       Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'Recent Activity',
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
           ),
           const SizedBox(height: 12),
           Container(
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: AppColors.card,
               borderRadius: BorderRadius.circular(14),
               boxShadow: [
                 BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 8, offset: const Offset(0, 2)),
@@ -547,9 +547,9 @@ class _DashboardScreenState extends State<DashboardScreen>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(text, style: const TextStyle(fontSize: 13, color: AppColors.textPrimary)),
+                Text(text, style: TextStyle(fontSize: 13, color: AppColors.textPrimary)),
                 const SizedBox(height: 2),
-                Text(time, style: const TextStyle(fontSize: 11, color: AppColors.textSecondary)),
+                Text(time, style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
               ],
             ),
           ),

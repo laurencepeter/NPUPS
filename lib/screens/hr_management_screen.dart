@@ -164,7 +164,7 @@ class _HrManagementScreenState extends State<HrManagementScreen>
   Widget _buildSearchBar(bool isDark) {
     return Container(
       padding: const EdgeInsets.all(10),
-      color: isDark ? AppColors.darkCard : Colors.white,
+      color: isDark ? AppColors.darkCard : AppColors.card,
       child: TextField(
         controller: _searchCtrl,
         onChanged: (_) => setState(() {}),
@@ -917,7 +917,7 @@ class _HrManagementScreenState extends State<HrManagementScreen>
       children: [
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-          color: isDark ? AppColors.darkCard : Colors.white,
+          color: isDark ? AppColors.darkCard : AppColors.card,
           child: Row(children: [
             const Icon(Icons.pending_actions,
                 size: 16, color: AppColors.warning),

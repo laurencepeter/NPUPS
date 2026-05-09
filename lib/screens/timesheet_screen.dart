@@ -186,7 +186,7 @@ class _TimesheetEntryScreenState extends State<TimesheetEntryScreen>
       selectableDayPredicate: (date) => date.weekday == DateTime.monday,
       builder: (context, child) => Theme(
         data: Theme.of(context).copyWith(
-          colorScheme: const ColorScheme.light(
+          colorScheme: ColorScheme.light(
             primary: AppColors.primary,
             onPrimary: Colors.white,
             surface: Colors.white,
@@ -433,7 +433,7 @@ class _TimesheetEntryScreenState extends State<TimesheetEntryScreen>
                         decoration: _inputDecoration('Auto-calculated'),
                         child: Text(
                           _fortnightEnd != null ? DateFormat('dd MMM yyyy').format(_fortnightEnd!) : '--',
-                          style: const TextStyle(fontSize: 14, color: AppColors.textSecondary),
+                          style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
                         ),
                       ),
                     ],
@@ -554,7 +554,7 @@ class _TimesheetEntryScreenState extends State<TimesheetEntryScreen>
             margin: const EdgeInsets.only(right: 4),
             padding: const EdgeInsets.all(6),
             decoration: BoxDecoration(
-              color: att.isPresent ? AppColors.success.withValues(alpha: 0.08) : isWeekend ? Colors.grey.withValues(alpha: 0.05) : Colors.white,
+              color: att.isPresent ? AppColors.success.withValues(alpha: 0.08) : isWeekend ? Colors.grey.withValues(alpha: 0.05) : AppColors.card,
               borderRadius: BorderRadius.circular(8),
               border: Border.all(color: att.isPresent ? AppColors.success.withValues(alpha: 0.3) : AppColors.border),
             ),
@@ -562,7 +562,7 @@ class _TimesheetEntryScreenState extends State<TimesheetEntryScreen>
               children: [
                 Text(_dayLabels[dayIndex], style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: isWeekend ? AppColors.textSecondary : AppColors.primary)),
                 if (_fortnightStart != null)
-                  Text(DateFormat('d').format(_fortnightStart!.add(Duration(days: dayIndex))), style: const TextStyle(fontSize: 10, color: AppColors.textSecondary)),
+                  Text(DateFormat('d').format(_fortnightStart!.add(Duration(days: dayIndex))), style: TextStyle(fontSize: 10, color: AppColors.textSecondary)),
                 const SizedBox(height: 4),
                 InkWell(
                   onTap: () => _pickTime(entry, dayIndex, true),
@@ -765,19 +765,19 @@ class _TimesheetEntryScreenState extends State<TimesheetEntryScreen>
   Widget _buildLabel(String text) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 6),
-      child: Text(text, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textSecondary)),
+      child: Text(text, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textSecondary)),
     );
   }
 
   InputDecoration _inputDecoration(String hint) {
     return InputDecoration(
       hintText: hint,
-      hintStyle: const TextStyle(fontSize: 14, color: AppColors.textSecondary),
+      hintStyle: TextStyle(fontSize: 14, color: AppColors.textSecondary),
       filled: true,
       fillColor: AppColors.inputFill,
       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: AppColors.border)),
-      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: AppColors.border)),
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: AppColors.border)),
+      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: AppColors.border)),
       focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: AppColors.accent, width: 2)),
       errorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: AppColors.error)),
     );
@@ -786,9 +786,9 @@ class _TimesheetEntryScreenState extends State<TimesheetEntryScreen>
   Widget _buildInfoChip(String label, String value) {
     return Expanded(
       child: Column(children: [
-        Text(label, style: const TextStyle(fontSize: 10, color: AppColors.textSecondary)),
+        Text(label, style: TextStyle(fontSize: 10, color: AppColors.textSecondary)),
         const SizedBox(height: 2),
-        Text(value, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
+        Text(value, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
       ]),
     );
   }
@@ -796,7 +796,7 @@ class _TimesheetEntryScreenState extends State<TimesheetEntryScreen>
   Widget _buildTotalItem(String label, String value, {bool bold = false}) {
     return Expanded(
       child: Column(children: [
-        Text(label, style: const TextStyle(fontSize: 10, color: AppColors.textSecondary)),
+        Text(label, style: TextStyle(fontSize: 10, color: AppColors.textSecondary)),
         const SizedBox(height: 2),
         Text(value, style: TextStyle(fontSize: bold ? 14 : 12, fontWeight: bold ? FontWeight.bold : FontWeight.w600, color: bold ? AppColors.primary : AppColors.textPrimary)),
       ]),

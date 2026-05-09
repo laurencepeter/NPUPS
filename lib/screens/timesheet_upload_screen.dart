@@ -410,7 +410,7 @@ class _TimesheetUploadScreenState extends State<TimesheetUploadScreen>
                       fontSize: 16, fontWeight: FontWeight.w700)),
               if (subtitle != null)
                 Text(subtitle,
-                    style: const TextStyle(
+                    style: TextStyle(
                         fontSize: 12, color: AppColors.textSecondary)),
             ],
           ),
@@ -425,7 +425,7 @@ class _TimesheetUploadScreenState extends State<TimesheetUploadScreen>
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.card,
         borderRadius: BorderRadius.circular(14),
         boxShadow: [
           BoxShadow(
@@ -438,7 +438,7 @@ class _TimesheetUploadScreenState extends State<TimesheetUploadScreen>
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Corporation
-          const Text('Corporation',
+          Text('Corporation',
               style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w500,
@@ -462,7 +462,7 @@ class _TimesheetUploadScreenState extends State<TimesheetUploadScreen>
 
           // Worker selector (optional — for single template)
           if (_selectedCorpId != null) ...[
-            const Text('Worker (optional — leave blank for batch template)',
+            Text('Worker (optional — leave blank for batch template)',
                 style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w500,
@@ -495,7 +495,7 @@ class _TimesheetUploadScreenState extends State<TimesheetUploadScreen>
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Group #',
+                    Text('Group #',
                         style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w500,
@@ -515,7 +515,7 @@ class _TimesheetUploadScreenState extends State<TimesheetUploadScreen>
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Fortnight Period',
+                    Text('Fortnight Period',
                         style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w500,
@@ -543,7 +543,7 @@ class _TimesheetUploadScreenState extends State<TimesheetUploadScreen>
                                     fontSize: 13, fontWeight: FontWeight.w500),
                               ),
                             ),
-                            const Icon(Icons.edit,
+                            Icon(Icons.edit,
                                 size: 16, color: AppColors.textHint),
                           ],
                         ),
@@ -642,7 +642,7 @@ class _TimesheetUploadScreenState extends State<TimesheetUploadScreen>
             decoration: BoxDecoration(
               color: _isDragHovering
                   ? AppColors.accent.withValues(alpha: 0.08)
-                  : Colors.white,
+                  : AppColors.card,
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
                 color: _isDragHovering
@@ -685,7 +685,7 @@ class _TimesheetUploadScreenState extends State<TimesheetUploadScreen>
                       style: TextStyle(
                           fontSize: 16, fontWeight: FontWeight.w600)),
                   const SizedBox(height: 6),
-                  const Text(
+                  Text(
                     'Supports .xlsx files generated from WorkForce template',
                     style: TextStyle(
                         fontSize: 12, color: AppColors.textSecondary),
@@ -718,7 +718,7 @@ class _TimesheetUploadScreenState extends State<TimesheetUploadScreen>
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.card,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: AppColors.success.withValues(alpha: 0.3)),
         boxShadow: [
@@ -828,7 +828,7 @@ class _TimesheetUploadScreenState extends State<TimesheetUploadScreen>
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.card,
         borderRadius: BorderRadius.circular(14),
         boxShadow: [
           BoxShadow(
@@ -962,7 +962,7 @@ class _TimesheetUploadScreenState extends State<TimesheetUploadScreen>
                 ),
                 Text(
                   '${entry.position ?? "—"} | ${entry.daysWorked} days | ${entry.nisNumber ?? "No NIS"}',
-                  style: const TextStyle(
+                  style: TextStyle(
                       fontSize: 11, color: AppColors.textSecondary),
                 ),
               ],
@@ -978,7 +978,7 @@ class _TimesheetUploadScreenState extends State<TimesheetUploadScreen>
                       fontWeight: FontWeight.w700,
                       color: AppColors.accent)),
               Text('${entry.daysWorked}d worked',
-                  style: const TextStyle(
+                  style: TextStyle(
                       fontSize: 10, color: AppColors.textSecondary)),
             ],
           ),
@@ -1040,7 +1040,7 @@ class _TimesheetUploadScreenState extends State<TimesheetUploadScreen>
                   fontWeight: FontWeight.w700,
                   color: AppColors.success)),
           const SizedBox(height: 6),
-          const Text(
+          Text(
             'Timesheets have been added to the approval pipeline and are now pending coordinator review.',
             style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
             textAlign: TextAlign.center,

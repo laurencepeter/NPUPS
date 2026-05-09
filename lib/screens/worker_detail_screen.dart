@@ -175,14 +175,14 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
                     const SizedBox(height: 16),
 
                     // Documents section
-                    const Text(
+                    Text(
                       'Document Status',
                       style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       '${worker.documentsUploaded} of ${worker.totalDocuments} required documents uploaded',
-                      style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
+                      style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
                     ),
                     const SizedBox(height: 12),
 
@@ -204,7 +204,7 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.card,
         borderRadius: BorderRadius.circular(14),
         boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 8, offset: const Offset(0, 2))],
       ),
@@ -238,7 +238,7 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
   Widget _buildSectionCard(String title, IconData icon, List<Widget> rows) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.card,
         borderRadius: BorderRadius.circular(14),
         boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 8, offset: const Offset(0, 2))],
       ),
@@ -251,7 +251,7 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
               children: [
                 Icon(icon, size: 18, color: AppColors.accent),
                 const SizedBox(width: 8),
-                Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
+                Text(title, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
               ],
             ),
           ),
@@ -268,9 +268,9 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: const TextStyle(fontSize: 13, color: AppColors.textSecondary)),
+          Text(label, style: TextStyle(fontSize: 13, color: AppColors.textSecondary)),
           Flexible(
-            child: Text(value, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: AppColors.textPrimary), textAlign: TextAlign.end),
+            child: Text(value, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: AppColors.textPrimary), textAlign: TextAlign.end),
           ),
         ],
       ),
@@ -345,7 +345,7 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(label,
-                style: const TextStyle(
+                style: TextStyle(
                     fontSize: 13, color: AppColors.textSecondary)),
             Row(
               mainAxisSize: MainAxisSize.min,
@@ -465,8 +465,8 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
               ),
             ),
             if (worker.customAllowances.isEmpty)
-              const Padding(
-                padding: EdgeInsets.fromLTRB(16, 4, 16, 12),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
                 child: Text(
                   'No custom allowances yet. Add Travel, Hazard, Acting Pay, '
                   'or any other recurring allowance.',
@@ -775,7 +775,7 @@ class _UploadDialogState extends State<_UploadDialog> {
                   ),
                   if (!_fileSelected) ...[
                     const SizedBox(height: 4),
-                    const Text('PDF, JPG, PNG (max 5MB)', style: TextStyle(fontSize: 11, color: AppColors.textHint)),
+                    Text('PDF, JPG, PNG (max 5MB)', style: TextStyle(fontSize: 11, color: AppColors.textHint)),
                   ],
                 ],
               ),
@@ -785,7 +785,7 @@ class _UploadDialogState extends State<_UploadDialog> {
             const SizedBox(height: 16),
             const LinearProgressIndicator(),
             const SizedBox(height: 8),
-            const Text('Uploading...', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+            Text('Uploading...', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
           ],
         ],
       ),

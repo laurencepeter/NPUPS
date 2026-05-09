@@ -94,9 +94,10 @@ class _WorkerTimesheetScreenState extends State<WorkerTimesheetScreen> {
         children: [
           Icon(Icons.assignment_outlined, size: 64, color: AppColors.textSecondary.withValues(alpha: 0.5)),
           const SizedBox(height: 16),
-          const Text('No Timesheet Available', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+          Text('No Timesheet Available', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
           const SizedBox(height: 8),
-          const Text('No timesheet has been assigned for the current fortnight.', style: TextStyle(color: AppColors.textSecondary)),
+          Text('No timesheet has been assigned for the current fortnight.', style: TextStyle(color: AppColors.textSecondary)),
+
         ],
       ),
     );
@@ -120,7 +121,7 @@ class _WorkerTimesheetScreenState extends State<WorkerTimesheetScreen> {
               children: [
                 Icon(Icons.linear_scale, color: AppColors.accent, size: 20),
                 const SizedBox(width: 8),
-                const Text('Pipeline Status', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppColors.primary)),
+                Text('Pipeline Status', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppColors.primary)),
                 const Spacer(),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -202,7 +203,7 @@ class _WorkerTimesheetScreenState extends State<WorkerTimesheetScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Row(
+            Row(
               children: [
                 Icon(Icons.person, color: AppColors.accent, size: 20),
                 SizedBox(width: 8),
@@ -234,8 +235,8 @@ class _WorkerTimesheetScreenState extends State<WorkerTimesheetScreen> {
       padding: const EdgeInsets.symmetric(vertical: 3),
       child: Row(
         children: [
-          SizedBox(width: 120, child: Text(label, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary))),
-          Expanded(child: Text(value, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textPrimary))),
+          SizedBox(width: 120, child: Text(label, style: TextStyle(fontSize: 12, color: AppColors.textSecondary))),
+          Expanded(child: Text(value, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textPrimary))),
         ],
       ),
     );
@@ -255,9 +256,9 @@ class _WorkerTimesheetScreenState extends State<WorkerTimesheetScreen> {
           children: [
             Row(
               children: [
-                const Icon(Icons.edit_calendar, color: AppColors.accent, size: 20),
+                Icon(Icons.edit_calendar, color: AppColors.accent, size: 20),
                 const SizedBox(width: 8),
-                const Text('Attendance', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppColors.primary)),
+                Text('Attendance', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppColors.primary)),
                 const Spacer(),
                 TextButton.icon(
                   onPressed: () => _quickFill(ts),
@@ -268,7 +269,7 @@ class _WorkerTimesheetScreenState extends State<WorkerTimesheetScreen> {
             ),
             const SizedBox(height: 8),
             for (int week = 0; week < 2; week++) ...[
-              Text('Week ${week + 1}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppColors.primary)),
+              Text('Week ${week + 1}', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppColors.primary)),
               const SizedBox(height: 4),
               SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
@@ -283,14 +284,14 @@ class _WorkerTimesheetScreenState extends State<WorkerTimesheetScreen> {
                       padding: const EdgeInsets.all(6),
                       decoration: BoxDecoration(
                         color: entry.isPresent ? AppColors.success.withValues(alpha: 0.08)
-                            : isWeekend ? Colors.grey.withValues(alpha: 0.05) : Colors.white,
+                            : isWeekend ? Colors.grey.withValues(alpha: 0.05) : AppColors.card,
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(color: entry.isPresent ? AppColors.success.withValues(alpha: 0.3) : AppColors.border),
                       ),
                       child: Column(
                         children: [
                           Text(dayLabels[d], style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: isWeekend ? AppColors.textSecondary : AppColors.primary)),
-                          Text(DateFormat('d').format(ts.fortnightStart.add(Duration(days: idx))), style: const TextStyle(fontSize: 9, color: AppColors.textSecondary)),
+                          Text(DateFormat('d').format(ts.fortnightStart.add(Duration(days: idx))), style: TextStyle(fontSize: 9, color: AppColors.textSecondary)),
                           const SizedBox(height: 4),
                           InkWell(
                             onTap: () => _pickTime(ts, idx, true),
@@ -338,7 +339,7 @@ class _WorkerTimesheetScreenState extends State<WorkerTimesheetScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Row(
+            Row(
               children: [
                 Icon(Icons.calendar_today, color: AppColors.accent, size: 20),
                 SizedBox(width: 8),
@@ -347,7 +348,7 @@ class _WorkerTimesheetScreenState extends State<WorkerTimesheetScreen> {
             ),
             const SizedBox(height: 8),
             for (int week = 0; week < 2; week++) ...[
-              Text('Week ${week + 1}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppColors.primary)),
+              Text('Week ${week + 1}', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppColors.primary)),
               const SizedBox(height: 4),
               SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
@@ -366,7 +367,7 @@ class _WorkerTimesheetScreenState extends State<WorkerTimesheetScreen> {
                       ),
                       child: Column(
                         children: [
-                          Text(dayLabels[d], style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.primary)),
+                          Text(dayLabels[d], style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.primary)),
                           const SizedBox(height: 4),
                           Text(entry.timeIn != null ? '${entry.timeIn!.hour.toString().padLeft(2, '0')}:${entry.timeIn!.minute.toString().padLeft(2, '0')}' : '--', style: const TextStyle(fontSize: 10)),
                           Text(entry.timeOut != null ? '${entry.timeOut!.hour.toString().padLeft(2, '0')}:${entry.timeOut!.minute.toString().padLeft(2, '0')}' : '--', style: const TextStyle(fontSize: 10)),
@@ -394,7 +395,7 @@ class _WorkerTimesheetScreenState extends State<WorkerTimesheetScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Additional Details', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppColors.primary)),
+            Text('Additional Details', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppColors.primary)),
             const SizedBox(height: 12),
             Row(
               children: [
@@ -542,7 +543,7 @@ class _WorkerTimesheetScreenState extends State<WorkerTimesheetScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Approval History', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppColors.primary)),
+            Text('Approval History', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppColors.primary)),
             const SizedBox(height: 12),
             ...ts.approvalHistory.map((record) => Padding(
               padding: const EdgeInsets.only(bottom: 8),
@@ -559,11 +560,11 @@ class _WorkerTimesheetScreenState extends State<WorkerTimesheetScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text('${record.reviewerName} (${record.reviewerRole})', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
-                        if (record.note != null) Text(record.note!, style: const TextStyle(fontSize: 11, color: AppColors.textSecondary)),
+                        if (record.note != null) Text(record.note!, style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
                       ],
                     ),
                   ),
-                  Text(DateFormat('dd/MM HH:mm').format(record.timestamp), style: const TextStyle(fontSize: 10, color: AppColors.textSecondary)),
+                  Text(DateFormat('dd/MM HH:mm').format(record.timestamp), style: TextStyle(fontSize: 10, color: AppColors.textSecondary)),
                 ],
               ),
             )),

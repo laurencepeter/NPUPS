@@ -195,7 +195,7 @@ class _WorkerListScreenState extends State<WorkerListScreen> {
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 12),
                               decoration: BoxDecoration(
-                                color: Colors.white,
+                                color: AppColors.card,
                                 borderRadius: BorderRadius.circular(20),
                                 border: Border.all(color: AppColors.border),
                               ),
@@ -203,7 +203,7 @@ class _WorkerListScreenState extends State<WorkerListScreen> {
                                 child: DropdownButton<String>(
                                   value: _filterCorp,
                                   isDense: true,
-                                  style: const TextStyle(fontSize: 13, color: AppColors.textPrimary),
+                                  style: TextStyle(fontSize: 13, color: AppColors.textPrimary),
                                   items: _corporations.map((c) => DropdownMenuItem(value: c, child: Text(c, overflow: TextOverflow.ellipsis))).toList(),
                                   onChanged: (v) => _invalidateAndSetState(() => _filterCorp = v ?? 'All'),
                                 ),
@@ -256,7 +256,7 @@ class _WorkerListScreenState extends State<WorkerListScreen> {
                           children: [
                             Icon(Icons.search_off, size: 48, color: AppColors.textHint),
                             const SizedBox(height: 12),
-                            const Text('No workers match your filters', style: TextStyle(color: AppColors.textSecondary)),
+                            Text('No workers match your filters', style: TextStyle(color: AppColors.textSecondary)),
                             if (_isAdmin) ...[
                               const SizedBox(height: 16),
                               ElevatedButton.icon(
@@ -289,7 +289,7 @@ class _WorkerListScreenState extends State<WorkerListScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.accent : Colors.white,
+          color: isSelected ? AppColors.accent : AppColors.card,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(color: isSelected ? AppColors.accent : AppColors.border),
         ),
@@ -309,7 +309,7 @@ class _WorkerListScreenState extends State<WorkerListScreen> {
     return Column(
       children: [
         Text(value, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: color)),
-        Text(label, style: const TextStyle(fontSize: 11, color: AppColors.textSecondary)),
+        Text(label, style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
       ],
     );
   }
@@ -358,7 +358,7 @@ class _WorkerListScreenState extends State<WorkerListScreen> {
                     Row(
                       children: [
                         Expanded(
-                          child: Text(worker.fullName, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
+                          child: Text(worker.fullName, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
                         ),
                         if (isReplaced)
                           Container(
@@ -383,12 +383,12 @@ class _WorkerListScreenState extends State<WorkerListScreen> {
                       ],
                     ),
                     const SizedBox(height: 3),
-                    Text('${worker.position}  •  ${SecurityUtils.maskNisNumber(worker.nisNumber)}', style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                    Text('${worker.position}  •  ${SecurityUtils.maskNisNumber(worker.nisNumber)}', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
                     const SizedBox(height: 3),
                     Text(worker.corporationName, style: const TextStyle(fontSize: 11, color: AppColors.accent)),
                     if (worker.contact != null) ...[
                       const SizedBox(height: 2),
-                      Text(worker.contact!, style: const TextStyle(fontSize: 11, color: AppColors.textHint)),
+                      Text(worker.contact!, style: TextStyle(fontSize: 11, color: AppColors.textHint)),
                     ],
                   ],
                 ),
@@ -427,7 +427,7 @@ class _WorkerListScreenState extends State<WorkerListScreen> {
                   // Action menu
                   if (_canEdit || isReplaced)
                     PopupMenuButton<String>(
-                      icon: const Icon(Icons.more_vert, size: 18, color: AppColors.textHint),
+                      icon: Icon(Icons.more_vert, size: 18, color: AppColors.textHint),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(minWidth: 32, minHeight: 24),

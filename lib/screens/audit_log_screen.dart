@@ -95,7 +95,7 @@ class _AuditLogScreenState extends State<AuditLogScreen> {
             children: [
               // ── Search bar ────────────────────────────────────────────────
               Container(
-                color: isDark ? AppColors.darkCard : Colors.white,
+                color: isDark ? AppColors.darkCard : AppColors.card,
                 padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
                 child: TextField(
                   controller: _searchCtrl,
@@ -207,7 +207,7 @@ class _AuditLogScreenState extends State<AuditLogScreen> {
   Widget _buildFilterPanel(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
-      color: isDark ? AppColors.darkCard : Colors.white,
+      color: isDark ? AppColors.darkCard : AppColors.card,
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -541,8 +541,8 @@ class _AuditLogScreenState extends State<AuditLogScreen> {
                         fontSize: 11, color: AppColors.error)),
               ),
             ),
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 4),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
               child: Icon(Icons.arrow_forward, size: 12,
                   color: AppColors.textHint),
             ),

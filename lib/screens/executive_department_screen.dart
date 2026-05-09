@@ -126,7 +126,7 @@ class _ExecutiveDepartmentScreenState extends State<ExecutiveDepartmentScreen>
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Export will include:', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textSecondary)),
+                  Text('Export will include:', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textSecondary)),
                   const SizedBox(height: 6),
                   ...[
                     'Full Name', 'Position', 'NIS Number', 'ID Number', 'BIR Number',
@@ -137,7 +137,7 @@ class _ExecutiveDepartmentScreenState extends State<ExecutiveDepartmentScreen>
                     child: Row(children: [
                       const Icon(Icons.check, size: 12, color: AppColors.success),
                       const SizedBox(width: 6),
-                      Text(f, style: const TextStyle(fontSize: 12, color: AppColors.textPrimary)),
+                      Text(f, style: TextStyle(fontSize: 12, color: AppColors.textPrimary)),
                     ]),
                   )),
                 ],
@@ -223,7 +223,7 @@ class _ExecutiveDepartmentScreenState extends State<ExecutiveDepartmentScreen>
 
   Widget _buildFilterBar() {
     return Container(
-      color: Colors.white,
+      color: AppColors.card,
       padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
       child: Column(
         children: [
@@ -233,7 +233,7 @@ class _ExecutiveDepartmentScreenState extends State<ExecutiveDepartmentScreen>
             onChanged: (v) => setState(() => _searchQuery = v),
             decoration: InputDecoration(
               hintText: 'Search by name, NIS, ID, or position...',
-              prefixIcon: const Icon(Icons.search, size: 20, color: AppColors.textHint),
+              prefixIcon: Icon(Icons.search, size: 20, color: AppColors.textHint),
               suffixIcon: _searchQuery.isNotEmpty
                   ? IconButton(
                       icon: const Icon(Icons.clear, size: 18),
@@ -265,7 +265,7 @@ class _ExecutiveDepartmentScreenState extends State<ExecutiveDepartmentScreen>
                     child: DropdownButton<String>(
                       value: _filterCorp,
                       isExpanded: true,
-                      style: const TextStyle(fontSize: 13, color: AppColors.textPrimary),
+                      style: TextStyle(fontSize: 13, color: AppColors.textPrimary),
                       items: _corporations.map((c) => DropdownMenuItem(
                         value: c,
                         child: Text(c, overflow: TextOverflow.ellipsis),
@@ -309,7 +309,7 @@ class _ExecutiveDepartmentScreenState extends State<ExecutiveDepartmentScreen>
           children: [
             Icon(Icons.search_off, size: 48, color: AppColors.textHint),
             const SizedBox(height: 12),
-            const Text('No workers match your filters.', style: TextStyle(color: AppColors.textSecondary)),
+            Text('No workers match your filters.', style: TextStyle(color: AppColors.textSecondary)),
           ],
         ),
       );
@@ -348,7 +348,7 @@ class _ExecutiveDepartmentScreenState extends State<ExecutiveDepartmentScreen>
           children: [
             Icon(Icons.people_outline, size: 48, color: AppColors.textHint),
             const SizedBox(height: 12),
-            const Text('No replacement records found.', style: TextStyle(color: AppColors.textSecondary)),
+            Text('No replacement records found.', style: TextStyle(color: AppColors.textSecondary)),
           ],
         ),
       );
@@ -383,7 +383,7 @@ class _ExecutiveDepartmentScreenState extends State<ExecutiveDepartmentScreen>
                       if (repRecord != null)
                         Text(
                           DateFormat('d MMM yyyy').format(repRecord.replacedAt),
-                          style: const TextStyle(fontSize: 11, color: AppColors.textHint),
+                          style: TextStyle(fontSize: 11, color: AppColors.textHint),
                         ),
                     ],
                   ),
@@ -391,8 +391,8 @@ class _ExecutiveDepartmentScreenState extends State<ExecutiveDepartmentScreen>
                   Row(
                     children: [
                       Expanded(child: _miniWorkerChip(original, isOriginal: true, daysMissed: repRecord?.daysMissed)),
-                      const Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 8),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
                         child: Icon(Icons.arrow_forward, size: 18, color: AppColors.textHint),
                       ),
                       Expanded(child: replacement != null
@@ -404,7 +404,7 @@ class _ExecutiveDepartmentScreenState extends State<ExecutiveDepartmentScreen>
                     const SizedBox(height: 10),
                     Text(
                       'Reason: ${repRecord.reason}',
-                      style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                      style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -445,8 +445,8 @@ class _ExecutiveDepartmentScreenState extends State<ExecutiveDepartmentScreen>
             style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: color),
           ),
           const SizedBox(height: 3),
-          Text(worker.fullName, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
-          Text(worker.position, style: const TextStyle(fontSize: 11, color: AppColors.textSecondary)),
+          Text(worker.fullName, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
+          Text(worker.position, style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
           if (isOriginal && daysMissed != null) ...[
             const SizedBox(height: 3),
             Text('$daysMissed days missed', style: const TextStyle(fontSize: 10, color: AppColors.error, fontWeight: FontWeight.w500)),
@@ -464,7 +464,7 @@ class _ExecutiveDepartmentScreenState extends State<ExecutiveDepartmentScreen>
         borderRadius: BorderRadius.circular(10),
         border: Border.all(color: AppColors.border),
       ),
-      child: const Column(
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text('Replacement', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: AppColors.textHint)),
@@ -502,7 +502,7 @@ class _ExecutiveDepartmentScreenState extends State<ExecutiveDepartmentScreen>
     return Column(
       children: [
         Text(value, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: color)),
-        Text(label, style: const TextStyle(fontSize: 10, color: AppColors.textSecondary)),
+        Text(label, style: TextStyle(fontSize: 10, color: AppColors.textSecondary)),
       ],
     );
   }
@@ -574,14 +574,14 @@ class _ExecutiveDepartmentScreenState extends State<ExecutiveDepartmentScreen>
             const SizedBox(height: 2),
             Text(
               '${worker.position}  •  ${SecurityUtils.maskNisNumber(worker.nisNumber)}',
-              style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
+              style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
             ),
             if (worker.contact != null)
-              Text(worker.contact!, style: const TextStyle(fontSize: 11, color: AppColors.textHint)),
+              Text(worker.contact!, style: TextStyle(fontSize: 11, color: AppColors.textHint)),
           ],
         ),
         trailing: PopupMenuButton<String>(
-          icon: const Icon(Icons.more_vert, size: 20, color: AppColors.textSecondary),
+          icon: Icon(Icons.more_vert, size: 20, color: AppColors.textSecondary),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
           onSelected: (action) {
             if (action == 'edit') _openEdit(worker);

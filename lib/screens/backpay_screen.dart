@@ -233,7 +233,7 @@ class _BackpayScreenState extends State<BackpayScreen> {
       children: [
         Text(k,
             style:
-                const TextStyle(fontSize: 10, color: AppColors.textHint)),
+                TextStyle(fontSize: 10, color: AppColors.textHint)),
         Text(v,
             style: TextStyle(
                 fontSize: 12,

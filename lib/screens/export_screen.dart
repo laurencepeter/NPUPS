@@ -182,7 +182,7 @@ class _ExportScreenState extends State<ExportScreen> {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: AppColors.card,
                 borderRadius: BorderRadius.circular(14),
                 boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 8, offset: const Offset(0, 2))],
               ),
@@ -227,7 +227,7 @@ class _ExportScreenState extends State<ExportScreen> {
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: AppColors.card,
                 borderRadius: BorderRadius.circular(14),
                 boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 8, offset: const Offset(0, 2))],
               ),
@@ -244,7 +244,7 @@ class _ExportScreenState extends State<ExportScreen> {
                   const SizedBox(height: 20),
 
                   // Corporation
-                  const Text('Corporation', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: AppColors.textSecondary)),
+                  Text('Corporation', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: AppColors.textSecondary)),
                   const SizedBox(height: 6),
                   DropdownButtonFormField<String>(
                     value: _selectedCorpId,
@@ -262,7 +262,7 @@ class _ExportScreenState extends State<ExportScreen> {
 
                   // Worker selector (single mode only)
                   if (_exportMode == ExportMode.singleWorker && _selectedCorpId != null) ...[
-                    const Text('Worker', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: AppColors.textSecondary)),
+                    Text('Worker', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: AppColors.textSecondary)),
                     const SizedBox(height: 6),
                     DropdownButtonFormField<String>(
                       value: _selectedWorkerId,
@@ -282,7 +282,7 @@ class _ExportScreenState extends State<ExportScreen> {
                   ],
 
                   // Group Number
-                  const Text('Group Number', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: AppColors.textSecondary)),
+                  Text('Group Number', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: AppColors.textSecondary)),
                   const SizedBox(height: 6),
                   TextFormField(
                     initialValue: _groupNumber,
@@ -292,7 +292,7 @@ class _ExportScreenState extends State<ExportScreen> {
                   const SizedBox(height: 16),
 
                   // Fortnight dates
-                  const Text('Fortnight Period', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: AppColors.textSecondary)),
+                  Text('Fortnight Period', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: AppColors.textSecondary)),
                   const SizedBox(height: 6),
                   InkWell(
                     onTap: _pickFortnightStart,
@@ -313,7 +313,7 @@ class _ExportScreenState extends State<ExportScreen> {
                             style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
                           ),
                           const Spacer(),
-                          const Icon(Icons.edit, size: 16, color: AppColors.textHint),
+                          Icon(Icons.edit, size: 16, color: AppColors.textHint),
                         ],
                       ),
                     ),
@@ -328,7 +328,7 @@ class _ExportScreenState extends State<ExportScreen> {
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: AppColors.card,
                   borderRadius: BorderRadius.circular(14),
                   boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 8, offset: const Offset(0, 2))],
                 ),
@@ -350,16 +350,16 @@ class _ExportScreenState extends State<ExportScreen> {
                     const SizedBox(height: 12),
                     if (_exportMode == ExportMode.singleWorker) ...[
                       if (_selectedWorker == null)
-                        const Padding(
-                          padding: EdgeInsets.all(16),
+                        Padding(
+                          padding: const EdgeInsets.all(16),
                           child: Text('Select a worker above to export their timesheet.', style: TextStyle(color: AppColors.textSecondary)),
                         )
                       else
                         _buildWorkerRow(_selectedWorker!),
                     ] else ...[
                       if (workers.isEmpty)
-                        const Padding(
-                          padding: EdgeInsets.all(16),
+                        Padding(
+                          padding: const EdgeInsets.all(16),
                           child: Text('No workers registered for this corporation.', style: TextStyle(color: AppColors.textSecondary)),
                         )
                       else
@@ -443,7 +443,7 @@ class _ExportScreenState extends State<ExportScreen> {
             const SizedBox(height: 8),
             Text(title, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: isSelected ? AppColors.accent : AppColors.textPrimary)),
             const SizedBox(height: 2),
-            Text(subtitle, style: const TextStyle(fontSize: 10, color: AppColors.textSecondary), textAlign: TextAlign.center),
+            Text(subtitle, style: TextStyle(fontSize: 10, color: AppColors.textSecondary), textAlign: TextAlign.center),
           ],
         ),
       ),
@@ -466,7 +466,7 @@ class _ExportScreenState extends State<ExportScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(w.fullName, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
-                Text('${w.position}  •  ${w.nisNumber}', style: const TextStyle(fontSize: 11, color: AppColors.textSecondary)),
+                Text('${w.position}  •  ${w.nisNumber}', style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
               ],
             ),
           ),

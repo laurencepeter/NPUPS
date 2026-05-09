@@ -89,7 +89,7 @@ class _PayrollBreakdownScreenState extends State<PayrollBreakdownScreen> {
 
   Widget _buildAxisSelector(bool isDark) {
     return Container(
-      color: isDark ? AppColors.darkCard : Colors.white,
+      color: isDark ? AppColors.darkCard : AppColors.card,
       padding: const EdgeInsets.fromLTRB(12, 10, 12, 6),
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
@@ -131,7 +131,7 @@ class _PayrollBreakdownScreenState extends State<PayrollBreakdownScreen> {
 
   Widget _buildSearch(bool isDark) {
     return Container(
-      color: isDark ? AppColors.darkCard : Colors.white,
+      color: isDark ? AppColors.darkCard : AppColors.card,
       padding: const EdgeInsets.fromLTRB(12, 4, 12, 10),
       child: TextField(
         onChanged: (v) => setState(() => _search = v),
@@ -185,7 +185,7 @@ class _PayrollBreakdownScreenState extends State<PayrollBreakdownScreen> {
         children: [
           Text(label,
               style:
-                  const TextStyle(fontSize: 10, color: AppColors.textHint)),
+                  TextStyle(fontSize: 10, color: AppColors.textHint)),
           const SizedBox(height: 2),
           Text(value,
               style: TextStyle(
@@ -227,7 +227,7 @@ class _PayrollBreakdownScreenState extends State<PayrollBreakdownScreen> {
                                 fontWeight: FontWeight.w600, fontSize: 14)),
                       ),
                       Text('${g.timesheets.length} ts',
-                          style: const TextStyle(
+                          style: TextStyle(
                               fontSize: 11, color: AppColors.textHint)),
                       Icon(
                           isExpanded
@@ -272,7 +272,7 @@ class _PayrollBreakdownScreenState extends State<PayrollBreakdownScreen> {
       children: [
         Text(label,
             style:
-                const TextStyle(fontSize: 9, color: AppColors.textHint)),
+                TextStyle(fontSize: 9, color: AppColors.textHint)),
         Text(_money.format(value),
             style: TextStyle(
                 fontSize: 11,
