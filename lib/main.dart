@@ -34,8 +34,14 @@ import 'screens/backpay_screen.dart';
 // Version: 1.0.0 — March 2026
 // ──────────────────────────────────────────────────────────────────────────────
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Restore persisted theme and user session before the first frame.
+  await Future.wait([
+    ThemeModeNotifier().init(),
+    AuthService().init(),
+  ]);
 
   SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,

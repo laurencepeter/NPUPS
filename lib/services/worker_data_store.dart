@@ -52,6 +52,90 @@ class WorkerDataStore extends ChangeNotifier {
   List<Worker> get workers => List.unmodifiable(_workers);
   List<WorkerReplacement> get replacements => List.unmodifiable(_replacements);
 
+  // ── Uniqueness Enforcement ─────────────────────────────────────────────────
+
+  /// Checks all five regulated unique credential fields across registered workers.
+  /// Returns a list of conflicts; empty list means all clear.
+  /// Pass [excludeId] when editing an existing worker to skip self-comparison.
+  List<DuplicateIdConflict> checkUniqueIds(Worker candidate, {String? excludeId}) {
+    final conflicts = <DuplicateIdConflict>[];
+
+    String norm(String? v) => (v ?? '').trim().toUpperCase();
+
+    final idNum     = norm(candidate.idNumber);
+    final nis       = norm(candidate.nisNumber);
+    final bir       = norm(candidate.birNumber);
+    final permit    = norm(candidate.driverPermitNumber);
+    final passport  = norm(candidate.passportNumber);
+
+    for (final w in _workers) {
+      if (w.id == excludeId) continue;
+
+      if (idNum.isNotEmpty && idNum == norm(w.idNumber)) {
+        conflicts.add(DuplicateIdConflict(
+          fieldName: 'National ID Number',
+          value: candidate.idNumber,
+          conflictingWorkerId: w.id,
+          conflictingWorkerName: w.fullName,
+        ));
+      }
+      if (nis.isNotEmpty && nis == norm(w.nisNumber)) {
+        conflicts.add(DuplicateIdConflict(
+          fieldName: 'NIS Number',
+          value: candidate.nisNumber,
+          conflictingWorkerId: w.id,
+          conflictingWorkerName: w.fullName,
+        ));
+      }
+      if (bir.isNotEmpty && bir == norm(w.birNumber)) {
+        conflicts.add(DuplicateIdConflict(
+          fieldName: 'BIR Number',
+          value: candidate.birNumber!,
+          conflictingWorkerId: w.id,
+          conflictingWorkerName: w.fullName,
+        ));
+      }
+      if (permit.isNotEmpty && permit == norm(w.driverPermitNumber)) {
+        conflicts.add(DuplicateIdConflict(
+          fieldName: "Driver's Permit Number",
+          value: candidate.driverPermitNumber!,
+          conflictingWorkerId: w.id,
+          conflictingWorkerName: w.fullName,
+        ));
+      }
+      if (passport.isNotEmpty && passport == norm(w.passportNumber)) {
+        conflicts.add(DuplicateIdConflict(
+          fieldName: 'Passport Number',
+          value: candidate.passportNumber!,
+          conflictingWorkerId: w.id,
+          conflictingWorkerName: w.fullName,
+        ));
+      }
+    }
+    return conflicts;
+  }
+
+  /// Log a duplicate-ID attempt to the tamper-evident audit chain.
+  void logDuplicateIdAttempt({
+    required AppUser actor,
+    required Worker candidate,
+    required List<DuplicateIdConflict> conflicts,
+  }) {
+    _audit.log(
+      actor: actor,
+      action: AuditAction.duplicateIdAttempt,
+      entityType: AuditEntityType.worker,
+      entityId: 'DUPLICATE-${DateTime.now().millisecondsSinceEpoch}',
+      entityDisplayName: candidate.fullName,
+      note: 'Registration blocked: duplicate credential(s) detected for ${conflicts.map((c) => c.fieldName).join(', ')}.',
+      fieldChanges: conflicts.map((c) => AuditFieldChange(
+        fieldName: c.fieldName,
+        oldValue: 'Already registered to ${c.conflictingWorkerName} (${c.conflictingWorkerId})',
+        newValue: c.value,
+      )).toList(),
+    );
+  }
+
   // ── Queries ────────────────────────────────────────────────────────────────
 
   Worker? getById(String id) {
@@ -174,6 +258,8 @@ class WorkerDataStore extends ChangeNotifier {
       contact: worker.contact,
       address: worker.address,
       birNumber: worker.birNumber,
+      driverPermitNumber: worker.driverPermitNumber,
+      passportNumber: worker.passportNumber,
       startDate: worker.startDate,
       endDate: worker.endDate,
       referenceNumber: worker.referenceNumber,
@@ -458,6 +544,8 @@ class WorkerDataStore extends ChangeNotifier {
     check('Phone', old.contact ?? '', updated.contact ?? '');
     check('Address', old.address ?? '', updated.address ?? '');
     check('BIR Number', old.birNumber ?? '', updated.birNumber ?? '');
+    check("Driver's Permit Number", old.driverPermitNumber ?? '', updated.driverPermitNumber ?? '');
+    check('Passport Number', old.passportNumber ?? '', updated.passportNumber ?? '');
     check('Status', old.isActive ? 'Active' : 'Inactive',
         updated.isActive ? 'Active' : 'Inactive');
     check('Bank Name', old.bankInfo.bankName, updated.bankInfo.bankName);
@@ -471,4 +559,19 @@ class WorkerDataStore extends ChangeNotifier {
   // The hardcoded list of 12 workers + 2 replacements that used to live here
   // is now seeded into the PostgreSQL database via db/domain_schema.sql. The
   // frontend reads them from the backend via loadFromBackend() above.
+}
+
+/// Describes a single uniqueness conflict found during worker registration.
+class DuplicateIdConflict {
+  final String fieldName;
+  final String value;
+  final String conflictingWorkerId;
+  final String conflictingWorkerName;
+
+  const DuplicateIdConflict({
+    required this.fieldName,
+    required this.value,
+    required this.conflictingWorkerId,
+    required this.conflictingWorkerName,
+  });
 }

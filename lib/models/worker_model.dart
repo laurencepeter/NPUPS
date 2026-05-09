@@ -153,12 +153,14 @@ class Worker {
   List<WorkerAllowance> customAllowances;
 
   // Extended fields for full worker profile
-  final String? contact;        // Phone number
-  final String? address;        // Home address
-  final String? birNumber;      // Board of Inland Revenue number
-  final DateTime? startDate;    // Employment start date
-  final DateTime? endDate;      // Employment end date (if terminated/replaced)
-  final String? referenceNumber; // EmployTT reference number
+  final String? contact;             // Phone number
+  final String? address;             // Home address
+  final String? birNumber;           // Board of Inland Revenue number
+  final String? driverPermitNumber;  // Driver's permit number
+  final String? passportNumber;      // Passport number
+  final DateTime? startDate;         // Employment start date
+  final DateTime? endDate;           // Employment end date (if terminated/replaced)
+  final String? referenceNumber;     // EmployTT reference number
 
   Worker({
     required this.id,
@@ -181,6 +183,8 @@ class Worker {
     this.contact,
     this.address,
     this.birNumber,
+    this.driverPermitNumber,
+    this.passportNumber,
     this.startDate,
     this.endDate,
     this.referenceNumber,
@@ -261,6 +265,8 @@ class Worker {
       contact: j['contact'] as String?,
       address: j['address'] as String?,
       birNumber: j['bir_number'] as String?,
+      driverPermitNumber: j['driver_permit_number'] as String?,
+      passportNumber: j['passport_number'] as String?,
       startDate: j['start_date'] != null
           ? DateTime.parse(j['start_date'] as String)
           : null,
@@ -295,6 +301,8 @@ class Worker {
         'contact': contact,
         'address': address,
         'bir_number': birNumber,
+        'driver_permit_number': driverPermitNumber,
+        'passport_number': passportNumber,
         'start_date': startDate?.toIso8601String(),
         'end_date': endDate?.toIso8601String(),
         'reference_number': referenceNumber,

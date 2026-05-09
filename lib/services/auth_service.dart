@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/user_model.dart';
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -47,6 +48,9 @@ class AuthService extends ChangeNotifier {
   DateTime? _lastActivity;
   static const Duration sessionTimeout = Duration(minutes: 30);
 
+  static const _keyEmail = 'session_email';
+  static const _keyLoginMs = 'session_login_ms';
+
   AppUser? get currentUser => _currentUser;
   bool get isAuthenticated => _currentUser != null && !_isSessionExpired;
   bool get isLoading => _isLoading;
@@ -66,6 +70,43 @@ class AuthService extends ChangeNotifier {
     if (_currentUser != null) {
       _lastActivity = DateTime.now();
     }
+  }
+
+  /// Restore a previously authenticated session from persistent storage.
+  /// Call once in main() before runApp(). Does nothing if no session is saved
+  /// or if the stored session has already expired.
+  Future<void> init() async {
+    final prefs = await SharedPreferences.getInstance();
+    final email = prefs.getString(_keyEmail);
+    final loginMs = prefs.getInt(_keyLoginMs);
+    if (email == null || loginMs == null) return;
+
+    final loginAt = DateTime.fromMillisecondsSinceEpoch(loginMs);
+    if (DateTime.now().difference(loginAt) >= sessionTimeout) {
+      await _clearPersistedSession(prefs);
+      return;
+    }
+
+    final credential = _demoAccounts[email];
+    if (credential == null || !credential.user.isActive) {
+      await _clearPersistedSession(prefs);
+      return;
+    }
+
+    _currentUser = credential.user;
+    _lastActivity = DateTime.now();
+  }
+
+  Future<void> _saveSession(String email) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_keyEmail, email);
+    await prefs.setInt(_keyLoginMs, DateTime.now().millisecondsSinceEpoch);
+  }
+
+  Future<void> _clearPersistedSession([SharedPreferences? prefs]) async {
+    prefs ??= await SharedPreferences.getInstance();
+    await prefs.remove(_keyEmail);
+    await prefs.remove(_keyLoginMs);
   }
 
   // Demo credentials — all roles for pipeline demo
@@ -199,6 +240,7 @@ class AuthService extends ChangeNotifier {
     _currentUser = credential.user;
     _isLoading = false;
     notifyListeners();
+    _saveSession(email.toLowerCase().trim());
     return AuthResult.ok(credential.user);
   }
 
@@ -215,6 +257,7 @@ class AuthService extends ChangeNotifier {
     if (_currentUser != null && _isSessionExpired) {
       _currentUser = null;
       _lastActivity = null;
+      _clearPersistedSession();
       notifyListeners();
       return true;
     }
@@ -239,6 +282,7 @@ class AuthService extends ChangeNotifier {
     _currentUser = null;
     _lastActivity = null;
     _isLoading = false;
+    await _clearPersistedSession();
     notifyListeners();
   }
 

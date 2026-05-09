@@ -1040,6 +1040,8 @@ class _HrManagementScreenState extends State<HrManagementScreen>
             contact: worker.contact,
             address: worker.address,
             birNumber: worker.birNumber,
+            driverPermitNumber: worker.driverPermitNumber,
+            passportNumber: worker.passportNumber,
             startDate: worker.startDate,
             endDate: null,
             referenceNumber: worker.referenceNumber,
