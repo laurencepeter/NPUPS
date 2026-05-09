@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../theme/app_theme.dart';
 import '../models/worker_model.dart';
 import '../services/worker_data_store.dart';
+import '../services/auth_service.dart';
 
 // ──────────────────────────────────────────────────────────────────────────────
 // WorkForce
@@ -33,6 +34,8 @@ class _WorkerRegistrationFormState extends State<WorkerRegistrationForm> {
   final _idNumberCtrl = TextEditingController();
   final _nisCtrl = TextEditingController();
   final _birCtrl = TextEditingController();
+  final _driverPermitCtrl = TextEditingController();
+  final _passportCtrl = TextEditingController();
   DateTime? _dateOfBirth;
 
   // ── Employment ─────────────────────────────────────────────────────────────
@@ -121,6 +124,8 @@ class _WorkerRegistrationFormState extends State<WorkerRegistrationForm> {
     _idNumberCtrl.text = w.idNumber;
     _nisCtrl.text = w.nisNumber;
     _birCtrl.text = w.birNumber ?? '';
+    _driverPermitCtrl.text = w.driverPermitNumber ?? '';
+    _passportCtrl.text = w.passportNumber ?? '';
     _dateOfBirth = w.dateOfBirth;
     _selectedCorporationId = w.corporationId;
     _selectedCorporationName = w.corporationName;
@@ -145,6 +150,8 @@ class _WorkerRegistrationFormState extends State<WorkerRegistrationForm> {
     _idNumberCtrl.dispose();
     _nisCtrl.dispose();
     _birCtrl.dispose();
+    _driverPermitCtrl.dispose();
+    _passportCtrl.dispose();
     _referenceNumberCtrl.dispose();
     _wageRateCtrl.dispose();
     _colaRateCtrl.dispose();
@@ -214,7 +221,6 @@ class _WorkerRegistrationFormState extends State<WorkerRegistrationForm> {
     };
 
     if (_isEditing) {
-      // Preserve existing documents when editing
       for (final entry in widget.existingWorker!.documents.entries) {
         documents[entry.key] = entry.value;
       }
@@ -240,16 +246,33 @@ class _WorkerRegistrationFormState extends State<WorkerRegistrationForm> {
       ),
       documents: documents,
       dateRegistered: _isEditing ? widget.existingWorker!.dateRegistered : DateTime.now(),
-      // Preserve any custom allowances already attached to the worker.
-      customAllowances:
-          _isEditing ? widget.existingWorker!.customAllowances : null,
+      customAllowances: _isEditing ? widget.existingWorker!.customAllowances : null,
       contact: _contactCtrl.text.trim().isEmpty ? null : _contactCtrl.text.trim(),
       address: _addressCtrl.text.trim().isEmpty ? null : _addressCtrl.text.trim(),
       birNumber: _birCtrl.text.trim().isEmpty ? null : _birCtrl.text.trim(),
+      driverPermitNumber: _driverPermitCtrl.text.trim().isEmpty ? null : _driverPermitCtrl.text.trim(),
+      passportNumber: _passportCtrl.text.trim().isEmpty ? null : _passportCtrl.text.trim(),
       startDate: _startDate,
       endDate: _endDate,
       referenceNumber: _referenceNumberCtrl.text.trim().isEmpty ? null : _referenceNumberCtrl.text.trim(),
     );
+
+    // ── Uniqueness check ───────────────────────────────────────────────────
+    final conflicts = _store.checkUniqueIds(
+      worker,
+      excludeId: _isEditing ? widget.existingWorker!.id : null,
+    );
+
+    if (conflicts.isNotEmpty) {
+      final actor = AuthService().currentUser;
+      if (actor != null) {
+        _store.logDuplicateIdAttempt(actor: actor, candidate: worker, conflicts: conflicts);
+      }
+      setState(() => _isSaving = false);
+      if (!mounted) return;
+      await _showDuplicateConflictDialog(conflicts);
+      return;
+    }
 
     if (_isEditing) {
       _store.updateWorker(worker);
@@ -268,6 +291,68 @@ class _WorkerRegistrationFormState extends State<WorkerRegistrationForm> {
         backgroundColor: AppColors.success,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      ),
+    );
+  }
+
+  Future<void> _showDuplicateConflictDialog(List<DuplicateIdConflict> conflicts) async {
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(
+          children: [
+            Icon(Icons.error_outline, color: AppColors.error, size: 24),
+            SizedBox(width: 10),
+            Flexible(child: Text('Duplicate Credential Detected', style: TextStyle(fontSize: 16))),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'This registration was blocked because the following credential(s) are already registered to another worker. This attempt has been recorded in the audit log.',
+              style: TextStyle(fontSize: 13),
+            ),
+            const SizedBox(height: 16),
+            ...conflicts.map((c) => Container(
+              margin: const EdgeInsets.only(bottom: 8),
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: AppColors.error.withValues(alpha: 0.08),
+                border: Border.all(color: AppColors.error.withValues(alpha: 0.3)),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    c.fieldName,
+                    style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: AppColors.error),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'Already registered to: ${c.conflictingWorkerName} (${c.conflictingWorkerId})',
+                    style: const TextStyle(fontSize: 12),
+                  ),
+                ],
+              ),
+            )),
+          ],
+        ),
+        actions: [
+          ElevatedButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            child: const Text('OK'),
+          ),
+        ],
       ),
     );
   }
@@ -347,6 +432,18 @@ class _WorkerRegistrationFormState extends State<WorkerRegistrationForm> {
               controller: _birCtrl,
               label: 'BIR Number',
               hint: 'e.g. BIR-2024-00147',
+            ),
+            const SizedBox(height: 12),
+            _textField(
+              controller: _driverPermitCtrl,
+              label: "Driver's Permit Number",
+              hint: 'e.g. DP-2024-00147',
+            ),
+            const SizedBox(height: 12),
+            _textField(
+              controller: _passportCtrl,
+              label: 'Passport Number',
+              hint: 'e.g. TT123456',
             ),
             const SizedBox(height: 12),
             _textField(

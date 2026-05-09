@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 // ──────────────────────────────────────────────────────────────────────────────
 // WorkForce
@@ -331,13 +332,30 @@ class AppTheme {
 }
 
 // Global theme-mode notifier so any widget can toggle dark/light.
+// Persists the chosen mode to shared_preferences so the preference survives
+// browser refreshes and app restarts.
 class ThemeModeNotifier extends ValueNotifier<ThemeMode> {
   static final ThemeModeNotifier _instance = ThemeModeNotifier._internal();
   factory ThemeModeNotifier() => _instance;
   ThemeModeNotifier._internal() : super(ThemeMode.light);
 
+  static const _key = 'theme_is_dark';
+
+  /// Load persisted theme on startup. Call once before runApp().
+  Future<void> init() async {
+    final prefs = await SharedPreferences.getInstance();
+    final isDark = prefs.getBool(_key) ?? false;
+    value = isDark ? ThemeMode.dark : ThemeMode.light;
+  }
+
   void toggle() {
     value = value == ThemeMode.light ? ThemeMode.dark : ThemeMode.light;
+    _persist();
+  }
+
+  Future<void> _persist() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_key, isDark);
   }
 
   bool get isDark => value == ThemeMode.dark;

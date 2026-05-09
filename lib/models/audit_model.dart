@@ -36,7 +36,8 @@ enum AuditAction {
   paymentReversed('Payment Reversed'),
   allowanceAdded('Allowance Added'),
   allowanceUpdated('Allowance Updated'),
-  allowanceRemoved('Allowance Removed');
+  allowanceRemoved('Allowance Removed'),
+  duplicateIdAttempt('Duplicate ID Attempt');
 
   const AuditAction(this.displayName);
   final String displayName;
