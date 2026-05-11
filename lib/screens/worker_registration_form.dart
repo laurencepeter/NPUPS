@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
@@ -5,6 +7,8 @@ import '../theme/app_theme.dart';
 import '../models/worker_model.dart';
 import '../services/worker_data_store.dart';
 import '../services/auth_service.dart';
+import '../services/edit_lock_service.dart';
+import '../widgets/edit_lock_banner.dart';
 
 // ──────────────────────────────────────────────────────────────────────────────
 // WorkForce
@@ -25,7 +29,12 @@ class WorkerRegistrationForm extends StatefulWidget {
 class _WorkerRegistrationFormState extends State<WorkerRegistrationForm> {
   final _formKey = GlobalKey<FormState>();
   final _store = WorkerDataStore();
+  final _locks = EditLockService();
   bool _isSaving = false;
+
+  /// True when we opened in edit mode but another user holds the lock.
+  /// While true the save action is suppressed.
+  bool _lockedByOther = false;
 
   // ── Personal Info ──────────────────────────────────────────────────────────
   final _fullNameCtrl = TextEditingController();
@@ -114,7 +123,41 @@ class _WorkerRegistrationFormState extends State<WorkerRegistrationForm> {
     super.initState();
     if (_isEditing) {
       _populateFromWorker(widget.existingWorker!);
+      WidgetsBinding.instance.addPostFrameCallback((_) => _tryAcquireLock());
     }
+  }
+
+  Future<void> _tryAcquireLock() async {
+    final actor = AuthService().currentUser;
+    final worker = widget.existingWorker;
+    if (actor == null || worker == null) return;
+
+    final result = await _locks.acquire(
+      entityType: 'worker',
+      entityId: worker.id,
+      user: actor,
+    );
+
+    if (!mounted) return;
+
+    if (result.conflict) {
+      setState(() => _lockedByOther = true);
+      // Banner shows above the form so the user can see who holds it. We
+      // keep them on the page so an admin can force-release if needed.
+    } else {
+      setState(() => _lockedByOther = false);
+    }
+  }
+
+  Future<void> _releaseLock() async {
+    final actor = AuthService().currentUser;
+    final worker = widget.existingWorker;
+    if (actor == null || worker == null) return;
+    await _locks.release(
+      entityType: 'worker',
+      entityId: worker.id,
+      user: actor,
+    );
   }
 
   void _populateFromWorker(Worker w) {
@@ -144,6 +187,11 @@ class _WorkerRegistrationFormState extends State<WorkerRegistrationForm> {
 
   @override
   void dispose() {
+    if (_isEditing) {
+      // Fire-and-forget: release runs in the background; the lock service
+      // tolerates the widget being torn down before the REST round-trip.
+      unawaited(_releaseLock());
+    }
     _fullNameCtrl.dispose();
     _contactCtrl.dispose();
     _addressCtrl.dispose();
@@ -179,10 +227,10 @@ class _WorkerRegistrationFormState extends State<WorkerRegistrationForm> {
       lastDate: last,
       builder: (ctx, child) => Theme(
         data: Theme.of(ctx).copyWith(
-          colorScheme: const ColorScheme.light(
-            primary: AppColors.primary,
-            onPrimary: Colors.white,
-          ),
+          colorScheme: Theme.of(ctx).colorScheme.copyWith(
+                primary: AppColors.primary,
+                onPrimary: Colors.white,
+              ),
         ),
         child: child!,
       ),
@@ -202,6 +250,11 @@ class _WorkerRegistrationFormState extends State<WorkerRegistrationForm> {
   }
 
   Future<void> _save() async {
+    if (_lockedByOther) {
+      _showError(
+          'This worker is currently being edited by another user. Wait for them to finish, or ask a System Admin to force-release the lock.');
+      return;
+    }
     if (!_formKey.currentState!.validate()) return;
     if (_dateOfBirth == null) {
       _showError('Please select a date of birth.');
@@ -397,6 +450,18 @@ class _WorkerRegistrationFormState extends State<WorkerRegistrationForm> {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
+            if (_isEditing && AuthService().currentUser != null)
+              EditLockBanner(
+                entityType: 'worker',
+                entityId: widget.existingWorker!.id,
+                viewer: AuthService().currentUser!,
+                onForceReleased: (_) {
+                  // The admin overrode another user's lock. Take it over
+                  // ourselves so this form's save action is enabled.
+                  setState(() => _lockedByOther = false);
+                  _tryAcquireLock();
+                },
+              ),
             _sectionHeader('Personal Information', Icons.person),
             const SizedBox(height: 12),
             _textField(

@@ -194,6 +194,16 @@ class AuthService extends ChangeNotifier {
         corporationName: 'All Corporations',
       ),
     ),
+    'dmcr@workforce.app': _DemoCredential(
+      password: 'test123',
+      user: const AppUser(
+        id: 'USR-009',
+        email: 'dmcr@workforce.app',
+        fullName: 'Anika Ramlogan',
+        role: UserRole.dmcr,
+        corporationName: 'All Corporations',
+      ),
+    ),
   };
 
   /// Authenticate with email and password.
