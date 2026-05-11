@@ -179,10 +179,10 @@ class _WorkerRegistrationFormState extends State<WorkerRegistrationForm> {
       lastDate: last,
       builder: (ctx, child) => Theme(
         data: Theme.of(ctx).copyWith(
-          colorScheme: const ColorScheme.light(
-            primary: AppColors.primary,
-            onPrimary: Colors.white,
-          ),
+          colorScheme: Theme.of(ctx).colorScheme.copyWith(
+                primary: AppColors.primary,
+                onPrimary: Colors.white,
+              ),
         ),
         child: child!,
       ),

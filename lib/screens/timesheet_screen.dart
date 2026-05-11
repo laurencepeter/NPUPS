@@ -186,12 +186,10 @@ class _TimesheetEntryScreenState extends State<TimesheetEntryScreen>
       selectableDayPredicate: (date) => date.weekday == DateTime.monday,
       builder: (context, child) => Theme(
         data: Theme.of(context).copyWith(
-          colorScheme: ColorScheme.light(
-            primary: AppColors.primary,
-            onPrimary: Colors.white,
-            surface: Colors.white,
-            onSurface: AppColors.textPrimary,
-          ),
+          colorScheme: Theme.of(context).colorScheme.copyWith(
+                primary: AppColors.primary,
+                onPrimary: Colors.white,
+              ),
         ),
         child: child!,
       ),
@@ -212,7 +210,10 @@ class _TimesheetEntryScreenState extends State<TimesheetEntryScreen>
           : (entry.attendance[dayIndex].timeOut ?? const TimeOfDay(hour: 15, minute: 0)),
       builder: (context, child) => Theme(
         data: Theme.of(context).copyWith(
-          colorScheme: const ColorScheme.light(primary: AppColors.primary, onPrimary: Colors.white),
+          colorScheme: Theme.of(context).colorScheme.copyWith(
+                primary: AppColors.primary,
+                onPrimary: Colors.white,
+              ),
         ),
         child: child!,
       ),
