@@ -411,7 +411,7 @@ INSERT INTO corporations (id, name) VALUES
     ('3', 'San Fernando City Corporation'),
     ('8', 'Port of Spain City Corporation');
 
--- ── App users (8 demo logins from auth_service.dart) ────────────────────────
+-- ── App users (9 demo logins from auth_service.dart) ────────────────────────
 INSERT INTO app_users (id, email, full_name, role, corporation_id, corporation_name, password_demo) VALUES
     ('USR-001', 'admin@workforce.app',        'System Administrator', 'systemAdmin',         NULL, 'All Corporations',                'admin123'),
     ('USR-002', 'coordinator@workforce.app',  'Marcus Thompson',      'regionalCoordinator', '8',  'Port of Spain City Corporation',  'test123'),
@@ -420,7 +420,8 @@ INSERT INTO app_users (id, email, full_name, role, corporation_id, corporation_n
     ('USR-005', 'accounts@workforce.app',     'James Roberts',        'subAccounts',         NULL, 'All Corporations',                'test123'),
     ('USR-006', 'ps@workforce.app',           'Dr. Sharon Rowley',    'ps',                  NULL, 'All Corporations',                'test123'),
     ('USR-007', 'mainaccounts@workforce.app', 'Catherine Williams',   'mainAccounts',        NULL, 'All Corporations',                'test123'),
-    ('USR-008', 'executive@workforce.app',    'Raymond Ali',          'ministersDepartment', NULL, 'All Corporations',                'test123');
+    ('USR-008', 'executive@workforce.app',    'Raymond Ali',          'ministersDepartment', NULL, 'All Corporations',                'test123'),
+    ('USR-009', 'dmcr@workforce.app',         'Anika Ramlogan',       'dmcr',                NULL, 'All Corporations',                'test123');
 
 -- ── Workers ──────────────────────────────────────────────────────────────────
 -- 12 primary workers (WRK-001..WRK-012) from worker_data_store.dart plus

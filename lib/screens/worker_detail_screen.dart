@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../theme/app_theme.dart';
+import '../models/audit_model.dart';
 import '../models/worker_model.dart';
 import '../services/worker_data_store.dart';
 import '../services/security_utils.dart';
 import '../services/auth_service.dart';
+import '../widgets/edit_lock_banner.dart';
+import '../widgets/last_edited_by.dart';
 
 // ──────────────────────────────────────────────────────────────────────────────
 // WorkForce
@@ -132,7 +135,40 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
                   delegate: SliverChildListDelegate([
                     // Verification progress
                     _buildProgressCard(worker, statusColor),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 12),
+
+                    // Last-writer attribution + active edit lock (if any)
+                    Row(
+                      children: [
+                        Expanded(
+                          child: LastEditedBy(
+                            entityId: worker.id,
+                            actionFilter: const {
+                              AuditAction.update,
+                              AuditAction.create,
+                              AuditAction.wageRateChanged,
+                              AuditAction.allowanceAdded,
+                              AuditAction.allowanceUpdated,
+                              AuditAction.allowanceRemoved,
+                              AuditAction.documentUpload,
+                              AuditAction.documentApprove,
+                              AuditAction.documentReject,
+                              AuditAction.deactivate,
+                              AuditAction.activate,
+                              AuditAction.replacementAdded,
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    if (AuthService().currentUser != null)
+                      EditLockBanner(
+                        entityType: 'worker',
+                        entityId: worker.id,
+                        viewer: AuthService().currentUser!,
+                      ),
+                    const SizedBox(height: 8),
 
                     // Personal info — sensitive fields masked
                     _buildSectionCard('Personal Information', Icons.person, [
