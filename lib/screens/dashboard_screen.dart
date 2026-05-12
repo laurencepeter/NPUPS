@@ -1,14 +1,31 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import '../theme/app_theme.dart';
+import '../models/audit_model.dart';
+import '../models/timesheet_model.dart';
 import '../models/user_model.dart';
+import '../models/worker_model.dart';
+import '../services/api_client.dart';
+import '../services/audit_service.dart';
 import '../services/auth_service.dart';
+import '../services/backpay_service.dart';
+import '../services/timesheet_data_store.dart';
+import '../services/worker_data_store.dart';
+import '../widgets/backend_status_banner.dart';
 
 // ──────────────────────────────────────────────────────────────────────────────
 // WorkForce
 // Dashboard Screen
 //
-// Each role sees different KPI cards and pending actions per the process map.
-// Admin sees all data; test users see their corporation-scoped view.
+// Every KPI on this screen is computed from live data store contents — the
+// previous build hardcoded the headline numbers (the infamous "2,847 active
+// workers") which made the dashboard look populated even when the database
+// was empty or unreachable. KPIs now reflect what is actually in the
+// database for the signed-in user's scope.
+//
+// Recent Activity is sourced from the AuditService chain, so every demo
+// action (registrations, stage advances, payments, backpay, etc.) appears
+// without anyone having to seed the dashboard fixture by hand.
 // ──────────────────────────────────────────────────────────────────────────────
 
 class DashboardScreen extends StatefulWidget {
@@ -36,6 +53,11 @@ class _DashboardScreenState extends State<DashboardScreen>
   late final AnimationController _entranceController;
   late final List<Animation<double>> _cardAnimations;
 
+  final WorkerDataStore _workerStore = WorkerDataStore();
+  final TimesheetDataStore _timesheetStore = TimesheetDataStore();
+  final AuditService _auditService = AuditService();
+  final BackpayService _backpayService = BackpayService();
+
   @override
   void initState() {
     super.initState();
@@ -55,12 +77,27 @@ class _DashboardScreenState extends State<DashboardScreen>
     });
 
     _entranceController.forward();
+
+    // Re-render when any source store changes so KPIs / activity stay live
+    // as workers are added, timesheets advance, audit entries are appended.
+    _workerStore.addListener(_onStoreChanged);
+    _timesheetStore.addListener(_onStoreChanged);
+    _auditService.addListener(_onStoreChanged);
+    _backpayService.addListener(_onStoreChanged);
   }
 
   @override
   void dispose() {
+    _workerStore.removeListener(_onStoreChanged);
+    _timesheetStore.removeListener(_onStoreChanged);
+    _auditService.removeListener(_onStoreChanged);
+    _backpayService.removeListener(_onStoreChanged);
     _entranceController.dispose();
     super.dispose();
+  }
+
+  void _onStoreChanged() {
+    if (mounted) setState(() {});
   }
 
   AppUser get _user => widget.authService.currentUser!;
@@ -76,6 +113,7 @@ class _DashboardScreenState extends State<DashboardScreen>
             padding: const EdgeInsets.all(16),
             sliver: SliverList(
               delegate: SliverChildListDelegate([
+                const BackendStatusBanner(),
                 _buildWelcomeCard(),
                 const SizedBox(height: 20),
                 _buildKpiGrid(),
@@ -303,33 +341,129 @@ class _DashboardScreenState extends State<DashboardScreen>
     );
   }
 
+  // Workers visible to this user — admins and head-office roles see all,
+  // corporation-scoped roles only see their own.
+  Iterable<Worker> get _scopedWorkers {
+    if (_user.corporationId == null) return _workerStore.workers;
+    return _workerStore.getByCorpId(_user.corporationId!);
+  }
+
+  Iterable<Timesheet> get _scopedTimesheets {
+    if (_user.corporationId == null) return _timesheetStore.timesheets;
+    return _timesheetStore.getByCorporation(_user.corporationId!);
+  }
+
+  static final NumberFormat _intFmt = NumberFormat.decimalPattern();
+  static final NumberFormat _moneyFmt =
+      NumberFormat.compactSimpleCurrency(decimalDigits: 1);
+
   List<_KpiData> _getKpisForRole() {
+    final allWorkers = _workerStore.workers;
+    final scopedWorkers = _scopedWorkers.toList();
+    final scopedActive = scopedWorkers.where((w) => w.isActive).length;
+    final scopedTimesheets = _scopedTimesheets.toList();
+    final fortnightPayroll = scopedTimesheets.fold<double>(
+        0, (sum, t) => sum + t.grandTotal);
+    final corporations =
+        allWorkers.map((w) => w.corporationId).toSet().length;
+
+    int countByStages(List<TimesheetStage> stages) =>
+        scopedTimesheets.where((t) => stages.contains(t.stage)).length;
+
     return switch (_user.role) {
       UserRole.systemAdmin => [
-        _KpiData('Active Workers', '2,847', Icons.people, AppColors.accent, '+12%'),
-        _KpiData('Corporations', '14', Icons.location_city, AppColors.success, 'Active'),
-        _KpiData('Pending Approvals', '23', Icons.pending_actions, AppColors.warning, 'Action'),
-        _KpiData('This Fortnight', '\$1.2M', Icons.payments, AppColors.brandRed, 'Payroll'),
+        _KpiData('Active Workers', _intFmt.format(scopedActive),
+            Icons.people, AppColors.accent, 'Live'),
+        _KpiData('Corporations', '$corporations',
+            Icons.location_city, AppColors.success, 'Seeded'),
+        _KpiData(
+          'Pending Approvals',
+          '${countByStages([
+            TimesheetStage.submitted,
+            TimesheetStage.coordinatorReview,
+            TimesheetStage.hrProcessing,
+            TimesheetStage.accountsProcessing,
+          ])}',
+          Icons.pending_actions,
+          AppColors.warning,
+          'Action',
+        ),
+        _KpiData('This Fortnight', _moneyFmt.format(fortnightPayroll),
+            Icons.payments, AppColors.brandRed, 'Payroll'),
       ],
       UserRole.regionalCoordinator => [
-        _KpiData('My Workers', '48', Icons.people, AppColors.accent, 'Assigned'),
-        _KpiData('Timesheets Due', '3', Icons.timer, AppColors.warning, 'Pending'),
-        _KpiData('Docs Complete', '92%', Icons.check_circle, AppColors.success, 'Progress'),
-        _KpiData('This Fortnight', '\$72K', Icons.payments, AppColors.brandRed, 'Payroll'),
+        _KpiData('My Workers', '$scopedActive', Icons.people,
+            AppColors.accent, 'Assigned'),
+        _KpiData(
+          'Timesheets Due',
+          '${countByStages([TimesheetStage.submitted, TimesheetStage.coordinatorReview])}',
+          Icons.timer,
+          AppColors.warning,
+          'Pending',
+        ),
+        _KpiData('Docs Complete', _docsCompletePct(scopedWorkers),
+            Icons.check_circle, AppColors.success, 'Progress'),
+        _KpiData('This Fortnight', _moneyFmt.format(fortnightPayroll),
+            Icons.payments, AppColors.brandRed, 'Payroll'),
       ],
       UserRole.hr => [
-        _KpiData('Payroll Queue', '8', Icons.receipt_long, AppColors.accent, 'Pending'),
-        _KpiData('Employment Notes', '5', Icons.description, AppColors.warning, 'PS Review'),
-        _KpiData('Workers Onboarded', '156', Icons.person_add, AppColors.success, 'This Cycle'),
-        _KpiData('Packages Sent', '12', Icons.send, AppColors.brandRed, 'To Accounts'),
+        _KpiData(
+          'Payroll Queue',
+          '${countByStages([TimesheetStage.hrProcessing])}',
+          Icons.receipt_long,
+          AppColors.accent,
+          'Pending',
+        ),
+        _KpiData(
+          'Awaiting Sign-off',
+          '${countByStages([TimesheetStage.coordinatorReview])}',
+          Icons.description,
+          AppColors.warning,
+          'For HR',
+        ),
+        _KpiData('Workers Onboarded', '$scopedActive',
+            Icons.person_add, AppColors.success, 'Active'),
+        _KpiData(
+          'Packages Sent',
+          '${countByStages([
+            TimesheetStage.accountsProcessing,
+            TimesheetStage.approvedForPayment,
+            TimesheetStage.exported,
+            TimesheetStage.chequePrinting,
+          ])}',
+          Icons.send,
+          AppColors.brandRed,
+          'To Accounts',
+        ),
       ],
       _ => [
-        _KpiData('Active Workers', '2,847', Icons.people, AppColors.accent, '+12%'),
-        _KpiData('Pending Items', '15', Icons.pending_actions, AppColors.warning, 'Action'),
-        _KpiData('Completed', '89%', Icons.check_circle, AppColors.success, 'Progress'),
-        _KpiData('This Fortnight', '\$1.2M', Icons.payments, AppColors.brandRed, 'Payroll'),
+        _KpiData('Active Workers', _intFmt.format(scopedActive),
+            Icons.people, AppColors.accent, 'Live'),
+        _KpiData(
+          'Pending Items',
+          '${countByStages([
+            TimesheetStage.submitted,
+            TimesheetStage.coordinatorReview,
+            TimesheetStage.hrProcessing,
+            TimesheetStage.accountsProcessing,
+          ])}',
+          Icons.pending_actions,
+          AppColors.warning,
+          'Action',
+        ),
+        _KpiData('Docs Complete', _docsCompletePct(scopedWorkers),
+            Icons.check_circle, AppColors.success, 'Progress'),
+        _KpiData('This Fortnight', _moneyFmt.format(fortnightPayroll),
+            Icons.payments, AppColors.brandRed, 'Payroll'),
       ],
     };
+  }
+
+  String _docsCompletePct(List<Worker> workers) {
+    if (workers.isEmpty) return '—';
+    final fully = workers.where((w) => w.isFullyVerified).length;
+    final pct = (fully / workers.length * 100).round();
+    return '$pct%';
   }
 
   Widget _buildKpiCard(_KpiData kpi, {bool compact = false}) {
@@ -472,16 +606,39 @@ class _DashboardScreenState extends State<DashboardScreen>
     );
   }
 
-  // ── Recent Activity ────────────────────────────────────────────────────────
+  // ── Recent Activity (real audit feed) ──────────────────────────────────────
   Widget _buildRecentActivity() {
+    final entries = _auditService.getAll().take(6).toList();
+
     return _animatedCard(
       4,
       Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Recent Activity',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+          Row(
+            children: [
+              Text(
+                'Recent Activity',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+              ),
+              const SizedBox(width: 8),
+              if (entries.isNotEmpty)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: AppColors.accent.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    'live',
+                    style: TextStyle(
+                      fontSize: 9,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.accent,
+                    ),
+                  ),
+                ),
+            ],
           ),
           const SizedBox(height: 12),
           Container(
@@ -492,41 +649,108 @@ class _DashboardScreenState extends State<DashboardScreen>
                 BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 8, offset: const Offset(0, 2)),
               ],
             ),
-            child: Column(
-              children: [
-                _buildActivityItem(
-                  'Timesheet submitted for Port of Spain — Group 3',
-                  '2 hours ago',
-                  Icons.check_circle,
-                  AppColors.success,
-                ),
-                const Divider(height: 1, indent: 56),
-                _buildActivityItem(
-                  'Payroll package approved by PS',
-                  '5 hours ago',
-                  Icons.thumb_up,
-                  AppColors.accent,
-                ),
-                const Divider(height: 1, indent: 56),
-                _buildActivityItem(
-                  '3 worker documents pending verification',
-                  'Yesterday',
-                  Icons.warning_amber,
-                  AppColors.warning,
-                ),
-                const Divider(height: 1, indent: 56),
-                _buildActivityItem(
-                  'New workers registered: Kevin Rampersad, Sasha Mohammed',
-                  'Yesterday',
-                  Icons.person_add,
-                  AppColors.info,
-                ),
-              ],
-            ),
+            child: entries.isEmpty
+                ? Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Row(
+                      children: [
+                        Icon(Icons.history,
+                            size: 18, color: AppColors.textSecondary),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            ApiClient().isConfigured
+                                ? 'No audit entries yet — actions taken in the app will appear here.'
+                                : 'Backend not configured — set --dart-define=API_BASE_URL to load audit history.',
+                            style: TextStyle(
+                                fontSize: 12,
+                                color: AppColors.textSecondary),
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                : Column(
+                    children: [
+                      for (int i = 0; i < entries.length; i++) ...[
+                        if (i > 0) const Divider(height: 1, indent: 56),
+                        _buildActivityItem(
+                          _activityLine(entries[i]),
+                          _relativeTime(entries[i].timestamp),
+                          _actionIcon(entries[i].action),
+                          _actionColor(entries[i].action),
+                        ),
+                      ],
+                    ],
+                  ),
           ),
         ],
       ),
     );
+  }
+
+  String _activityLine(AuditLogEntry e) {
+    final who = e.userName;
+    final what = e.action.displayName.toLowerCase();
+    final target = e.entityDisplayName;
+    return '$who $what — $target';
+  }
+
+  String _relativeTime(DateTime ts) {
+    final diff = DateTime.now().difference(ts);
+    if (diff.inMinutes < 1) return 'just now';
+    if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
+    if (diff.inHours < 24) return '${diff.inHours}h ago';
+    if (diff.inDays < 30) return '${diff.inDays}d ago';
+    return DateFormat.yMMMd().format(ts);
+  }
+
+  IconData _actionIcon(AuditAction a) {
+    return switch (a) {
+      AuditAction.create || AuditAction.activate => Icons.add_circle_outline,
+      AuditAction.update || AuditAction.allowanceUpdated ||
+          AuditAction.wageRateChanged => Icons.edit_outlined,
+      AuditAction.delete || AuditAction.deactivate ||
+          AuditAction.allowanceRemoved => Icons.remove_circle_outline,
+      AuditAction.documentUpload || AuditAction.attachmentAdded =>
+          Icons.upload_file,
+      AuditAction.documentApprove || AuditAction.approve ||
+          AuditAction.stageAdvanced => Icons.check_circle_outline,
+      AuditAction.documentReject || AuditAction.reject ||
+          AuditAction.stageRejected => Icons.cancel_outlined,
+      AuditAction.login => Icons.login,
+      AuditAction.logout => Icons.logout,
+      AuditAction.export => Icons.download,
+      AuditAction.import => Icons.file_upload,
+      AuditAction.rosterUpdate => Icons.event_available,
+      AuditAction.replacementAdded => Icons.swap_horiz,
+      AuditAction.backpayCalculated || AuditAction.backpayApproved ||
+          AuditAction.backpayDisbursed => Icons.account_balance_wallet,
+      AuditAction.paymentRecorded => Icons.payments,
+      AuditAction.paymentReversed => Icons.undo,
+      AuditAction.allowanceAdded => Icons.add_card,
+      AuditAction.attachmentRemoved => Icons.attach_file,
+      AuditAction.settingsChange => Icons.settings,
+      AuditAction.duplicateIdAttempt => Icons.warning_amber,
+    };
+  }
+
+  Color _actionColor(AuditAction a) {
+    return switch (a) {
+      AuditAction.create || AuditAction.activate ||
+          AuditAction.allowanceAdded => AppColors.success,
+      AuditAction.update || AuditAction.allowanceUpdated ||
+          AuditAction.wageRateChanged => AppColors.accent,
+      AuditAction.delete || AuditAction.deactivate ||
+          AuditAction.documentReject || AuditAction.reject ||
+          AuditAction.stageRejected || AuditAction.duplicateIdAttempt =>
+          AppColors.error,
+      AuditAction.documentUpload || AuditAction.documentApprove ||
+          AuditAction.approve || AuditAction.stageAdvanced ||
+          AuditAction.paymentRecorded => AppColors.success,
+      AuditAction.export || AuditAction.import => AppColors.info,
+      _ => AppColors.warning,
+    };
   }
 
   Widget _buildActivityItem(String text, String time, IconData icon, Color color) {

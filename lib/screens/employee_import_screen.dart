@@ -576,9 +576,15 @@ class _EmployeeImportScreenState extends State<EmployeeImportScreen> {
             .toList();
 
     int imported = 0;
+    int failed = 0;
     for (final emp in toImport) {
       final worker = emp.toWorker(_workerStore.generateWorkerId());
-      _workerStore.addWorker(worker);
+      try {
+        await _workerStore.addWorker(worker);
+      } catch (_) {
+        failed++;
+        continue;
+      }
       _auditService.log(
         actor: widget.currentUser,
         action: AuditAction.create,
@@ -599,10 +605,13 @@ class _EmployeeImportScreenState extends State<EmployeeImportScreen> {
 
     if (mounted) {
       setState(() => _importState = _ImportState.done);
+      final msg = failed == 0
+          ? '$imported employee(s) imported successfully'
+          : '$imported imported, $failed failed (backend rejected — see network logs)';
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('$imported employee(s) imported successfully'),
-          backgroundColor: AppColors.success,
+          content: Text(msg),
+          backgroundColor: failed == 0 ? AppColors.success : AppColors.warning,
         ),
       );
     }

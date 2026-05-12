@@ -76,7 +76,11 @@ CREATE TYPE audit_action_enum AS ENUM (
     'stageAdvanced', 'stageRejected', 'attachmentAdded', 'attachmentRemoved',
     'wageRateChanged', 'backpayCalculated', 'backpayApproved', 'backpayDisbursed',
     'paymentRecorded', 'paymentReversed',
-    'allowanceAdded', 'allowanceUpdated', 'allowanceRemoved'
+    'allowanceAdded', 'allowanceUpdated', 'allowanceRemoved',
+    -- Recorded when a worker registration is blocked because one of the
+    -- regulated unique credentials (NIS / National ID / BIR / Driver Permit /
+    -- Passport) is already in use. Mirrors AuditAction.duplicateIdAttempt.
+    'duplicateIdAttempt'
 );
 
 CREATE TYPE audit_entity_type_enum AS ENUM (
@@ -148,12 +152,17 @@ CREATE TABLE workers (
     branch_name         TEXT        NOT NULL,
     date_registered     DATE        NOT NULL,
     is_active           BOOLEAN     NOT NULL DEFAULT TRUE,
-    contact             TEXT,
-    address             TEXT,
-    bir_number          TEXT,
-    start_date          DATE,
-    end_date            DATE,
-    reference_number    TEXT,
+    contact                 TEXT,
+    address                 TEXT,
+    bir_number              TEXT,
+    -- Additional regulated identifiers used by the duplicate-ID guard
+    -- (lib/services/worker_data_store.dart checkUniqueIds). Both are
+    -- nullable — most workers won't have either.
+    driver_permit_number    TEXT,
+    passport_number         TEXT,
+    start_date              DATE,
+    end_date                DATE,
+    reference_number        TEXT,
     created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at          TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );

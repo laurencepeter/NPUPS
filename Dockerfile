@@ -17,6 +17,11 @@
 # Stage 1: Build Flutter Web
 FROM ghcr.io/cirruslabs/flutter:stable AS build
 
+# API_BASE_URL is baked into the web build at compile time. Override via
+# `docker build --build-arg API_BASE_URL=https://api.example.com .` to point
+# the deployed bundle at a non-default backend.
+ARG API_BASE_URL=""
+
 # Create app directory
 WORKDIR /app
 
@@ -26,7 +31,7 @@ RUN flutter pub get
 
 # Copy full project and build web
 COPY . .
-RUN flutter build web --release
+RUN flutter build web --release --dart-define=API_BASE_URL=${API_BASE_URL}
 
 # Stage 2: Serve with nginx
 FROM nginx:alpine

@@ -117,6 +117,13 @@ class BackpayService extends ChangeNotifier {
     );
 
     _records.add(record);
+    notifyListeners();
+
+    _api.postJson('/api/backpay-records', record.toJson()).catchError((e) {
+      _records.removeWhere((r) => r.id == id);
+      notifyListeners();
+      throw e;
+    });
 
     _audit.log(
       actor: actor,
@@ -147,7 +154,6 @@ class BackpayService extends ChangeNotifier {
       note: note,
     );
 
-    notifyListeners();
     return record;
   }
 
@@ -155,6 +161,13 @@ class BackpayService extends ChangeNotifier {
     final r = _records.firstWhere((x) => x.id == recordId);
     if (r.status != BackpayStatus.calculated) return;
     r.status = BackpayStatus.approved;
+    notifyListeners();
+    _api.patchJson('/api/backpay-records/$recordId',
+        {'status': BackpayStatus.approved.name}).catchError((e) {
+      r.status = BackpayStatus.calculated;
+      notifyListeners();
+      throw e;
+    });
     _audit.log(
       actor: actor,
       action: AuditAction.backpayApproved,
@@ -163,13 +176,19 @@ class BackpayService extends ChangeNotifier {
       entityDisplayName: 'Backpay – ${r.workerName}',
       note: note,
     );
-    notifyListeners();
   }
 
   void disburse(String recordId, AppUser actor, {String? note}) {
     final r = _records.firstWhere((x) => x.id == recordId);
     if (r.status != BackpayStatus.approved) return;
     r.status = BackpayStatus.disbursed;
+    notifyListeners();
+    _api.patchJson('/api/backpay-records/$recordId',
+        {'status': BackpayStatus.disbursed.name}).catchError((e) {
+      r.status = BackpayStatus.approved;
+      notifyListeners();
+      throw e;
+    });
     _audit.log(
       actor: actor,
       action: AuditAction.backpayDisbursed,
@@ -183,6 +202,5 @@ class BackpayService extends ChangeNotifier {
       ],
       note: note,
     );
-    notifyListeners();
   }
 }

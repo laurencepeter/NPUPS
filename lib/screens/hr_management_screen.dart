@@ -1018,7 +1018,7 @@ class _HrManagementScreenState extends State<HrManagementScreen>
     if (confirm == null || confirm.isEmpty) return;
 
     if (active) {
-      _workerStore.updateWorker(
+      await _workerStore.updateWorker(
           Worker(
             id: worker.id,
             fullName: worker.fullName,

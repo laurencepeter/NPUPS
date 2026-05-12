@@ -109,6 +109,25 @@ class ApiClient {
     return jsonDecode(res.body);
   }
 
+  Future<dynamic> putJson(String path, Map<String, dynamic> body) async {
+    if (!isConfigured) return null;
+    final res = await http.put(
+      _uri(path),
+      headers: _headers(),
+      body: jsonEncode(body),
+    );
+    if (res.statusCode >= 400) {
+      throw ApiException(res.statusCode, res.body, path);
+    }
+    if (res.body.isEmpty) return null;
+    return jsonDecode(res.body);
+  }
+
+  /// Like [putJson] but used for endpoints whose body shape doesn't translate
+  /// cleanly to a Dart `toJson` — kept distinct so call-sites read clearly.
+  Future<dynamic> putRaw(String path, Map<String, dynamic> body) =>
+      putJson(path, body);
+
   Future<void> delete(String path) async {
     if (!isConfigured) return;
     final res = await http.delete(_uri(path), headers: _headers(json: false));

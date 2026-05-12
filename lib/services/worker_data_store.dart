@@ -181,9 +181,27 @@ class WorkerDataStore extends ChangeNotifier {
   }
 
   // ── Mutations ──────────────────────────────────────────────────────────────
+  //
+  // Every mutation below is "optimistic": local state is updated and
+  // listeners are notified immediately so the UI is responsive, then the
+  // change is persisted to the backend. If persistence fails, the local
+  // change is rolled back and listeners notified again so screens render the
+  // pre-mutation state. Without this round-trip the previous implementation
+  // looked like it worked but discarded everything on page refresh — the
+  // exact "data missing at home" bug we just fixed.
 
-  void addWorker(Worker worker, {AppUser? actor}) {
+  Future<void> addWorker(Worker worker, {AppUser? actor}) async {
     _workers.add(worker);
+    notifyListeners();
+
+    try {
+      await _api.postJson('/api/workers', worker.toJson());
+    } catch (e) {
+      _workers.removeWhere((w) => w.id == worker.id);
+      notifyListeners();
+      rethrow;
+    }
+
     if (actor != null) {
       _audit.log(
         actor: actor,
@@ -203,30 +221,35 @@ class WorkerDataStore extends ChangeNotifier {
         ],
       );
     }
-    notifyListeners();
   }
 
-  void updateWorker(Worker updated, {AppUser? actor}) {
+  Future<void> updateWorker(Worker updated, {AppUser? actor}) async {
     final index = _workers.indexWhere((w) => w.id == updated.id);
     if (index == -1) return;
-
-    if (actor != null) {
-      final old = _workers[index];
-      final changes = _diffWorker(old, updated);
-      if (changes.isNotEmpty) {
-        _audit.log(
-          actor: actor,
-          action: AuditAction.update,
-          entityType: AuditEntityType.worker,
-          entityId: updated.id,
-          entityDisplayName: updated.fullName,
-          fieldChanges: changes,
-        );
-      }
-    }
+    final previous = _workers[index];
+    final changes = _diffWorker(previous, updated);
 
     _workers[index] = updated;
     notifyListeners();
+
+    try {
+      await _api.patchJson('/api/workers/${updated.id}', updated.toJson());
+    } catch (e) {
+      _workers[index] = previous;
+      notifyListeners();
+      rethrow;
+    }
+
+    if (actor != null && changes.isNotEmpty) {
+      _audit.log(
+        actor: actor,
+        action: AuditAction.update,
+        entityType: AuditEntityType.worker,
+        entityId: updated.id,
+        entityDisplayName: updated.fullName,
+        fieldChanges: changes,
+      );
+    }
   }
 
   /// Update a worker's COLA rate without rebuilding the whole Worker object.
@@ -267,6 +290,16 @@ class WorkerDataStore extends ChangeNotifier {
 
     final index = _workers.indexWhere((w) => w.id == workerId);
     _workers[index] = updated;
+    notifyListeners();
+
+    // Best-effort persist. If the backend is unreachable, we still keep the
+    // optimistic local change visible — but mark the rollback path so any
+    // refresh from the API surfaces the canonical value.
+    _api.patchJson('/api/workers/$workerId', {'cola_rate': newRate}).catchError((e) {
+      _workers[index] = worker;
+      notifyListeners();
+      throw e;
+    });
 
     if (actor != null) {
       _audit.log(
@@ -284,8 +317,6 @@ class WorkerDataStore extends ChangeNotifier {
         ],
       );
     }
-
-    notifyListeners();
   }
 
   // ── Custom allowances ────────────────────────────────────────────────────
@@ -295,6 +326,14 @@ class WorkerDataStore extends ChangeNotifier {
     final worker = getById(workerId);
     if (worker == null) return;
     worker.customAllowances.add(allowance);
+    notifyListeners();
+
+    _api.postJson('/api/workers/$workerId/allowances', allowance.toJson())
+        .catchError((e) {
+      worker.customAllowances.removeWhere((a) => a.id == allowance.id);
+      notifyListeners();
+      throw e;
+    });
 
     if (actor != null) {
       _audit.log(
@@ -316,7 +355,6 @@ class WorkerDataStore extends ChangeNotifier {
         note: allowance.note,
       );
     }
-    notifyListeners();
   }
 
   void updateAllowance(String workerId, WorkerAllowance updated,
@@ -327,6 +365,14 @@ class WorkerDataStore extends ChangeNotifier {
     if (i == -1) return;
     final old = worker.customAllowances[i];
     worker.customAllowances[i] = updated;
+    notifyListeners();
+
+    _api.patchJson('/api/worker-allowances/${updated.id}', updated.toJson())
+        .catchError((e) {
+      worker.customAllowances[i] = old;
+      notifyListeners();
+      throw e;
+    });
 
     if (actor != null) {
       final changes = <AuditFieldChange>[];
@@ -363,7 +409,6 @@ class WorkerDataStore extends ChangeNotifier {
         );
       }
     }
-    notifyListeners();
   }
 
   void removeAllowance(String workerId, String allowanceId,
@@ -373,6 +418,13 @@ class WorkerDataStore extends ChangeNotifier {
     final i = worker.customAllowances.indexWhere((a) => a.id == allowanceId);
     if (i == -1) return;
     final removed = worker.customAllowances.removeAt(i);
+    notifyListeners();
+
+    _api.delete('/api/worker-allowances/$allowanceId').catchError((e) {
+      worker.customAllowances.insert(i, removed);
+      notifyListeners();
+      throw e;
+    });
 
     if (actor != null) {
       _audit.log(
@@ -391,7 +443,6 @@ class WorkerDataStore extends ChangeNotifier {
         ],
       );
     }
-    notifyListeners();
   }
 
   String generateAllowanceId() {
@@ -402,6 +453,18 @@ class WorkerDataStore extends ChangeNotifier {
   void deactivateWorker(String workerId, {AppUser? actor}) {
     final worker = getById(workerId);
     if (worker == null) return;
+    final wasActive = worker.isActive;
+    if (!wasActive) return;
+
+    worker.isActive = false;
+    notifyListeners();
+
+    _api.patchJson('/api/workers/$workerId', {'is_active': false})
+        .catchError((e) {
+      worker.isActive = true;
+      notifyListeners();
+      throw e;
+    });
 
     if (actor != null) {
       _audit.log(
@@ -416,9 +479,6 @@ class WorkerDataStore extends ChangeNotifier {
         ],
       );
     }
-
-    worker.isActive = false;
-    notifyListeners();
   }
 
   void updateDocumentStatus(
@@ -434,10 +494,29 @@ class WorkerDataStore extends ChangeNotifier {
     if (doc == null) return;
 
     final oldStatus = doc.status;
+    final oldFileName = doc.fileName;
+    final oldUploadedAt = doc.uploadedAt;
     doc.status = status;
     doc.fileName = fileName;
     doc.uploadedAt =
         status == DocumentStatus.uploaded ? DateTime.now() : null;
+    notifyListeners();
+
+    final encodedDocName = Uri.encodeComponent(docName);
+    _api.putRaw(
+      '/api/workers/$workerId/documents/$encodedDocName',
+      {
+        'status': status.name,
+        'file_name': fileName,
+        'uploaded_at': doc.uploadedAt?.toIso8601String(),
+      },
+    ).catchError((e) {
+      doc.status = oldStatus;
+      doc.fileName = oldFileName;
+      doc.uploadedAt = oldUploadedAt;
+      notifyListeners();
+      throw e;
+    });
 
     if (actor != null) {
       _audit.log(
@@ -463,14 +542,20 @@ class WorkerDataStore extends ChangeNotifier {
         ],
       );
     }
-
-    notifyListeners();
   }
 
   void addReplacement(WorkerReplacement replacement, {AppUser? actor}) {
     _replacements.removeWhere(
         (r) => r.originalWorkerId == replacement.originalWorkerId);
     _replacements.add(replacement);
+    notifyListeners();
+
+    _api.postJson('/api/worker-replacements', replacement.toJson())
+        .catchError((e) {
+      _replacements.removeWhere((r) => r.id == replacement.id);
+      notifyListeners();
+      throw e;
+    });
 
     final original = getById(replacement.originalWorkerId);
     final replacement_ = getById(replacement.replacementWorkerId);
@@ -500,7 +585,6 @@ class WorkerDataStore extends ChangeNotifier {
     }
 
     deactivateWorker(replacement.originalWorkerId);
-    notifyListeners();
   }
 
   String generateWorkerId() {

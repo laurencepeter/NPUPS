@@ -58,8 +58,19 @@ class RosterService extends ChangeNotifier {
   }
 
   void updateSettings(RosterSettings updated) {
+    final previous = _settings[updated.corporationId];
     _settings[updated.corporationId] = updated;
     notifyListeners();
+    _api.patchJson('/api/roster-settings/${updated.corporationId}',
+        updated.toJson()).catchError((e) {
+      if (previous != null) {
+        _settings[updated.corporationId] = previous;
+      } else {
+        _settings.remove(updated.corporationId);
+      }
+      notifyListeners();
+      throw e;
+    });
   }
 
   // ── Roster Access ───────────────────────────────────────────────────────────
@@ -119,12 +130,33 @@ class RosterService extends ChangeNotifier {
     );
 
     if (dayIndex < 0 || dayIndex >= record.days.length) return;
+
+    final wasPresent = record.days[dayIndex].isPresent;
+    final wasReason = record.days[dayIndex].absenceReason;
+    final wasLastModified = roster.lastModified;
+    final wasLastModifiedBy = roster.lastModifiedBy;
+
     record.days[dayIndex].isPresent = isPresent;
     record.days[dayIndex].absenceReason = isPresent ? null : absenceReason;
-
     roster.lastModified = DateTime.now();
     roster.lastModifiedBy = modifiedBy;
     notifyListeners();
+
+    _api.putJson(
+      '/api/rosters/$rosterId/workers/$workerId/days/$dayIndex',
+      {
+        'is_present': isPresent,
+        'absence_reason': isPresent ? null : absenceReason,
+        'modified_by': modifiedBy,
+      },
+    ).catchError((e) {
+      record.days[dayIndex].isPresent = wasPresent;
+      record.days[dayIndex].absenceReason = wasReason;
+      roster.lastModified = wasLastModified;
+      roster.lastModifiedBy = wasLastModifiedBy;
+      notifyListeners();
+      throw e;
+    });
   }
 
   void setWorkerMaxDaysOverride({
