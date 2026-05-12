@@ -1,0 +1,59 @@
+# Bring up Postgres + the WorkForce API + the Flutter web build in one shot.
+#
+#   docker compose up --build
+#
+# Then point a browser at http://localhost:8081
+#   (or open http://localhost:8080/api/health to verify the API)
+#
+# The Postgres container auto-runs every *.sql in db/ on first boot, so the
+# domain seed (19 workers, 17 timesheets, 13 audit entries, etc.) is loaded
+# before the API starts.
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: workforce
+      POSTGRES_PASSWORD: workforce
+      POSTGRES_DB: workforce
+    volumes:
+      - workforce_pgdata:/var/lib/postgresql/data
+      # Schemas are sourced alphabetically; rbac_ comes before domain_ which
+      # matches the order required by the foreign keys.
+      - ./db/rbac_schema.sql:/docker-entrypoint-initdb.d/01_rbac_schema.sql:ro
+      - ./db/domain_schema.sql:/docker-entrypoint-initdb.d/02_domain_schema.sql:ro
+      - ./db/edit_locks_schema.sql:/docker-entrypoint-initdb.d/03_edit_locks_schema.sql:ro
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U workforce -d workforce"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  api:
+    build: ./server
+    environment:
+      DATABASE_URL: postgres://workforce:workforce@postgres:5432/workforce
+      PORT: "8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      # API_BASE_URL is baked into the Flutter web build at compile time.
+      # Override in CI / prod to point at the public-facing API hostname.
+      args:
+        API_BASE_URL: "http://localhost:8080"
+    depends_on:
+      - api
+    ports:
+      - "8081:80"
+
+volumes:
+  workforce_pgdata: {}

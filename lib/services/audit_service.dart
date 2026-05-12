@@ -105,6 +105,14 @@ class AuditService extends ChangeNotifier {
     _entries.add(entry);
     _latestHash = hash;
     notifyListeners();
+
+    // Persist asynchronously. Audit entries are immutable so there's no
+    // rollback to perform if the backend rejects — the local copy still
+    // appears in the chain, and a subsequent loadFromBackend(force:true)
+    // will reconcile if the write was actually accepted.
+    _api.postJson('/api/audit-logs', entry.toJson()).catchError((e) {
+      debugPrint('audit persist failed for ${entry.id}: $e');
+    });
   }
 
   /// Convenience for recording wage rate changes (basis for backpay calc).

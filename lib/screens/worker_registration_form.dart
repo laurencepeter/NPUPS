@@ -327,10 +327,24 @@ class _WorkerRegistrationFormState extends State<WorkerRegistrationForm> {
       return;
     }
 
-    if (_isEditing) {
-      _store.updateWorker(worker);
-    } else {
-      _store.addWorker(worker);
+    try {
+      if (_isEditing) {
+        await _store.updateWorker(worker);
+      } else {
+        await _store.addWorker(worker);
+      }
+    } catch (e) {
+      setState(() => _isSaving = false);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Save failed: $e'),
+          backgroundColor: AppColors.error,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ),
+      );
+      return;
     }
 
     setState(() => _isSaving = false);

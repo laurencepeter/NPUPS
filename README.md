@@ -61,6 +61,7 @@ data — every row originates in PostgreSQL.
 # Apply the RBAC schema first, then the domain schema + seed.
 psql "$DATABASE_URL" -f db/rbac_schema.sql
 psql "$DATABASE_URL" -f db/domain_schema.sql
+psql "$DATABASE_URL" -f db/edit_locks_schema.sql
 ```
 
 Sanity-check the seed counts:
@@ -73,20 +74,63 @@ SELECT count(*) FROM rosters;                  -- 6
 SELECT count(*) FROM app_audit_logs;           -- 13
 ```
 
-# Wiring the frontend to the backend
+# Backend service
 
-The Flutter app talks to the backend exclusively through
-`lib/services/api_client.dart`. The base URL is supplied at build time:
+The Flutter app talks to a small Node.js + Express + `pg` API in `server/`
+(see `server/README.md` for the endpoint table). The API is the **only**
+process that touches PostgreSQL — the browser does not connect to it
+directly.
+
+# One-command demo (recommended)
 
 ```sh
-flutter run --dart-define=API_BASE_URL=http://localhost:8080
+docker compose up --build
+```
+
+That brings up:
+
+| Container | Port | Purpose |
+|---|---|---|
+| `postgres` | 5432 | Postgres 16 with `db/*.sql` auto-loaded on first boot |
+| `api`      | 8080 | The REST backend (`server/`) — `GET /api/health` for liveness |
+| `web`      | 8081 | Flutter web build served by nginx, baked with `API_BASE_URL=http://localhost:8080` |
+
+Open <http://localhost:8081> and sign in with one of the demo accounts
+above. The dashboard will load the seeded 19 workers / 17 timesheets / 13
+audit entries, and any worker you register at this machine will show up on
+any other machine pointed at the same Postgres.
+
+If the dashboard shows the orange "Backend not configured" banner, the web
+build was compiled without `API_BASE_URL`. Re-run `docker compose build web`
+or pass `--dart-define=API_BASE_URL=...` to your `flutter` command.
+
+# Manual run (without Docker)
+
+```sh
+# 1. Postgres + schemas
+createdb workforce
+psql workforce -f db/rbac_schema.sql
+psql workforce -f db/domain_schema.sql
+psql workforce -f db/edit_locks_schema.sql
+
+# 2. API
+cd server
+npm install
+DATABASE_URL=postgres://localhost/workforce PORT=8080 npm start
+
+# 3. Flutter web pointed at the API
+flutter run -d chrome --dart-define=API_BASE_URL=http://localhost:8080
+```
+
+For a release build:
+
+```sh
 flutter build web --release --dart-define=API_BASE_URL=https://api.example.com
 ```
 
-When `API_BASE_URL` is unset the client returns empty results so the UI
-renders blank lists — useful when the database has been seeded but no
-backend service has been stood up yet. After login,
-`Bootstrap.loadAll()` fans out to:
+# Frontend ↔ backend contract
+
+After login, `Bootstrap.loadAll()` fans out to:
 
 | Endpoint | Store |
 |---|---|
@@ -97,3 +141,15 @@ backend service has been stood up yet. After login,
 | `GET /api/roster-settings` | `RosterService` |
 | `GET /api/rosters` | `RosterService` |
 | `GET /api/backpay-records` | `BackpayService` |
+
+Mutations round-trip through the same client. Each store performs an
+optimistic local update first, then `POST` / `PATCH` / `DELETE`s to the
+API; on backend rejection the local change is rolled back and listeners
+are notified again so the UI re-renders with the canonical state. See
+`PATCH_NOTES.md` for the list of mutations that were silently in-memory
+before this change.
+
+When `API_BASE_URL` is unset (or the API is unreachable) the dashboard now
+shows a banner explaining the failure mode instead of silently rendering
+empty — this used to be the cause of the "I created users at work but
+they're not at home" complaint.

@@ -83,34 +83,88 @@ class TimesheetDataStore extends ChangeNotifier {
       _timesheets.fold(0.0, (sum, t) => sum + t.grandTotal);
 
   // ── Mutations ────────────────────────────────────────────────────────────
+  // Each mutation persists through the API. Optimistic UI update first,
+  // rollback on backend rejection. See WorkerDataStore for the same pattern.
 
-  void addTimesheet(Timesheet timesheet) {
+  Future<void> addTimesheet(Timesheet timesheet) async {
     _timesheets.add(timesheet);
     notifyListeners();
+    try {
+      await _api.postJson('/api/timesheets', timesheet.toJson());
+    } catch (e) {
+      _timesheets.removeWhere((t) => t.id == timesheet.id);
+      notifyListeners();
+      rethrow;
+    }
   }
 
-  void updateTimesheet(Timesheet timesheet) {
+  Future<void> updateTimesheet(Timesheet timesheet) async {
     timesheet.updatedAt = DateTime.now();
     notifyListeners();
+    await _api.patchJson('/api/timesheets/${timesheet.id}', {
+      'allowance_days': timesheet.allowanceDays,
+      'remarks': timesheet.remarks,
+      'daily_entries':
+          timesheet.dailyEntries.map((e) => e.toJson()).toList(),
+    });
   }
 
-  void advanceStage(String timesheetId, String reviewerName, String reviewerRole, {String? note}) {
+  Future<void> advanceStage(String timesheetId, String reviewerName,
+      String reviewerRole, {String? note}) async {
     final ts = getById(timesheetId);
     if (ts == null) return;
+    final previousStage = ts.stage;
     ts.advanceStage(reviewerName, reviewerRole, note: note);
     notifyListeners();
+
+    try {
+      await _api.patchJson(
+          '/api/timesheets/$timesheetId', {'stage': ts.stage.name});
+      await _api.postJson('/api/timesheets/$timesheetId/approvals', {
+        'reviewer_name': reviewerName,
+        'reviewer_role': reviewerRole,
+        'state': 'approved',
+        'note': note,
+        'ts': DateTime.now().toIso8601String(),
+      });
+    } catch (e) {
+      ts.stage = previousStage;
+      if (ts.approvalHistory.isNotEmpty) ts.approvalHistory.removeLast();
+      notifyListeners();
+      rethrow;
+    }
   }
 
-  void rejectTimesheet(String timesheetId, String reviewerName, String reviewerRole, String note) {
+  Future<void> rejectTimesheet(String timesheetId, String reviewerName,
+      String reviewerRole, String note) async {
     final ts = getById(timesheetId);
     if (ts == null) return;
+    final previousStage = ts.stage;
     ts.rejectToPreviousStage(reviewerName, reviewerRole, note);
     notifyListeners();
+
+    try {
+      await _api.patchJson(
+          '/api/timesheets/$timesheetId', {'stage': ts.stage.name});
+      await _api.postJson('/api/timesheets/$timesheetId/approvals', {
+        'reviewer_name': reviewerName,
+        'reviewer_role': reviewerRole,
+        'state': 'rejected',
+        'note': note,
+        'ts': DateTime.now().toIso8601String(),
+      });
+    } catch (e) {
+      ts.stage = previousStage;
+      if (ts.approvalHistory.isNotEmpty) ts.approvalHistory.removeLast();
+      notifyListeners();
+      rethrow;
+    }
   }
 
-  void batchAdvance(List<String> ids, String reviewerName, String reviewerRole, {String? note}) {
+  Future<void> batchAdvance(List<String> ids, String reviewerName,
+      String reviewerRole, {String? note}) async {
     for (final id in ids) {
-      advanceStage(id, reviewerName, reviewerRole, note: note);
+      await advanceStage(id, reviewerName, reviewerRole, note: note);
     }
   }
 
