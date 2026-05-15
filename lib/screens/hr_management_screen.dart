@@ -32,8 +32,14 @@ class _HrManagementScreenState extends State<HrManagementScreen>
 
   late TabController _tabCtrl;
   final TextEditingController _searchCtrl = TextEditingController();
+  // One text-entry controller per worker so the "Add" button can read the
+  // current draft note. Disposed in [dispose] to avoid leaks.
+  final Map<String, TextEditingController> _noteCtrls = {};
   String _statusFilter = 'All';
   Worker? _selectedWorker;
+
+  TextEditingController _noteCtrlFor(String workerId) =>
+      _noteCtrls.putIfAbsent(workerId, () => TextEditingController());
 
   bool get _canEdit =>
       widget.currentUser.role == UserRole.hr ||
@@ -50,6 +56,10 @@ class _HrManagementScreenState extends State<HrManagementScreen>
   void dispose() {
     _tabCtrl.dispose();
     _searchCtrl.dispose();
+    for (final c in _noteCtrls.values) {
+      c.dispose();
+    }
+    _noteCtrls.clear();
     super.dispose();
   }
 
@@ -809,6 +819,7 @@ class _HrManagementScreenState extends State<HrManagementScreen>
                 Expanded(
                   child: TextField(
                     key: ValueKey('note-${worker.id}'),
+                    controller: _noteCtrlFor(worker.id),
                     decoration: const InputDecoration(
                       hintText:
                           'Enter HR note (will be recorded in audit trail)…',
@@ -816,13 +827,19 @@ class _HrManagementScreenState extends State<HrManagementScreen>
                     ),
                     minLines: 1,
                     maxLines: 3,
-                    onSubmitted: (note) =>
-                        _addHrNote(worker, note),
+                    onSubmitted: (note) {
+                      _addHrNote(worker, note);
+                      _noteCtrlFor(worker.id).clear();
+                    },
                   ),
                 ),
                 const SizedBox(width: 8),
                 ElevatedButton(
-                  onPressed: () {},
+                  onPressed: () {
+                    final ctrl = _noteCtrlFor(worker.id);
+                    _addHrNote(worker, ctrl.text.trim());
+                    ctrl.clear();
+                  },
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(
                         horizontal: 12, vertical: 10),

@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:file_saver/file_saver.dart';
 import '../theme/app_theme.dart';
+import '../models/timesheet_model.dart';
 import '../models/worker_model.dart';
+import '../services/timesheet_data_store.dart';
 import '../services/worker_data_store.dart';
 import '../services/excel_export_service.dart';
 import '../services/security_utils.dart';
@@ -25,6 +27,7 @@ class ExportScreen extends StatefulWidget {
 
 class _ExportScreenState extends State<ExportScreen> {
   final WorkerDataStore _store = WorkerDataStore();
+  final TimesheetDataStore _timesheetStore = TimesheetDataStore();
   ExportMode _exportMode = ExportMode.singleWorker;
   String? _selectedCorpId;
   String? _selectedWorkerId;
@@ -451,6 +454,21 @@ class _ExportScreenState extends State<ExportScreen> {
   }
 
   Widget _buildWorkerRow(Worker w) {
+    // Show the worker's actual timesheet total for the selected fortnight
+    // when one has been submitted; otherwise fall back to the daily gross
+    // (wage + COLA) so the user sees a real rate, not a 10-day fabrication.
+    final ts = _timesheetForFortnight(w);
+    final String trailing;
+    final String trailingLabel;
+    if (ts != null) {
+      trailing = '\$${ts.grandTotal.toStringAsFixed(0)}';
+      trailingLabel = '${ts.daysWorked}d • ${ts.stage.displayName}';
+    } else {
+      final dailyGross = w.wageRate + w.colaRate;
+      trailing = '\$${dailyGross.toStringAsFixed(0)}/day';
+      trailingLabel = 'No timesheet for this fortnight';
+    }
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
@@ -470,9 +488,34 @@ class _ExportScreenState extends State<ExportScreen> {
               ],
             ),
           ),
-          Text('\$${(10 * w.wageRate + 10 * w.colaRate).toStringAsFixed(0)}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.accent)),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(trailing, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.accent)),
+              Text(trailingLabel, style: TextStyle(fontSize: 10, color: AppColors.textSecondary)),
+            ],
+          ),
         ],
       ),
     );
+  }
+
+  Timesheet? _timesheetForFortnight(Worker w) {
+    final candidates = _timesheetStore.getByWorker(w.id);
+    if (candidates.isEmpty) return null;
+    Timesheet? best;
+    Duration bestDelta = const Duration(days: 365 * 10);
+    for (final t in candidates) {
+      final delta = t.fortnightStart.difference(_fortnightStart).abs();
+      if (delta < bestDelta) {
+        bestDelta = delta;
+        best = t;
+      }
+    }
+    // Only count it as "this fortnight" if it starts within 6 days of the
+    // selected Monday (catches off-by-one timezone issues but rejects unrelated
+    // fortnights).
+    if (best != null && bestDelta <= const Duration(days: 6)) return best;
+    return null;
   }
 }

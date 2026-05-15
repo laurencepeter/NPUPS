@@ -1,15 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../theme/app_theme.dart';
+import '../models/audit_model.dart';
+import '../models/timesheet_model.dart';
+import '../services/audit_service.dart';
+import '../services/auth_service.dart';
 import '../services/security_utils.dart';
+import '../services/timesheet_data_store.dart';
 import '../services/worker_data_store.dart';
 
 // ──────────────────────────────────────────────────────────────────────────────
 // WorkForce
-// Digitizes the paper timesheet template (template.xlsx) for Regional Coordinators
-// Timesheet Screen
+// Digitizes the paper timesheet template (template.xlsx) for Regional Coordinators.
 //
-// Tech: Flutter + Supabase (replace mock data with Supabase client calls)
+// Corporations and electoral districts are derived from the live WorkerDataStore
+// — there is no hardcoded corporation list. Submission creates one Timesheet
+// per worker entry and persists it through TimesheetDataStore (which round-trips
+// to PostgreSQL). The stage is set to `submitted` so the Coordinator Review
+// screen picks it up.
 // ──────────────────────────────────────────────────────────────────────────────
 
 // ── DATA MODELS ──────────────────────────────────────────────────────────────
@@ -19,6 +27,11 @@ class Corporation {
   final String name;
   final List<String> electoralDistricts;
   Corporation({required this.id, required this.name, required this.electoralDistricts});
+
+  @override
+  bool operator ==(Object other) => other is Corporation && other.id == id;
+  @override
+  int get hashCode => id.hashCode;
 }
 
 class RegisteredWorker {
@@ -98,26 +111,36 @@ class _TimesheetEntryScreenState extends State<TimesheetEntryScreen>
   // Entrance animation
   late final AnimationController _entranceController;
 
-  // ── Mock data (replace with Supabase queries) ──────────────────────────────
-  final List<Corporation> _corporations = [
-    Corporation(id: '1', name: 'Arima Borough Corporation', electoralDistricts: ['Arima North', 'Arima South', 'Arima Central']),
-    Corporation(id: '2', name: 'Chaguanas Borough Corporation', electoralDistricts: ['Chaguanas East', 'Chaguanas West', 'Charlieville']),
-    Corporation(id: '3', name: 'Couva-Tabaquite-Talparo Regional Corporation', electoralDistricts: ['Couva North', 'Couva South', 'Tabaquite', 'Talparo']),
-    Corporation(id: '4', name: 'Diego Martin Regional Corporation', electoralDistricts: ['Diego Martin North', 'Diego Martin Central', 'Petit Valley']),
-    Corporation(id: '5', name: 'Mayaro-Rio Claro Regional Corporation', electoralDistricts: ['Mayaro', 'Rio Claro', 'Biche']),
-    Corporation(id: '6', name: 'Penal-Debe Regional Corporation', electoralDistricts: ['Penal', 'Debe', 'Barrackpore']),
-    Corporation(id: '7', name: 'Point Fortin Borough Corporation', electoralDistricts: ['Point Fortin North', 'Point Fortin South']),
-    Corporation(id: '8', name: 'Port of Spain City Corporation', electoralDistricts: ['Port of Spain North', 'Port of Spain South', 'Laventille', 'Morvant']),
-    Corporation(id: '9', name: 'Princes Town Regional Corporation', electoralDistricts: ['Princes Town', 'Moruga', 'Tableland']),
-    Corporation(id: '10', name: 'San Fernando City Corporation', electoralDistricts: ['San Fernando East', 'San Fernando West']),
-    Corporation(id: '11', name: 'San Juan-Laventille Regional Corporation', electoralDistricts: ['San Juan', 'Barataria', 'El Socorro']),
-    Corporation(id: '12', name: 'Sangre Grande Regional Corporation', electoralDistricts: ['Sangre Grande', 'Toco', 'Matura']),
-    Corporation(id: '13', name: 'Siparia Regional Corporation', electoralDistricts: ['Siparia', 'Fyzabad', 'Oropouche']),
-    Corporation(id: '14', name: 'Tunapuna-Piarco Regional Corporation', electoralDistricts: ['Tunapuna', 'Piarco', 'St. Augustine', 'Curepe']),
-  ];
-
-  // Workers are loaded from WorkerDataStore and filtered by selected corporation.
+  // Corporations and their electoral districts are derived from the workers
+  // currently registered in the WorkerDataStore. As workers are added/removed,
+  // the dropdowns rebuild via the listener installed in [initState].
   final WorkerDataStore _workerStore = WorkerDataStore();
+  final TimesheetDataStore _timesheetStore = TimesheetDataStore();
+  final AuditService _auditService = AuditService();
+  final AuthService _authService = AuthService();
+
+  List<Corporation> get _corporations {
+    final byId = <String, Corporation>{};
+    final districtsById = <String, Set<String>>{};
+    for (final w in _workerStore.workers) {
+      districtsById
+          .putIfAbsent(w.corporationId, () => <String>{})
+          .add(w.electoralDistrict);
+    }
+    for (final w in _workerStore.workers) {
+      byId.putIfAbsent(
+          w.corporationId,
+          () => Corporation(
+                id: w.corporationId,
+                name: w.corporationName,
+                electoralDistricts: (districtsById[w.corporationId]!.toList()
+                  ..sort()),
+              ));
+    }
+    final list = byId.values.toList()
+      ..sort((a, b) => a.name.compareTo(b.name));
+    return list;
+  }
 
   List<RegisteredWorker> get _registeredWorkers {
     final source = _selectedCorporation != null
@@ -147,13 +170,21 @@ class _TimesheetEntryScreenState extends State<TimesheetEntryScreen>
       vsync: this,
       duration: const Duration(milliseconds: 800),
     )..forward();
+    // Rebuild when workers load / change so the corporation + district
+    // dropdowns reflect the current registry.
+    _workerStore.addListener(_onStoreChanged);
   }
 
   @override
   void dispose() {
+    _workerStore.removeListener(_onStoreChanged);
     _scrollController.dispose();
     _entranceController.dispose();
     super.dispose();
+  }
+
+  void _onStoreChanged() {
+    if (mounted) setState(() {});
   }
 
   // ── HELPERS ────────────────────────────────────────────────────────────────
@@ -248,12 +279,105 @@ class _TimesheetEntryScreenState extends State<TimesheetEntryScreen>
       );
       return;
     }
+    if (_fortnightStart == null || _fortnightEnd == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Select the fortnight start date.'), backgroundColor: AppColors.error),
+      );
+      return;
+    }
+
+    final filled = _workerEntries
+        .where((e) => e.worker != null && e.daysWorked > 0)
+        .toList();
+    if (filled.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Add at least one worker with attendance entered.'), backgroundColor: AppColors.error),
+      );
+      return;
+    }
+
     setState(() => _isSubmitting = true);
-    // TODO: Replace with Supabase insert
-    await Future.delayed(const Duration(seconds: 2));
+
+    final coordinator = _authService.currentUser;
+    final reviewerName = coordinator?.fullName ?? 'Regional Coordinator';
+    final submissionTs = DateTime.now();
+    final batchTag = submissionTs.millisecondsSinceEpoch;
+
+    final saved = <Timesheet>[];
+    final failed = <String>[];
+
+    for (int i = 0; i < filled.length; i++) {
+      final entry = filled[i];
+      final worker = _workerStore.getById(entry.worker!.id);
+      if (worker == null) {
+        failed.add('${entry.worker!.name}: not in worker registry');
+        continue;
+      }
+      final id = 'TS-MAN-$batchTag-${i.toString().padLeft(2, '0')}';
+      final dailyEntries = entry.attendance
+          .map((a) =>
+              TimesheetDailyEntry(timeIn: a.timeIn, timeOut: a.timeOut))
+          .toList();
+      final approval = ApprovalRecord(
+        reviewerName: reviewerName,
+        reviewerRole: 'Regional Coordinator',
+        state: ApprovalState.approved,
+        note: 'Submitted from fortnightly entry sheet (Group $_groupNumber).',
+        timestamp: submissionTs,
+      );
+      final ts = Timesheet(
+        id: id,
+        workerId: worker.id,
+        workerName: worker.fullName,
+        position: worker.position,
+        idNumber: worker.idNumber,
+        nisNumber: worker.nisNumber,
+        wageRate: worker.wageRate,
+        colaRate: worker.colaRate,
+        allowanceRate: worker.allowanceRate,
+        corporationId: _selectedCorporation!.id,
+        corporationName: _selectedCorporation!.name,
+        electoralDistrict: _selectedDistrict!,
+        groupNumber: _groupNumber,
+        fortnightStart: _fortnightStart!,
+        fortnightEnd: _fortnightEnd!,
+        bankName: worker.bankInfo.bankName,
+        accountNumber: worker.bankInfo.accountNumber,
+        branchName: worker.bankInfo.branchName,
+        dailyEntries: dailyEntries,
+        allowanceDays: entry.allowanceDays,
+        remarks: entry.remarks,
+        stage: TimesheetStage.submitted,
+        approvalHistory: [approval],
+        createdAt: submissionTs,
+        updatedAt: submissionTs,
+      );
+
+      try {
+        await _timesheetStore.addTimesheet(ts);
+        if (coordinator != null) {
+          _auditService.log(
+            actor: coordinator,
+            action: AuditAction.create,
+            entityType: AuditEntityType.timesheet,
+            entityId: ts.id,
+            entityDisplayName: '${ts.workerName} — ${ts.corporationName}',
+            note:
+                'Timesheet submitted for fortnight starting ${DateFormat('yyyy-MM-dd').format(_fortnightStart!)} '
+                '(${ts.daysWorked}d, ${ts.grandTotal.toStringAsFixed(2)}).',
+          );
+        }
+        saved.add(ts);
+      } catch (e) {
+        failed.add('${worker.fullName}: $e');
+      }
+    }
+
+    if (!mounted) return;
     setState(() => _isSubmitting = false);
-    if (mounted) {
-      showDialog(
+
+    if (saved.isNotEmpty && failed.isEmpty) {
+      await showDialog(
         context: context,
         builder: (ctx) => AlertDialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -264,13 +388,36 @@ class _TimesheetEntryScreenState extends State<TimesheetEntryScreen>
               Text('Timesheet Submitted'),
             ],
           ),
-          content: const Text('Your timesheet has been submitted successfully. DMCR and HR have been notified.'),
+          content: Text(
+              '${saved.length} timesheet${saved.length == 1 ? '' : 's'} submitted to the Regional Coordinator queue. HR will receive the package after coordinator review.'),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(ctx).pop(),
               child: const Text('OK', style: TextStyle(color: AppColors.primary)),
             ),
           ],
+        ),
+      );
+      if (!mounted) return;
+      setState(() {
+        _workerEntries
+          ..clear()
+          ..add(WorkerTimesheetEntry());
+        _isSupervisorConfirmed = false;
+      });
+    } else if (saved.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Submission failed: ${failed.join('; ')}'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+              '${saved.length} submitted, ${failed.length} failed: ${failed.join('; ')}'),
+          backgroundColor: AppColors.warning,
         ),
       );
     }
@@ -356,18 +503,39 @@ class _TimesheetEntryScreenState extends State<TimesheetEntryScreen>
             ),
             const Divider(height: 24),
             _buildLabel('Municipal Corporation *'),
-            DropdownButtonFormField<Corporation>(
-              value: _selectedCorporation,
-              decoration: _inputDecoration('Select Corporation'),
-              items: _corporations.map((c) => DropdownMenuItem(value: c, child: Text(c.name, style: const TextStyle(fontSize: 14)))).toList(),
-              onChanged: (val) => setState(() {
-                _selectedCorporation = val;
-                _selectedDistrict = null;
-                // Clear worker selections so stale names are removed
-                for (final e in _workerEntries) { e.worker = null; }
-              }),
-              validator: (v) => v == null ? 'Required' : null,
-            ),
+            Builder(builder: (_) {
+              final corps = _corporations;
+              // Re-resolve the held selection against the freshly derived list
+              // so the dropdown's `value` reference matches an item exactly and
+              // the district list reflects the latest workers.
+              final live = _selectedCorporation == null
+                  ? null
+                  : corps.firstWhere(
+                      (c) => c.id == _selectedCorporation!.id,
+                      orElse: () => _selectedCorporation!,
+                    );
+              if (corps.isEmpty) {
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  child: Text(
+                    'No workers registered yet — register a worker first to enable timesheet entry.',
+                    style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                  ),
+                );
+              }
+              return DropdownButtonFormField<Corporation>(
+                value: live,
+                decoration: _inputDecoration('Select Corporation'),
+                items: corps.map((c) => DropdownMenuItem(value: c, child: Text(c.name, style: const TextStyle(fontSize: 14)))).toList(),
+                onChanged: (val) => setState(() {
+                  _selectedCorporation = val;
+                  _selectedDistrict = null;
+                  // Clear worker selections so stale names are removed
+                  for (final e in _workerEntries) { e.worker = null; }
+                }),
+                validator: (v) => v == null ? 'Required' : null,
+              );
+            }),
             const SizedBox(height: 16),
             Row(
               children: [
@@ -377,13 +545,24 @@ class _TimesheetEntryScreenState extends State<TimesheetEntryScreen>
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       _buildLabel('Electoral District *'),
-                      DropdownButtonFormField<String>(
-                        value: _selectedDistrict,
-                        decoration: _inputDecoration('Select District'),
-                        items: (_selectedCorporation?.electoralDistricts ?? []).map((d) => DropdownMenuItem(value: d, child: Text(d, style: const TextStyle(fontSize: 14)))).toList(),
-                        onChanged: (val) => setState(() => _selectedDistrict = val),
-                        validator: (v) => v == null ? 'Required' : null,
-                      ),
+                      Builder(builder: (_) {
+                        final corps = _corporations;
+                        final live = _selectedCorporation == null
+                            ? null
+                            : corps.firstWhere(
+                                (c) => c.id == _selectedCorporation!.id,
+                                orElse: () => _selectedCorporation!,
+                              );
+                        return DropdownButtonFormField<String>(
+                          value: _selectedDistrict,
+                          decoration: _inputDecoration('Select District'),
+                          items: (live?.electoralDistricts ?? const <String>[])
+                              .map((d) => DropdownMenuItem(value: d, child: Text(d, style: const TextStyle(fontSize: 14))))
+                              .toList(),
+                          onChanged: (val) => setState(() => _selectedDistrict = val),
+                          validator: (v) => v == null ? 'Required' : null,
+                        );
+                      }),
                     ],
                   ),
                 ),
