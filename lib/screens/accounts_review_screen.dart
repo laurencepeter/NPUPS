@@ -12,6 +12,7 @@ import '../models/timesheet_model.dart';
 import '../models/user_model.dart';
 import '../models/worker_model.dart';
 import '../services/timesheet_data_store.dart';
+import '../services/worker_data_store.dart';
 import '../services/excel_export_service.dart';
 import '../services/security_utils.dart';
 import 'package:file_saver/file_saver.dart';
@@ -347,24 +348,33 @@ class _AccountsReviewScreenState extends State<AccountsReviewScreen>
   Future<void> _exportToXlsx(List<Timesheet> timesheets) async {
     if (timesheets.isEmpty) return;
 
-    // Build Worker objects from timesheets for the export service
-    final workers = timesheets.map((ts) => Worker(
-      id: ts.workerId,
-      fullName: ts.workerName,
-      nisNumber: ts.nisNumber,
-      dateOfBirth: DateTime(1990, 1, 1),
-      position: ts.position,
-      idNumber: ts.idNumber,
-      corporationId: ts.corporationId,
-      corporationName: ts.corporationName,
-      electoralDistrict: ts.electoralDistrict,
-      wageRate: ts.wageRate,
-      colaRate: ts.colaRate,
-      allowanceRate: ts.allowanceRate,
-      bankInfo: BankInfo(bankName: ts.bankName, accountNumber: ts.accountNumber, branchName: ts.branchName),
-      documents: {},
-      dateRegistered: DateTime.now(),
-    )).toList();
+    // Build Worker objects from timesheets for the export service. Prefer
+    // the canonical Worker record from WorkerDataStore (so DOB, registration
+    // date, documents and any unsnapshotted fields are correct); fall back
+    // to the timesheet's denormalised columns if the worker has since been
+    // removed from the registry.
+    final workerStore = WorkerDataStore();
+    final workers = timesheets.map((ts) {
+      final existing = workerStore.getById(ts.workerId);
+      if (existing != null) return existing;
+      return Worker(
+        id: ts.workerId,
+        fullName: ts.workerName,
+        nisNumber: ts.nisNumber,
+        dateOfBirth: DateTime(1900, 1, 1),
+        position: ts.position,
+        idNumber: ts.idNumber,
+        corporationId: ts.corporationId,
+        corporationName: ts.corporationName,
+        electoralDistrict: ts.electoralDistrict,
+        wageRate: ts.wageRate,
+        colaRate: ts.colaRate,
+        allowanceRate: ts.allowanceRate,
+        bankInfo: BankInfo(bankName: ts.bankName, accountNumber: ts.accountNumber, branchName: ts.branchName),
+        documents: {},
+        dateRegistered: ts.createdAt,
+      );
+    }).toList();
 
     final bytes = ExcelExportService.generateBatchTimesheet(
       workers: workers,
