@@ -113,6 +113,32 @@ container is down or `API_UPSTREAM` points at the wrong host — check
 `docker compose logs api` and confirm <http://localhost:8080/api/health>
 responds.
 
+# Production deployment (Coolify)
+
+`docker compose up` (above) is the all-in-one demo — it bundles its own
+Postgres with seed data. In production the database is a separate **managed**
+Postgres that is never bundled with the app. Deploy with
+`docker-compose.prod.yml`, which is **web + api only**:
+
+| Service  | Public?              | Notes                                            |
+|----------|----------------------|--------------------------------------------------|
+| `web`    | yes — your domain    | nginx + Flutter; proxies `/api/*` to `api`       |
+| `api`    | no — internal only   | Node backend; the only process that reaches the DB |
+| Postgres | no — internal only   | your managed database, outside this compose      |
+
+In Coolify, create a **Docker Compose** resource (not a Dockerfile app), set
+its compose location to `docker-compose.prod.yml`, then configure:
+
+| Variable       | Set where                  | Value                                          |
+|----------------|----------------------------|------------------------------------------------|
+| `DATABASE_URL` | **Coolify** env vars       | Internal connection URL of the managed Postgres |
+| `PORT`         | `docker-compose.prod.yml`  | `8080` — internal, leave as-is                  |
+| `API_UPSTREAM` | `docker-compose.prod.yml`  | `http://api:8080` — internal, leave as-is       |
+| public domain  | **Coolify** UI, on `web`   | e.g. `nups.fireydev.com`                        |
+
+Load the schema into the managed Postgres once (see "Database" above) before
+the first deploy — the API does not create tables itself.
+
 # Manual run (without Docker)
 
 ```sh

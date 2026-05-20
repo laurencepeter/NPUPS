@@ -1,0 +1,54 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# PRODUCTION compose — for Coolify (or any host with a managed/external Postgres)
+# ─────────────────────────────────────────────────────────────────────────────
+#
+# This stack is web + api ONLY. There is deliberately NO postgres service here:
+# in production the database is your Coolify-managed Postgres, which lives
+# outside this compose and is never exposed to the internet.
+#
+#   Browser ──▶ web (nginx + Flutter)  ──▶  api (Node)  ──▶  Postgres
+#               public: your domain        internal only    Coolify-managed,
+#                                                            internal only
+#
+# ── Coolify setup ────────────────────────────────────────────────────────────
+#   1. Create a resource of type "Docker Compose" (not "Dockerfile").
+#   2. Set its "Docker Compose Location" to:  docker-compose.prod.yml
+#   3. Add ONE environment variable in the Coolify UI — DATABASE_URL (below).
+#   4. Assign your public domain to the `web` service (port 80) in the Coolify
+#      UI. Do NOT give `api` a domain — it must stay internal.
+#
+# ── Where each env var is configured ─────────────────────────────────────────
+#   DATABASE_URL  → set in COOLIFY (mark it secret). Internal connection URL of
+#                   your managed Postgres. Never hardcoded in this file.
+#   PORT          → set HERE (below). Internal only — no reason to change.
+#   API_UPSTREAM  → set HERE (below). Internal compose DNS — no reason to change.
+# ─────────────────────────────────────────────────────────────────────────────
+
+services:
+  api:
+    build: ./server
+    restart: unless-stopped
+    environment:
+      # COOLIFY: this pulls the value from the Coolify environment variable
+      # named DATABASE_URL. Set it to your managed Postgres INTERNAL url, e.g.
+      #   postgres://postgres:<password>@<postgres-internal-host>:5432/<db>
+      # The deploy fails fast with the message below if it is not set.
+      DATABASE_URL: ${DATABASE_URL:?set DATABASE_URL in the Coolify environment variables}
+      # COMPOSE: internal API port. web/nginx proxies to api:8080 (see below).
+      PORT: "8080"
+    expose:
+      - "8080"          # internal only — never published, never given a domain
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      # COMPOSE: nginx forwards /api/* here. "api" is this compose's service
+      # name and resolves on the internal network — leave exactly as-is.
+      API_UPSTREAM: "http://api:8080"
+    depends_on:
+      - api
+    expose:
+      - "80"            # COOLIFY: attach your public domain to this service/port
