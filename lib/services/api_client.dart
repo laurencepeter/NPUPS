@@ -7,19 +7,20 @@
 // db/domain_schema.sql. This client is the only path through which data
 // stores fetch and mutate that data.
 //
-// The base URL is supplied at build time:
-//   flutter build web --dart-define=API_BASE_URL=https://api.example.com
-//   flutter run        --dart-define=API_BASE_URL=http://localhost:8080
-//
-// When a backend has not yet been stood up, leave API_BASE_URL unset; in that
-// case every call returns an empty/null result so the frontend renders empty
-// lists instead of throwing. This is the "graceful degradation" mode used for
-// the initial deploy where the database has been seeded but the API service
-// is not wired up yet.
+// The base URL is resolved at runtime, not baked in at build time:
+//   1. An explicit --dart-define=API_BASE_URL=... always wins (use this to
+//      point at a backend on a different host/origin).
+//   2. Otherwise, on web, it defaults to the origin the app was served from,
+//      so the deployed nginx bundle reaches the API through its same-origin
+//      /api proxy with no rebuild and no CORS preflight.
+//   3. On non-web with nothing configured it stays empty: every call returns
+//      an empty/null result so the frontend renders empty lists instead of
+//      throwing ("graceful degradation").
 // ──────────────────────────────────────────────────────────────────────────────
 
 import 'dart:async';
 import 'dart:convert';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:http/http.dart' as http;
 
 class ApiException implements Exception {
@@ -36,10 +37,23 @@ class ApiClient {
   factory ApiClient() => _instance;
   ApiClient._internal();
 
+  /// Explicit build-time override. Empty unless --dart-define is passed.
+  static const String _configuredBaseUrl =
+      String.fromEnvironment('API_BASE_URL', defaultValue: '');
+
   /// Base URL for the backend, e.g. `https://api.workforce.example.com`.
   /// Empty string disables network calls — every request returns null.
-  static const String baseUrl =
-      String.fromEnvironment('API_BASE_URL', defaultValue: '');
+  static final String baseUrl = _resolveBaseUrl();
+
+  static String _resolveBaseUrl() {
+    if (_configuredBaseUrl.isNotEmpty) {
+      return _configuredBaseUrl.replaceAll(RegExp(r'/+$'), '');
+    }
+    // No explicit URL: on web, talk to our own origin. nginx forwards
+    // /api/* to the backend, so the app works without a per-deploy rebuild.
+    if (kIsWeb) return Uri.base.origin;
+    return '';
+  }
 
   /// Optional API token used for the `Authorization: Bearer` header. The
   /// real auth flow can populate this on successful login.
