@@ -17,13 +17,6 @@
 # Stage 1: Build Flutter Web
 FROM ghcr.io/cirruslabs/flutter:stable AS build
 
-# API_BASE_URL is OPTIONAL. Left empty, the web app talks to its own origin
-# at runtime and reaches the backend through the nginx /api proxy below — no
-# rebuild needed per environment. Only set it (via
-# `docker build --build-arg API_BASE_URL=https://api.example.com .`) to point
-# the bundle at a backend on a different origin.
-ARG API_BASE_URL=""
-
 # Create app directory
 WORKDIR /app
 
@@ -31,9 +24,12 @@ WORKDIR /app
 COPY pubspec.* ./
 RUN flutter pub get
 
-# Copy full project and build web
+# Copy full project and build web. No API_BASE_URL is baked in: the bundle
+# always talks to its own origin and nginx forwards /api/* to the backend
+# (see the proxy block in nginx.conf), so the image is environment-agnostic
+# and cannot be misconfigured by a stray build arg.
 COPY . .
-RUN flutter build web --release --dart-define=API_BASE_URL=${API_BASE_URL}
+RUN flutter build web --release
 
 # Stage 2: Serve with nginx
 FROM nginx:alpine
