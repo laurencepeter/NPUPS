@@ -1,25 +1,15 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <!--
-    If you are serving your web app in a path other than the root, change the
-    href value below to reflect the base path you are serving from.
-
-    The path provided below has to start and end with a slash "/" in order for
-    it to work correctly.
-
-    For more details:
-    * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
-
-    This is a placeholder used in Flutter's build system. When running
-    "flutter build web", the `` tag below will be replaced with the correct
-    base href.
-  -->
+  <!-- $FLUTTER_BASE_HREF is replaced by `flutter build web` with the
+       deployment base path. Leave the token exactly as-is. -->
   <base href="$FLUTTER_BASE_HREF">
 
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="WorkForce — Digital workflow for employee enrollment, payroll processing, and HR reporting.">
+  <meta name="theme-color" content="#0F1A2E">
 
   <!-- iOS meta tags & icons -->
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -33,74 +23,97 @@
 
   <title>WorkForce</title>
   <link rel="manifest" href="manifest.json">
+
+  <!-- Start fetching the app bundle as early as the parser sees this. -->
+  <link rel="preload" as="script" href="main.dart.js">
+
+  <style>
+    /* Branded loading splash. Shown on the very first paint instead of a
+       blank white page while main.dart.js downloads and the Flutter engine
+       boots. Removed on the `flutter-first-frame` event, with a timeout
+       fallback so it can never get stuck on top of the app. */
+    html, body { margin: 0; padding: 0; height: 100%; background: #0F1A2E; }
+    #splash {
+      position: fixed;
+      inset: 0;
+      z-index: 2147483647;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #0F1A2E 0%, #1A2C4E 55%, #1E3A5F 100%);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+      transition: opacity 0.35s ease;
+    }
+    #splash.hidden { opacity: 0; pointer-events: none; }
+    #splash .logo {
+      width: 80px;
+      height: 80px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.08);
+      border: 2px solid rgba(255, 255, 255, 0.18);
+    }
+    #splash .brand {
+      margin-top: 20px;
+      color: #FFFFFF;
+      font-size: 22px;
+      font-weight: 800;
+      letter-spacing: 5px;
+    }
+    #splash .ring {
+      margin-top: 24px;
+      width: 26px;
+      height: 26px;
+      border: 3px solid rgba(255, 255, 255, 0.14);
+      border-top-color: #5DADE2;
+      border-radius: 50%;
+      animation: splash-spin 0.85s linear infinite;
+    }
+    @keyframes splash-spin { to { transform: rotate(360deg); } }
+  </style>
+
+  <script>
+    (function () {
+      // Drop the splash once Flutter paints its first frame. The timeout
+      // is a safety net — if the event never arrives the splash must not
+      // stay on top of the app forever.
+      function dismissSplash() {
+        var splash = document.getElementById('splash');
+        if (!splash || splash.classList.contains('hidden')) return;
+        splash.classList.add('hidden');
+        splash.addEventListener('transitionend', function () { splash.remove(); });
+      }
+      window.addEventListener('flutter-first-frame', dismissSplash);
+      window.setTimeout(dismissSplash, 10000);
+
+      // Register the service worker in the background. It must not gate
+      // the first load: the previous bootstrap waited for service-worker
+      // activation before injecting main.dart.js, which serialised the
+      // cold-start downloads and left the page blank for longer.
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function () {
+          navigator.serviceWorker.register('flutter_service_worker.js');
+        });
+      }
+    })();
+  </script>
+
+  <!-- main.dart.js is the compiled app. `defer` lets it download in
+       parallel with parsing and run as soon as the DOM is ready. -->
+  <script src="main.dart.js" type="application/javascript" defer></script>
 </head>
 <body>
-  <!-- This script installs service_worker.js to provide PWA functionality to
-       application. For more information, see:
-       https://developers.google.com/web/fundamentals/primers/service-workers -->
-  <script>
-    var serviceWorkerVersion = null;
-    var scriptLoaded = false;
-    function loadMainDartJs() {
-      if (scriptLoaded) {
-        return;
-      }
-      scriptLoaded = true;
-      var scriptTag = document.createElement('script');
-      scriptTag.src = 'main.dart.js';
-      scriptTag.type = 'application/javascript';
-      document.body.append(scriptTag);
-    }
-
-    if ('serviceWorker' in navigator) {
-      // Service workers are supported. Use them.
-      window.addEventListener('load', function () {
-        // Wait for registration to finish before dropping the <script> tag.
-        // Otherwise, the browser will load the script multiple times,
-        // potentially different versions.
-        var serviceWorkerUrl = 'flutter_service_worker.js?v=' + serviceWorkerVersion;
-        navigator.serviceWorker.register(serviceWorkerUrl)
-          .then((reg) => {
-            function waitForActivation(serviceWorker) {
-              serviceWorker.addEventListener('statechange', () => {
-                if (serviceWorker.state == 'activated') {
-                  console.log('Installed new service worker.');
-                  loadMainDartJs();
-                }
-              });
-            }
-            if (!reg.active && (reg.installing || reg.waiting)) {
-              // No active web worker and we have installed or are installing
-              // one for the first time. Simply wait for it to activate.
-              waitForActivation(reg.installing ?? reg.waiting);
-            } else if (!reg.active.scriptURL.endsWith(serviceWorkerVersion)) {
-              // When the app updates the serviceWorkerVersion changes, so we
-              // need to ask the service worker to update.
-              console.log('New service worker available.');
-              reg.update();
-              waitForActivation(reg.installing);
-            } else {
-              // Existing service worker is still good.
-              console.log('Loading app from service worker.');
-              loadMainDartJs();
-            }
-          });
-
-        // If service worker doesn't succeed in a reasonable amount of time,
-        // fallback to plaint <script> tag.
-        setTimeout(() => {
-          if (!scriptLoaded) {
-            console.warn(
-              'Failed to load app from service worker. Falling back to plain <script> tag.',
-            );
-            loadMainDartJs();
-          }
-        }, 4000);
-      });
-    } else {
-      // Service workers not supported. Just drop the <script> tag.
-      loadMainDartJs();
-    }
-  </script>
+  <div id="splash" role="status" aria-label="Loading WorkForce">
+    <div class="logo">
+      <svg viewBox="0 0 24 24" width="38" height="38" fill="#FFFFFF" aria-hidden="true">
+        <path d="M4 10v7h3v-7H4zm6 0v7h3v-7h-3zM2 22h19v-3H2v3zm14-12v7h3v-7h-3zm-4.5-9L2 6v2h19V6l-9.5-5z"/>
+      </svg>
+    </div>
+    <div class="brand">WORKFORCE</div>
+    <div class="ring"></div>
+  </div>
 </body>
 </html>

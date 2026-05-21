@@ -74,6 +74,11 @@ class _LoginScreenState extends State<LoginScreen>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    // Demo-only: pre-fill the System Administrator account so the app is a
+    // single tap from signed in while authentication is still demo credentials.
+    final demo = AuthService.demoAccounts.first;
+    _emailController.text = demo.email;
+    _passwordController.text = demo.password;
     _initParticles();
     _initAnimations();
     _entranceController.forward();
