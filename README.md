@@ -81,6 +81,14 @@ The Flutter app talks to a small Node.js + Express + `pg` API in `server/`
 process that touches PostgreSQL — the browser does not connect to it
 directly.
 
+The browser calls `/api/*` on the **same origin** it was served from; nginx
+forwards those requests to the API (`API_UPSTREAM`, default `http://api:8080`).
+This means no backend URL is baked into the web build, the deployed bundle
+needs no per-environment rebuild, and there is no cross-origin CORS preflight
+on every request. To point the app at a backend on a *different* origin,
+build with `--dart-define=API_BASE_URL=https://api.example.com` — an explicit
+value always overrides the same-origin default.
+
 # One-command demo (recommended)
 
 ```sh
@@ -93,16 +101,43 @@ That brings up:
 |---|---|---|
 | `postgres` | 5432 | Postgres 16 with `db/*.sql` auto-loaded on first boot |
 | `api`      | 8080 | The REST backend (`server/`) — `GET /api/health` for liveness |
-| `web`      | 8081 | Flutter web build served by nginx, baked with `API_BASE_URL=http://localhost:8080` |
+| `web`      | 8081 | Flutter web served by nginx; `/api/*` proxied to the `api` service |
 
 Open <http://localhost:8081> and sign in with one of the demo accounts
 above. The dashboard will load the seeded 19 workers / 17 timesheets / 13
 audit entries, and any worker you register at this machine will show up on
 any other machine pointed at the same Postgres.
 
-If the dashboard shows the orange "Backend not configured" banner, the web
-build was compiled without `API_BASE_URL`. Re-run `docker compose build web`
-or pass `--dart-define=API_BASE_URL=...` to your `flutter` command.
+If the dashboard shows a red "Backend unreachable" banner, the `api`
+container is down or `API_UPSTREAM` points at the wrong host — check
+`docker compose logs api` and confirm <http://localhost:8080/api/health>
+responds.
+
+# Production deployment (Coolify)
+
+`docker compose up` (above) is the all-in-one demo — it bundles its own
+Postgres with seed data. In production the database is a separate **managed**
+Postgres that is never bundled with the app. Deploy with
+`docker-compose.prod.yml`, which is **web + api only**:
+
+| Service  | Public?              | Notes                                            |
+|----------|----------------------|--------------------------------------------------|
+| `web`    | yes — your domain    | nginx + Flutter; proxies `/api/*` to `api`       |
+| `api`    | no — internal only   | Node backend; the only process that reaches the DB |
+| Postgres | no — internal only   | your managed database, outside this compose      |
+
+In Coolify, create a **Docker Compose** resource (not a Dockerfile app), set
+its compose location to `docker-compose.prod.yml`, then configure:
+
+| Variable       | Set where                  | Value                                          |
+|----------------|----------------------------|------------------------------------------------|
+| `DATABASE_URL` | **Coolify** env vars       | Internal connection URL of the managed Postgres |
+| `PORT`         | `docker-compose.prod.yml`  | `8080` — internal, leave as-is                  |
+| `API_UPSTREAM` | `docker-compose.prod.yml`  | `http://api:8080` — internal, leave as-is       |
+| public domain  | **Coolify** UI, on `web`   | e.g. `nups.fireydev.com`                        |
+
+Load the schema into the managed Postgres once (see "Database" above) before
+the first deploy — the API does not create tables itself.
 
 # Manual run (without Docker)
 
@@ -122,11 +157,18 @@ DATABASE_URL=postgres://localhost/workforce PORT=8080 npm start
 flutter run -d chrome --dart-define=API_BASE_URL=http://localhost:8080
 ```
 
-For a release build:
+`flutter run` serves the app from its own dev-server origin, which has no
+`/api` proxy, so the `--dart-define` above is required for local dev.
+
+For a release build, no API URL is needed — the bundle reaches the backend
+through the nginx `/api` proxy (see "Backend service" above):
 
 ```sh
-flutter build web --release --dart-define=API_BASE_URL=https://api.example.com
+flutter build web --release
 ```
+
+Only pass `--dart-define=API_BASE_URL=...` if the backend lives on a
+different origin than the one serving the web app.
 
 # Frontend ↔ backend contract
 
@@ -149,7 +191,6 @@ are notified again so the UI re-renders with the canonical state. See
 `PATCH_NOTES.md` for the list of mutations that were silently in-memory
 before this change.
 
-When `API_BASE_URL` is unset (or the API is unreachable) the dashboard now
-shows a banner explaining the failure mode instead of silently rendering
-empty — this used to be the cause of the "I created users at work but
-they're not at home" complaint.
+If the API is unreachable the dashboard shows a banner explaining the
+failure mode instead of silently rendering empty — this used to be the
+cause of the "I created users at work but they're not at home" complaint.

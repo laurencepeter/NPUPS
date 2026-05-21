@@ -46,10 +46,10 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-      # API_BASE_URL is baked into the Flutter web build at compile time.
-      # Override in CI / prod to point at the public-facing API hostname.
-      args:
-        API_BASE_URL: "http://localhost:8080"
+    # No API_BASE_URL build arg: the web app talks to its own origin and nginx
+    # forwards /api/* to the api service below. API_UPSTREAM tells nginx where.
+    environment:
+      API_UPSTREAM: "http://api:8080"
     depends_on:
       - api
     ports:
