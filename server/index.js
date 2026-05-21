@@ -24,7 +24,19 @@ if (!DATABASE_URL) {
   process.exit(1);
 }
 
-const pool = new Pool({ connectionString: DATABASE_URL });
+// keepAlive stops idle pooled connections from being silently dropped by the
+// managed Postgres / cloud network (idle timeouts, failovers, NAT eviction).
+const pool = new Pool({ connectionString: DATABASE_URL, keepAlive: true });
+
+// An idle pooled client can still emit 'error' if the backend closes the
+// connection (managed-Postgres idle timeout, restart, failover, or hitting a
+// connection limit). On an EventEmitter an unhandled 'error' throws an
+// uncaught exception and kills the whole process — which made nginx's /api
+// proxy return 502 until the container restarted. Logging it here keeps the
+// process alive; the pool just opens a fresh connection on the next query.
+pool.on('error', (err) => {
+  console.error('[pg pool] idle client error (connection will be recycled):', err.message);
+});
 
 const app = express();
 app.use(cors());
