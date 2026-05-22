@@ -7,8 +7,7 @@
 # outside this compose and is never exposed to the internet.
 #
 #   Browser ──▶ web (nginx + Flutter)  ──▶  api (Node)  ──▶  Postgres
-#               public: your domain        internal only    Coolify-managed,
-#                                                            internal only
+#               public: your domain        internal only    host port 5433
 #
 # ── Coolify setup ────────────────────────────────────────────────────────────
 #   1. Create a resource of type "Docker Compose" (not "Dockerfile").
@@ -16,15 +15,16 @@
 #   3. Add ONE environment variable in the Coolify UI — DATABASE_URL (below).
 #   4. Assign your public domain to the `web` service (port 80) in the Coolify
 #      UI. Do NOT give `api` a domain — it must stay internal.
-#   5. api reaches the managed Postgres over Coolify's shared `coolify`
-#      network — see the `networks:` block at the bottom of this file. There
-#      is NO "Connect To Predefined Network" toggle for Docker Compose
-#      resources; the network is declared here instead. Your managed Postgres
-#      must be on that same network (Coolify standalone databases are).
+#
+# ── DATABASE_URL format ───────────────────────────────────────────────────────
+#   The Coolify-managed Postgres is reachable from containers via the host
+#   gateway (host.docker.internal) on the port Coolify mapped it to (5433).
+#   Set DATABASE_URL in Coolify to:
+#     postgres://<user>:<password>@host.docker.internal:5433/<dbname>
 #
 # ── Where each env var is configured ─────────────────────────────────────────
-#   DATABASE_URL  → set in COOLIFY (mark it secret). Internal connection URL of
-#                   your managed Postgres. Never hardcoded in this file.
+#   DATABASE_URL  → set in COOLIFY (mark it secret). Use host.docker.internal
+#                   as the host and 5433 as the port (see above).
 #   PORT          → set HERE (below). Internal only — no reason to change.
 #   API_UPSTREAM  → set HERE (below). Internal compose DNS — no reason to change.
 # ─────────────────────────────────────────────────────────────────────────────
@@ -33,24 +33,18 @@ services:
   api:
     build: ./server
     restart: unless-stopped
+    extra_hosts:
+      # Maps host.docker.internal → the Docker host gateway so the api
+      # container can reach the Coolify-managed Postgres on host port 5433.
+      - "host.docker.internal:host-gateway"
     environment:
-      # COOLIFY: this pulls the value from the Coolify environment variable
-      # named DATABASE_URL. Set it to your managed Postgres INTERNAL url, e.g.
-      #   postgres://postgres:<password>@<postgres-internal-host>:5432/<db>
-      # The deploy fails fast with the message below if it is not set.
+      # COOLIFY: set DATABASE_URL to:
+      #   postgres://<user>:<password>@host.docker.internal:5433/<dbname>
       DATABASE_URL: ${DATABASE_URL:?set DATABASE_URL in the Coolify environment variables}
       # COMPOSE: internal API port. web/nginx proxies to api:8080 (see below).
       PORT: "8080"
     expose:
       - "8080"          # internal only — never published, never given a domain
-    networks:
-      # default → reach `web` over this compose stack's own private network.
-      # coolify → reach the Coolify-managed Postgres, which lives on Coolify's
-      #   shared predefined network. Without this, api cannot resolve the
-      #   Postgres host and every query fails with:
-      #     getaddrinfo ENOTFOUND <postgres-host>
-      - default
-      - coolify
 
   web:
     build:
@@ -65,15 +59,3 @@ services:
       - api
     expose:
       - "80"            # COOLIFY: attach your public domain to this service/port
-
-networks:
-  # Coolify creates this shared network on the server; `external: true` means
-  # "attach to the one that already exists, don't create it". The managed
-  # Postgres must also be on this network for `api` to resolve its hostname.
-  #
-  # If a deploy fails with:
-  #   network coolify declared as external, but could not be found
-  # then the predefined network is named something else on your server —
-  # find the real name and update it here.
-  coolify:
-    external: true
