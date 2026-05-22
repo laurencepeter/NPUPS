@@ -89,15 +89,6 @@
       window.addEventListener('flutter-first-frame', dismissSplash);
       window.setTimeout(dismissSplash, 10000);
 
-      // Register the service worker in the background. It must not gate
-      // the first load: the previous bootstrap waited for service-worker
-      // activation before injecting main.dart.js, which serialised the
-      // cold-start downloads and left the page blank for longer.
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', function () {
-          navigator.serviceWorker.register('flutter_service_worker.js');
-        });
-      }
     })();
   </script>
 

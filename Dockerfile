@@ -29,7 +29,7 @@ RUN flutter pub get
 # (see the proxy block in nginx.conf), so the image is environment-agnostic
 # and cannot be misconfigured by a stray build arg.
 COPY . .
-RUN flutter build web --release
+RUN flutter build web --release --no-tree-shake-icons
 
 # Stage 2: Serve with nginx
 FROM nginx:alpine
