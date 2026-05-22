@@ -16,6 +16,11 @@
 #   3. Add ONE environment variable in the Coolify UI — DATABASE_URL (below).
 #   4. Assign your public domain to the `web` service (port 80) in the Coolify
 #      UI. Do NOT give `api` a domain — it must stay internal.
+#   5. api reaches the managed Postgres over Coolify's shared `coolify`
+#      network — see the `networks:` block at the bottom of this file. There
+#      is NO "Connect To Predefined Network" toggle for Docker Compose
+#      resources; the network is declared here instead. Your managed Postgres
+#      must be on that same network (Coolify standalone databases are).
 #
 # ── Where each env var is configured ─────────────────────────────────────────
 #   DATABASE_URL  → set in COOLIFY (mark it secret). Internal connection URL of
@@ -38,6 +43,14 @@ services:
       PORT: "8080"
     expose:
       - "8080"          # internal only — never published, never given a domain
+    networks:
+      # default → reach `web` over this compose stack's own private network.
+      # coolify → reach the Coolify-managed Postgres, which lives on Coolify's
+      #   shared predefined network. Without this, api cannot resolve the
+      #   Postgres host and every query fails with:
+      #     getaddrinfo ENOTFOUND <postgres-host>
+      - default
+      - coolify
 
   web:
     build:
@@ -52,3 +65,15 @@ services:
       - api
     expose:
       - "80"            # COOLIFY: attach your public domain to this service/port
+
+networks:
+  # Coolify creates this shared network on the server; `external: true` means
+  # "attach to the one that already exists, don't create it". The managed
+  # Postgres must also be on this network for `api` to resolve its hostname.
+  #
+  # If a deploy fails with:
+  #   network coolify declared as external, but could not be found
+  # then the predefined network is named something else on your server —
+  # find the real name and update it here.
+  coolify:
+    external: true
