@@ -6,9 +6,12 @@
 // ──────────────────────────────────────────────────────────────────────────────
 
 import 'package:flutter/foundation.dart';
+import '../models/audit_model.dart';
 import '../models/roster_model.dart';
+import '../models/user_model.dart';
 import '../models/worker_model.dart';
 import 'api_client.dart';
+import 'audit_service.dart';
 import 'worker_data_store.dart';
 
 class RosterService extends ChangeNotifier {
@@ -18,6 +21,7 @@ class RosterService extends ChangeNotifier {
 
   final WorkerDataStore _workerStore = WorkerDataStore();
   final ApiClient _api = ApiClient();
+  final AuditService _audit = AuditService();
   bool _loaded = false;
   bool get isLoaded => _loaded;
 
@@ -120,6 +124,7 @@ class RosterService extends ChangeNotifier {
     required bool isPresent,
     String? absenceReason,
     String? modifiedBy,
+    AppUser? actor,
   }) {
     final roster = _rosters[rosterId];
     if (roster == null) return;
@@ -157,6 +162,26 @@ class RosterService extends ChangeNotifier {
       notifyListeners();
       throw e;
     });
+
+    if (actor != null) {
+      final date = record.days[dayIndex].date;
+      final pad = (int n) => n.toString().padLeft(2, '0');
+      final dateLabel = '${pad(date.day)}/${pad(date.month)}/${date.year}';
+      _audit.log(
+        actor: actor,
+        action: AuditAction.rosterUpdate,
+        entityType: AuditEntityType.rosterEntry,
+        entityId: rosterId,
+        entityDisplayName: roster.corporationName,
+        fieldChanges: [
+          AuditFieldChange(
+            fieldName: '${record.workerName} – $dateLabel',
+            oldValue: wasPresent ? 'Present' : 'Absent',
+            newValue: isPresent ? 'Present' : (absenceReason ?? 'Absent'),
+          ),
+        ],
+      );
+    }
   }
 
   void setWorkerMaxDaysOverride({

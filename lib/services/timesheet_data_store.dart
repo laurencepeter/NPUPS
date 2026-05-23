@@ -8,8 +8,11 @@
 // ──────────────────────────────────────────────────────────────────────────────
 
 import 'package:flutter/foundation.dart';
+import '../models/audit_model.dart';
 import '../models/timesheet_model.dart';
+import '../models/user_model.dart';
 import 'api_client.dart';
+import 'audit_service.dart';
 
 class TimesheetDataStore extends ChangeNotifier {
   static final TimesheetDataStore _instance = TimesheetDataStore._internal();
@@ -17,6 +20,7 @@ class TimesheetDataStore extends ChangeNotifier {
   TimesheetDataStore._internal();
 
   final ApiClient _api = ApiClient();
+  final AuditService _audit = AuditService();
   bool _loaded = false;
   bool get isLoaded => _loaded;
 
@@ -86,7 +90,7 @@ class TimesheetDataStore extends ChangeNotifier {
   // Each mutation persists through the API. Optimistic UI update first,
   // rollback on backend rejection. See WorkerDataStore for the same pattern.
 
-  Future<void> addTimesheet(Timesheet timesheet) async {
+  Future<void> addTimesheet(Timesheet timesheet, {AppUser? actor}) async {
     _timesheets.add(timesheet);
     notifyListeners();
     try {
@@ -96,9 +100,22 @@ class TimesheetDataStore extends ChangeNotifier {
       notifyListeners();
       rethrow;
     }
+    if (actor != null) {
+      _audit.log(
+        actor: actor,
+        action: AuditAction.create,
+        entityType: AuditEntityType.timesheet,
+        entityId: timesheet.id,
+        entityDisplayName: '${timesheet.workerName} – ${timesheet.id}',
+        fieldChanges: [
+          AuditFieldChange(fieldName: 'Stage', newValue: timesheet.stage.name),
+          AuditFieldChange(fieldName: 'Corporation', newValue: timesheet.corporationName),
+        ],
+      );
+    }
   }
 
-  Future<void> updateTimesheet(Timesheet timesheet) async {
+  Future<void> updateTimesheet(Timesheet timesheet, {AppUser? actor}) async {
     timesheet.updatedAt = DateTime.now();
     notifyListeners();
     await _api.patchJson('/api/timesheets/${timesheet.id}', {
@@ -107,10 +124,19 @@ class TimesheetDataStore extends ChangeNotifier {
       'daily_entries':
           timesheet.dailyEntries.map((e) => e.toJson()).toList(),
     });
+    if (actor != null) {
+      _audit.log(
+        actor: actor,
+        action: AuditAction.update,
+        entityType: AuditEntityType.timesheet,
+        entityId: timesheet.id,
+        entityDisplayName: '${timesheet.workerName} – ${timesheet.id}',
+      );
+    }
   }
 
   Future<void> advanceStage(String timesheetId, String reviewerName,
-      String reviewerRole, {String? note}) async {
+      String reviewerRole, {String? note, AppUser? actor}) async {
     final ts = getById(timesheetId);
     if (ts == null) return;
     final previousStage = ts.stage;
@@ -133,10 +159,28 @@ class TimesheetDataStore extends ChangeNotifier {
       notifyListeners();
       rethrow;
     }
+
+    if (actor != null) {
+      _audit.log(
+        actor: actor,
+        action: AuditAction.stageAdvanced,
+        entityType: AuditEntityType.timesheet,
+        entityId: timesheetId,
+        entityDisplayName: '${ts.workerName} – ${ts.id}',
+        fieldChanges: [
+          AuditFieldChange(
+            fieldName: 'Stage',
+            oldValue: previousStage.name,
+            newValue: ts.stage.name,
+          ),
+        ],
+        note: note,
+      );
+    }
   }
 
   Future<void> rejectTimesheet(String timesheetId, String reviewerName,
-      String reviewerRole, String note) async {
+      String reviewerRole, String note, {AppUser? actor}) async {
     final ts = getById(timesheetId);
     if (ts == null) return;
     final previousStage = ts.stage;
@@ -159,12 +203,30 @@ class TimesheetDataStore extends ChangeNotifier {
       notifyListeners();
       rethrow;
     }
+
+    if (actor != null) {
+      _audit.log(
+        actor: actor,
+        action: AuditAction.stageRejected,
+        entityType: AuditEntityType.timesheet,
+        entityId: timesheetId,
+        entityDisplayName: '${ts.workerName} – ${ts.id}',
+        fieldChanges: [
+          AuditFieldChange(
+            fieldName: 'Stage',
+            oldValue: previousStage.name,
+            newValue: ts.stage.name,
+          ),
+        ],
+        note: note,
+      );
+    }
   }
 
   Future<void> batchAdvance(List<String> ids, String reviewerName,
-      String reviewerRole, {String? note}) async {
+      String reviewerRole, {String? note, AppUser? actor}) async {
     for (final id in ids) {
-      await advanceStage(id, reviewerName, reviewerRole, note: note);
+      await advanceStage(id, reviewerName, reviewerRole, note: note, actor: actor);
     }
   }
 

@@ -240,7 +240,7 @@ class _HrReviewScreenState extends State<HrReviewScreen> {
   }
 
   void _approveTimesheet(Timesheet ts) {
-    _store.advanceStage(ts.id, widget.user.fullName, 'HR Department', note: 'Compliance verified, leave OK');
+    _store.advanceStage(ts.id, widget.user.fullName, 'HR Department', note: 'Compliance verified, leave OK', actor: widget.user);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('${ts.workerName} forwarded to Accounts'), backgroundColor: AppColors.success),
     );
@@ -270,7 +270,7 @@ class _HrReviewScreenState extends State<HrReviewScreen> {
           ElevatedButton(
             onPressed: () {
               if (controller.text.trim().isEmpty) return;
-              _store.rejectTimesheet(ts.id, widget.user.fullName, 'HR Department', controller.text.trim());
+              _store.rejectTimesheet(ts.id, widget.user.fullName, 'HR Department', controller.text.trim(), actor: widget.user);
               Navigator.pop(ctx);
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(content: Text('${ts.workerName}\'s timesheet rejected to Coordinator'), backgroundColor: AppColors.warning),

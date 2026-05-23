@@ -214,22 +214,23 @@ class AuditService extends ChangeNotifier {
 
   /// Returns true only if every entry's hash matches its computed value.
   /// A single tampered entry breaks the chain from that point forward.
+  /// When a break is detected, also checks for admin + PS acknowledgments.
   ChainVerificationResult verifyChainIntegrity() {
     if (_entries.isEmpty) {
       return const ChainVerificationResult(isValid: true, totalEntries: 0, firstBrokenIndex: null);
     }
 
     String prevHash = '';
+    int? brokenIndex;
+    String? brokenEntryId;
+
     for (int i = 0; i < _entries.length; i++) {
       final e = _entries[i];
 
       if (e.previousHash != prevHash) {
-        return ChainVerificationResult(
-          isValid: false,
-          totalEntries: _entries.length,
-          firstBrokenIndex: i,
-          firstBrokenEntryId: e.id,
-        );
+        brokenIndex = i;
+        brokenEntryId = e.id;
+        break;
       }
 
       final expected = _computeHash(
@@ -245,21 +246,57 @@ class AuditService extends ChangeNotifier {
       );
 
       if (e.hash != expected) {
-        return ChainVerificationResult(
-          isValid: false,
-          totalEntries: _entries.length,
-          firstBrokenIndex: i,
-          firstBrokenEntryId: e.id,
-        );
+        brokenIndex = i;
+        brokenEntryId = e.id;
+        break;
       }
 
       prevHash = e.hash;
     }
 
+    if (brokenIndex == null) {
+      return ChainVerificationResult(
+        isValid: true,
+        totalEntries: _entries.length,
+        firstBrokenIndex: null,
+      );
+    }
+
+    // Search all entries (including those after the break) for acknowledgments.
+    final ackEntityId = 'chain-break-$brokenEntryId';
+    AuditLogEntry? adminAck;
+    AuditLogEntry? psAck;
+    for (final e in _entries) {
+      if (e.action == AuditAction.chainBreakAcknowledged && e.entityId == ackEntityId) {
+        if (e.userRole == 'System Admin') adminAck ??= e;
+        if (e.userRole == 'Permanent Secretary') psAck ??= e;
+      }
+    }
+
     return ChainVerificationResult(
-      isValid: true,
+      isValid: false,
       totalEntries: _entries.length,
-      firstBrokenIndex: null,
+      firstBrokenIndex: brokenIndex,
+      firstBrokenEntryId: brokenEntryId,
+      adminAck: adminAck,
+      psAck: psAck,
+    );
+  }
+
+  /// Records a chain-break acknowledgment. Requires both a System Admin and
+  /// a Permanent Secretary to acknowledge before the anomaly is fully noted.
+  void acknowledgeChainBreak({
+    required AppUser actor,
+    required String brokenEntryId,
+    String? note,
+  }) {
+    log(
+      actor: actor,
+      action: AuditAction.chainBreakAcknowledged,
+      entityType: AuditEntityType.system,
+      entityId: 'chain-break-$brokenEntryId',
+      entityDisplayName: 'Chain Integrity Anomaly',
+      note: note ?? 'Chain anomaly at $brokenEntryId acknowledged by ${actor.fullName}',
     );
   }
 
@@ -367,16 +404,23 @@ class ChainVerificationResult {
   final int totalEntries;
   final int? firstBrokenIndex;
   final String? firstBrokenEntryId;
+  final AuditLogEntry? adminAck;
+  final AuditLogEntry? psAck;
+
+  bool get fullyAcknowledged => adminAck != null && psAck != null;
 
   const ChainVerificationResult({
     required this.isValid,
     required this.totalEntries,
     this.firstBrokenIndex,
     this.firstBrokenEntryId,
+    this.adminAck,
+    this.psAck,
   });
 
   String get summary {
     if (isValid) return 'Chain intact — $totalEntries entries verified';
+    if (fullyAcknowledged) return 'Chain anomaly on record — acknowledged';
     return 'Chain broken at entry #${(firstBrokenIndex ?? 0) + 1} ($firstBrokenEntryId)';
   }
 }

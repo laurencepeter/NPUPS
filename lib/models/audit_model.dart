@@ -37,7 +37,8 @@ enum AuditAction {
   allowanceAdded('Allowance Added'),
   allowanceUpdated('Allowance Updated'),
   allowanceRemoved('Allowance Removed'),
-  duplicateIdAttempt('Duplicate ID Attempt');
+  duplicateIdAttempt('Duplicate ID Attempt'),
+  chainBreakAcknowledged('Chain Break Acknowledged');
 
   const AuditAction(this.displayName);
   final String displayName;

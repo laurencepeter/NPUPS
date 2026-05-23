@@ -186,7 +186,7 @@ class _AccountsReviewScreenState extends State<AccountsReviewScreen>
                 Expanded(
                   child: ElevatedButton.icon(
                     onPressed: () {
-                      _store.advanceStage(ts.id, widget.user.fullName, 'Accounts', note: 'Pay calculations verified');
+                      _store.advanceStage(ts.id, widget.user.fullName, 'Accounts', note: 'Pay calculations verified', actor: widget.user);
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(content: Text('${ts.workerName} approved for payment'), backgroundColor: AppColors.success),
                       );
@@ -279,7 +279,7 @@ class _AccountsReviewScreenState extends State<AccountsReviewScreen>
             trailing: ts.stage == TimesheetStage.exported
                 ? TextButton(
                     onPressed: () {
-                      _store.advanceStage(ts.id, widget.user.fullName, 'Accounts', note: 'Direct deposit initiated');
+                      _store.advanceStage(ts.id, widget.user.fullName, 'Accounts', note: 'Direct deposit initiated', actor: widget.user);
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(content: Text('${ts.workerName} — direct deposit initiated'), backgroundColor: AppColors.success),
                       );
@@ -331,7 +331,7 @@ class _AccountsReviewScreenState extends State<AccountsReviewScreen>
           ElevatedButton(
             onPressed: () {
               if (controller.text.trim().isEmpty) return;
-              _store.rejectTimesheet(ts.id, widget.user.fullName, 'Accounts', controller.text.trim());
+              _store.rejectTimesheet(ts.id, widget.user.fullName, 'Accounts', controller.text.trim(), actor: widget.user);
               Navigator.pop(ctx);
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(content: Text('${ts.workerName}\'s timesheet rejected to HR'), backgroundColor: AppColors.warning),
@@ -390,7 +390,7 @@ class _AccountsReviewScreenState extends State<AccountsReviewScreen>
 
     // Mark all as exported
     for (final ts in timesheets) {
-      _store.advanceStage(ts.id, widget.user.fullName, 'Accounts', note: 'Exported to paysheet .xlsx');
+      _store.advanceStage(ts.id, widget.user.fullName, 'Accounts', note: 'Exported to paysheet .xlsx', actor: widget.user);
     }
 
     if (mounted) {

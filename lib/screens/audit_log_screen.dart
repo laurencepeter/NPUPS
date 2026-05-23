@@ -66,6 +66,7 @@ class _AuditLogScreenState extends State<AuditLogScreen> {
     return ListenableBuilder(
       listenable: _auditService,
       builder: (context, _) {
+        _verificationResult = _auditService.verifyChainIntegrity();
         final entries = _filteredEntries;
         return Scaffold(
           appBar: AppBar(
@@ -180,6 +181,10 @@ class _AuditLogScreenState extends State<AuditLogScreen> {
 
               const Divider(height: 1),
 
+              // ── Chain anomaly banner ───────────────────────────────────────
+              if (_verificationResult != null && !_verificationResult!.isValid)
+                _buildChainAnomalyBanner(_verificationResult!),
+
               // ── Entry list ────────────────────────────────────────────────
               Expanded(
                 child: entries.isEmpty
@@ -201,6 +206,132 @@ class _AuditLogScreenState extends State<AuditLogScreen> {
           ),
         );
       },
+    );
+  }
+
+  Widget _buildChainAnomalyBanner(ChainVerificationResult result) {
+    final acknowledged = result.fullyAcknowledged;
+    final borderAlpha = acknowledged ? 0.3 : 0.7;
+    final bgAlpha = acknowledged ? 0.04 : 0.09;
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(12, 10, 12, 0),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.error.withValues(alpha: bgAlpha),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: AppColors.error.withValues(alpha: borderAlpha)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                acknowledged ? Icons.report_outlined : Icons.warning_amber_rounded,
+                color: AppColors.error,
+                size: 16,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                acknowledged ? 'Chain Anomaly on Record' : 'Chain Integrity Anomaly',
+                style: const TextStyle(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 13,
+                  color: AppColors.error,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 3),
+          Text(
+            'Break detected at entry #${(result.firstBrokenIndex ?? 0) + 1} · ${result.firstBrokenEntryId ?? ''}',
+            style: TextStyle(
+              fontSize: 11,
+              color: AppColors.error.withValues(alpha: 0.85),
+            ),
+          ),
+          if (acknowledged)
+            Padding(
+              padding: const EdgeInsets.only(top: 3),
+              child: Text(
+                'Both required parties have acknowledged. This record will remain flagged in red.',
+                style: TextStyle(
+                  fontSize: 11,
+                  color: AppColors.error.withValues(alpha: 0.7),
+                ),
+              ),
+            ),
+          const SizedBox(height: 10),
+          _buildAckRow(
+            label: 'System Admin',
+            ack: result.adminAck,
+            canAcknowledge:
+                widget.currentUser.role == UserRole.systemAdmin &&
+                result.adminAck == null,
+            brokenEntryId: result.firstBrokenEntryId!,
+          ),
+          const SizedBox(height: 6),
+          _buildAckRow(
+            label: 'Permanent Secretary',
+            ack: result.psAck,
+            canAcknowledge:
+                widget.currentUser.role == UserRole.ps && result.psAck == null,
+            brokenEntryId: result.firstBrokenEntryId!,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAckRow({
+    required String label,
+    required AuditLogEntry? ack,
+    required bool canAcknowledge,
+    required String brokenEntryId,
+  }) {
+    return Row(
+      children: [
+        Icon(
+          ack != null
+              ? Icons.check_circle_outline
+              : Icons.radio_button_unchecked,
+          size: 14,
+          color: ack != null ? AppColors.success : AppColors.error,
+        ),
+        const SizedBox(width: 6),
+        Expanded(
+          child: Text(
+            ack != null
+                ? '$label: ${ack.userName} · ${ack.shortTimestamp}'
+                : '$label: Pending',
+            style: TextStyle(
+              fontSize: 11,
+              color: ack != null
+                  ? AppColors.success
+                  : AppColors.error.withValues(alpha: 0.85),
+            ),
+          ),
+        ),
+        if (canAcknowledge)
+          OutlinedButton(
+            style: OutlinedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              minimumSize: Size.zero,
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              foregroundColor: AppColors.error,
+              side: BorderSide(color: AppColors.error.withValues(alpha: 0.6)),
+              textStyle: const TextStyle(fontSize: 11),
+            ),
+            onPressed: () {
+              _auditService.acknowledgeChainBreak(
+                actor: widget.currentUser,
+                brokenEntryId: brokenEntryId,
+              );
+            },
+            child: const Text('Acknowledge'),
+          ),
+      ],
     );
   }
 
@@ -705,6 +836,7 @@ class _AuditLogScreenState extends State<AuditLogScreen> {
       AuditAction.allowanceUpdated => Icons.tune_outlined,
       AuditAction.allowanceRemoved => Icons.remove_circle_outline,
       AuditAction.duplicateIdAttempt => Icons.warning_amber_outlined,
+      AuditAction.chainBreakAcknowledged => Icons.policy_outlined,
     };
   }
 
@@ -724,17 +856,22 @@ class _ChainBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     if (result == null) return const SizedBox.shrink();
     final ok = result!.isValid;
+    final acked = !ok && result!.fullyAcknowledged;
+    final color = ok ? AppColors.success : AppColors.error;
+    final label = ok
+        ? 'Chain Intact'
+        : acked
+            ? 'Anomaly on Record'
+            : 'Chain Broken';
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         decoration: BoxDecoration(
-          color: ok
-              ? AppColors.success.withValues(alpha: 0.15)
-              : AppColors.error.withValues(alpha: 0.15),
+          color: color.withValues(alpha: 0.15),
           borderRadius: BorderRadius.circular(6),
-          border: Border.all(
-              color: ok ? AppColors.success : AppColors.error, width: 0.5),
+          border: Border.all(color: color, width: 0.5),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -742,15 +879,15 @@ class _ChainBadge extends StatelessWidget {
             Icon(
               ok ? Icons.shield_outlined : Icons.shield_outlined,
               size: 13,
-              color: ok ? AppColors.success : AppColors.error,
+              color: color,
             ),
             const SizedBox(width: 4),
             Text(
-              ok ? 'Chain Intact' : 'Chain Broken',
+              label,
               style: TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.w600,
-                color: ok ? AppColors.success : AppColors.error,
+                color: color,
               ),
             ),
           ],

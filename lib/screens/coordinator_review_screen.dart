@@ -262,9 +262,9 @@ class _CoordinatorReviewScreenState extends State<CoordinatorReviewScreen> {
   void _approveTimesheet(Timesheet ts) {
     // Move from submitted -> coordinatorReview, then coordinatorReview -> hrProcessing
     if (ts.stage == TimesheetStage.submitted) {
-      _store.advanceStage(ts.id, widget.user.fullName, 'Regional Coordinator');
+      _store.advanceStage(ts.id, widget.user.fullName, 'Regional Coordinator', actor: widget.user);
     }
-    _store.advanceStage(ts.id, widget.user.fullName, 'Regional Coordinator', note: 'Attendance verified');
+    _store.advanceStage(ts.id, widget.user.fullName, 'Regional Coordinator', note: 'Attendance verified', actor: widget.user);
     _selectedIds.remove(ts.id);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('${ts.workerName} approved and forwarded to HR'), backgroundColor: AppColors.success),
@@ -277,9 +277,9 @@ class _CoordinatorReviewScreenState extends State<CoordinatorReviewScreen> {
       final ts = _store.getById(id);
       if (ts != null) {
         if (ts.stage == TimesheetStage.submitted) {
-          _store.advanceStage(ts.id, widget.user.fullName, 'Regional Coordinator');
+          _store.advanceStage(ts.id, widget.user.fullName, 'Regional Coordinator', actor: widget.user);
         }
-        _store.advanceStage(ts.id, widget.user.fullName, 'Regional Coordinator', note: 'Batch approved');
+        _store.advanceStage(ts.id, widget.user.fullName, 'Regional Coordinator', note: 'Batch approved', actor: widget.user);
       }
     }
     _selectedIds.clear();
@@ -313,7 +313,7 @@ class _CoordinatorReviewScreenState extends State<CoordinatorReviewScreen> {
           ElevatedButton(
             onPressed: () {
               if (controller.text.trim().isEmpty) return;
-              _store.rejectTimesheet(ts.id, widget.user.fullName, 'Regional Coordinator', controller.text.trim());
+              _store.rejectTimesheet(ts.id, widget.user.fullName, 'Regional Coordinator', controller.text.trim(), actor: widget.user);
               _selectedIds.remove(ts.id);
               Navigator.pop(ctx);
               ScaffoldMessenger.of(context).showSnackBar(
