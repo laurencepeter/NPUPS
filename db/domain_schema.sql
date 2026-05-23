@@ -706,96 +706,18 @@ INSERT INTO backpay_line_items (
 -- =============================================================================
 -- Application audit log seed
 -- =============================================================================
--- The Dart audit trail is hash-chained. Computing real chain hashes here would
--- require duplicating the Dart payload format in plpgsql; instead the seeded
--- entries carry explicit `previous_hash` linkage and a deterministic synthetic
--- hash, so the chain is internally consistent for read-only display. The
--- moment a real backend writes the first new entry, that entry will be hashed
--- correctly and the chain continues from there.
+-- Audit entries are NOT seeded here. The SHA-256 chain hashes must be
+-- computed by the same algorithm used in the Dart client
+-- (lib/services/audit_service.dart _computeHash). SQL's pgcrypto uses a
+-- different payload format and would produce wrong hashes, permanently
+-- breaking chain verification.
 --
--- App callers that verify chain integrity should treat seeded rows as the
--- "genesis prefix" by accepting the seeded hashes as authoritative.
-
-WITH seed AS (
-    SELECT * FROM (VALUES
-        -- (id, days_ago, user_id, user_name, user_role, action, entity_type, entity_id, entity_display_name, note)
-        ('AUDIT-000001', 30, 'admin',     'System Administrator', 'System Admin',           'login',             'userAccount',  'admin',                 'System Administrator',                                              'Initial system login'),
-        ('AUDIT-000002', 28, 'admin',     'System Administrator', 'System Admin',           'create',            'worker',       'WRK-001',               'Kevin Rampersad',                                                    NULL),
-        ('AUDIT-000003', 25, 'hr-001',    'HR Officer',           'HR Department',          'documentUpload',    'document',     'WRK-001-NIS',           'Kevin Rampersad – NIS Registration',                                NULL),
-        ('AUDIT-000004', 24, 'hr-001',    'HR Officer',           'HR Department',          'documentApprove',   'document',     'WRK-001-NIS',           'Kevin Rampersad – NIS Registration',                                'Document verified and approved'),
-        ('AUDIT-000005', 20, 'coord-001', 'Regional Coordinator', 'Regional Coordinator',   'create',            'timesheet',    'TS-001',                'Kevin Rampersad – Fortnight 17/03/2026',                            NULL),
-        ('AUDIT-000006', 18, 'coord-001', 'Regional Coordinator', 'Regional Coordinator',   'stageAdvanced',     'timesheet',    'TS-001',                'Kevin Rampersad – Fortnight 17/03/2026',                            'Time entries verified in field'),
-        ('AUDIT-000007', 14, 'admin',     'System Administrator', 'System Admin',           'wageRateChanged',   'worker',       'WRK-001',               'Kevin Rampersad',                                                    'Annual collective-agreement increase'),
-        ('AUDIT-000008', 10, 'hr-001',    'HR Officer',           'HR Department',          'update',            'worker',       'WRK-003',               'Andre Williams',                                                     NULL),
-        ('AUDIT-000009',  7, 'admin',     'System Administrator', 'System Admin',           'replacementAdded',  'worker',       'WRK-006',               'Marcia Boodoo (replaced by Patricia Hernandez)',                     'Repeated absenteeism and conduct issues'),
-        ('AUDIT-000010',  5, 'admin',     'System Administrator', 'System Admin',           'backpayCalculated', 'backpay',      'BP-2026-001',           'Q1 2026 Backpay – Kevin Rampersad',                                  'Retroactive to 01/01/2026'),
-        ('AUDIT-000011',  3, 'hr-001',    'HR Officer',           'HR Department',          'rosterUpdate',      'rosterEntry',  'ROSTER-2026-04-11',     'Chaguanas Borough Corporation – Fortnight 11/04/2026',               'Updated absences for fortnight'),
-        ('AUDIT-000012',  1, 'admin',     'System Administrator', 'System Admin',           'export',            'timesheet',    'BATCH-2026-04',         'Payroll Export – April 2026 (Port of Spain)',                        '12 timesheets exported to XLSX'),
-        ('AUDIT-000013',  1, 'admin',     'System Administrator', 'System Admin',           'paymentRecorded',   'payment',      'PAY-2026-04-A',         'Direct Deposit Run – Port of Spain (April 2026)',                    '12 workers paid via direct deposit')
-    ) AS v(id, days_ago, user_id, user_name, user_role, action, entity_type, entity_id, entity_display_name, note)
-)
-INSERT INTO app_audit_logs (
-    id, timestamp, user_id, user_name, user_role, session_id,
-    action, entity_type, entity_id, entity_display_name, note,
-    hash, previous_hash
-)
-SELECT
-    s.id,
-    ('2026-04-27 12:00:00+00'::TIMESTAMPTZ - (s.days_ago || ' days')::INTERVAL),
-    s.user_id, s.user_name, s.user_role,
-    'demo-session-' || s.user_id,
-    s.action::audit_action_enum,
-    s.entity_type::audit_entity_type_enum,
-    s.entity_id, s.entity_display_name, s.note,
-    encode(digest(s.id || '|seed', 'sha256'), 'hex'),
-    COALESCE(LAG(encode(digest(s.id || '|seed', 'sha256'), 'hex'))
-             OVER (ORDER BY s.id), '')
-  FROM seed s;
-
--- Field changes for entries that record diffs
-INSERT INTO app_audit_field_changes (audit_log_id, sequence_no, field_name, old_value, new_value) VALUES
-    ('AUDIT-000002', 1, 'Full Name',    NULL,                'Kevin Rampersad'),
-    ('AUDIT-000002', 2, 'NIS Number',   NULL,                'NIS-2024-00147'),
-    ('AUDIT-000002', 3, 'Position',     NULL,                'General Worker'),
-    ('AUDIT-000002', 4, 'Corporation',  NULL,                'Port of Spain City Corporation'),
-
-    ('AUDIT-000003', 1, 'Status',       'Missing',           'Uploaded'),
-    ('AUDIT-000003', 2, 'File',         NULL,                'nis_registration.pdf'),
-
-    ('AUDIT-000005', 1, 'Stage',        NULL,                'Draft'),
-    ('AUDIT-000005', 2, 'Days Worked',  NULL,                '10'),
-
-    ('AUDIT-000006', 1, 'Stage',        'Submitted',         'Coordinator Review'),
-
-    ('AUDIT-000007', 1, 'Wage Rate',    '140.00',            '150.00'),
-    ('AUDIT-000007', 2, 'Effective From', NULL,              '2026-01-01'),
-
-    ('AUDIT-000008', 1, 'Phone Number', '868-555-0303',      '868-777-0303'),
-    ('AUDIT-000008', 2, 'Address',      '22 Montrose Road, Chaguanas', '45 Montrose Road, Chaguanas'),
-
-    ('AUDIT-000009', 1, 'Status',              'Active',     'Inactive'),
-    ('AUDIT-000009', 2, 'Replacement Worker',  NULL,         'Patricia Hernandez (WRK-011)'),
-
-    ('AUDIT-000010', 1, 'Old Rate',             NULL,        '140.00'),
-    ('AUDIT-000010', 2, 'New Rate',             NULL,        '150.00'),
-    ('AUDIT-000010', 3, 'Fortnights Affected',  NULL,        '6'),
-    ('AUDIT-000010', 4, 'Backpay Amount',       NULL,        '600.00'),
-
-    ('AUDIT-000011', 1, 'Andre Williams – Mon 13/04', 'Present', 'Absent'),
-    ('AUDIT-000011', 2, 'Lisa Doodnath – Fri 17/04',  'Present', 'Absent');
-
--- Attachments on the payment-recorded entry
-INSERT INTO app_audit_attachments (id, audit_log_id, file_name, mime_type, size_bytes, content_hash, uploaded_at) VALUES
-    ('ATT-001', 'AUDIT-000013', 'paysheet_pos_april_2026.xlsx',
-     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-     24576,
-     'a4f2b7c91d8e6053e2f471aa9c3d6b8852f1c0d7e6b9a4f3c1d8e6053e2f471aa',
-     '2026-04-26 12:00:00+00'),
-    ('ATT-002', 'AUDIT-000013', 'bank_remittance_advice.pdf',
-     'application/pdf',
-     152432,
-     'b9c3d6f2e1a87045d3c5b9e8f0a172bd5e84c2f9a1b6d307f4e8c2b1d50a9f6e',
-     '2026-04-26 12:00:00+00');
+-- On first startup, server/index.js detects an empty app_audit_logs table
+-- and calls server/seed_audit.js, which implements the identical hash
+-- algorithm in Node.js and inserts 13 correctly-chained demo entries.
+--
+-- To reseed manually (e.g. after wiping the table):
+--   DATABASE_URL=<url> node server/seed_audit.js
 
 COMMIT;
 

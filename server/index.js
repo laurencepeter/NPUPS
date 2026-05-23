@@ -16,6 +16,7 @@
 const express = require('express');
 const cors = require('cors');
 const { Pool } = require('pg');
+const { seedAuditLogs } = require('./seed_audit');
 
 const PORT = parseInt(process.env.PORT || '8080', 10);
 const DATABASE_URL = process.env.DATABASE_URL;
@@ -849,6 +850,17 @@ app.use((err, req, res, next) => {
 
 // ─── Boot ────────────────────────────────────────────────────────────────────
 
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
   console.log(`workforce-api listening on :${PORT}`);
+  // Seed demo audit chain if the table is empty (fresh database).
+  // Uses the correct hash algorithm so chain verification passes.
+  try {
+    const { rows } = await pool.query('SELECT 1 FROM app_audit_logs LIMIT 1');
+    if (rows.length === 0) {
+      console.log('[seed] app_audit_logs is empty — seeding demo chain');
+      await seedAuditLogs(pool);
+    }
+  } catch (err) {
+    console.warn('[seed] audit seed skipped:', err.message);
+  }
 });
