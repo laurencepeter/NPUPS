@@ -100,8 +100,7 @@ CREATE TYPE app_user_role_enum AS ENUM (
 -- Reference tables
 -- =============================================================================
 
--- Corporations: the 14 regional corporations referenced throughout the app.
--- Only 3 are seeded because only those have hardcoded workers/timesheets.
+-- Corporations: all 14 municipal corporations referenced throughout the app.
 CREATE TABLE corporations (
     id          TEXT        PRIMARY KEY,
     name        TEXT        NOT NULL UNIQUE,
@@ -415,10 +414,22 @@ BEGIN
 END $$;
 
 -- ── Corporations ─────────────────────────────────────────────────────────────
+-- All 14 municipal corporations from worker_registration_form.dart
 INSERT INTO corporations (id, name) VALUES
-    ('2', 'Chaguanas Borough Corporation'),
-    ('3', 'San Fernando City Corporation'),
-    ('8', 'Port of Spain City Corporation');
+    ('1',  'Arima Borough Corporation'),
+    ('2',  'Chaguanas Borough Corporation'),
+    ('3',  'San Fernando City Corporation'),
+    ('4',  'Diego Martin Regional Corporation'),
+    ('5',  'Mayaro-Rio Claro Regional Corporation'),
+    ('6',  'Penal-Debe Regional Corporation'),
+    ('7',  'Point Fortin Borough Corporation'),
+    ('8',  'Port of Spain City Corporation'),
+    ('9',  'Princes Town Regional Corporation'),
+    ('10', 'Couva-Tabaquite-Talparo Regional Corporation'),
+    ('11', 'San Juan-Laventille Regional Corporation'),
+    ('12', 'Sangre Grande Regional Corporation'),
+    ('13', 'Siparia Regional Corporation'),
+    ('14', 'Tunapuna-Piarco Regional Corporation');
 
 -- ── App users (9 demo logins from auth_service.dart) ────────────────────────
 INSERT INTO app_users (id, email, full_name, role, corporation_id, corporation_name, password_demo) VALUES
