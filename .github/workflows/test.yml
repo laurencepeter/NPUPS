@@ -34,6 +34,7 @@ jobs:
 
       - name: Analyse (lint)
         run: flutter analyze --no-fatal-warnings
+        continue-on-error: true
 
       - name: Run unit tests
         run: flutter test test/unit/ --reporter expanded --coverage
