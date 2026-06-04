@@ -24,7 +24,7 @@ void main() {
       expect(result.errorMessage, isNull);
     });
 
-    test('sets currentUser and isAuthenticated after successful sign-in', () async {
+    test('sets currentUser and isAuthenticated on success', () async {
       await auth.signIn('admin@workforce.app', 'admin123');
       expect(auth.currentUser, isNotNull);
       expect(auth.isAuthenticated, isTrue);

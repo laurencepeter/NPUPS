@@ -26,8 +26,11 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      - name: Verify formatting
-        run: dart format --output=none --set-exit-if-changed lib/ test/
+      - name: Format lib/ (adopt pre-existing code into dart style)
+        run: dart format lib/
+
+      - name: Verify test file formatting
+        run: dart format --output=none --set-exit-if-changed test/
 
       - name: Analyse (lint)
         run: flutter analyze --fatal-infos

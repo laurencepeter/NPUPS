@@ -22,16 +22,19 @@ void main() {
       expect(find.byType(LoginScreen), findsOneWidget);
     });
 
-    testWidgets('authenticated user sees the bottom navigation bar', (tester) async {
-      // Sign in before building the app so it starts authenticated.
-      await signInAsAdmin(AuthService());
+    testWidgets(
+      'authenticated user sees the bottom navigation bar',
+      (tester) async {
+        // Sign in before building the app so it starts authenticated.
+        await signInAsAdmin(AuthService());
 
-      await tester.pumpWidget(const WorkForceApp());
-      await tester.pump(const Duration(milliseconds: 500));
-      await tester.pumpAndSettle(const Duration(seconds: 5));
+        await tester.pumpWidget(const WorkForceApp());
+        await tester.pump(const Duration(milliseconds: 500));
+        await tester.pumpAndSettle(const Duration(seconds: 5));
 
-      expect(find.byType(NavigationBar), findsOneWidget);
-    });
+        expect(find.byType(NavigationBar), findsOneWidget);
+      },
+    );
   });
 
   group('Role-based tab counts', () {
@@ -59,7 +62,8 @@ void main() {
       expect(
         navBar.destinations.length,
         expectedCount,
-        reason: 'Expected $expectedCount tabs for role ${role.displayName}',
+        reason:
+            'Expected $expectedCount tabs for role ${role.displayName}',
       );
     }
 

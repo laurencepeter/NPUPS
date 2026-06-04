@@ -14,20 +14,28 @@ void main() {
 
   group('LoginScreen — structural', () {
     testWidgets('renders email and password fields', (tester) async {
-      await tester.pumpWidget(buildTestApp(LoginScreen(
-        authService: AuthService(),
-        onLoginSuccess: () {},
-      )));
+      await tester.pumpWidget(
+        buildTestApp(
+          LoginScreen(
+            authService: AuthService(),
+            onLoginSuccess: () {},
+          ),
+        ),
+      );
       await tester.pump(const Duration(seconds: 2));
 
       expect(find.byType(TextFormField), findsAtLeastNWidgets(2));
     });
 
     testWidgets('renders a sign-in submit button', (tester) async {
-      await tester.pumpWidget(buildTestApp(LoginScreen(
-        authService: AuthService(),
-        onLoginSuccess: () {},
-      )));
+      await tester.pumpWidget(
+        buildTestApp(
+          LoginScreen(
+            authService: AuthService(),
+            onLoginSuccess: () {},
+          ),
+        ),
+      );
       await tester.pump(const Duration(seconds: 2));
 
       final signInBtn = find.widgetWithText(ElevatedButton, 'Sign In');
@@ -35,37 +43,50 @@ void main() {
     });
 
     testWidgets('pre-fills the demo admin email on load', (tester) async {
-      await tester.pumpWidget(buildTestApp(LoginScreen(
-        authService: AuthService(),
-        onLoginSuccess: () {},
-      )));
+      await tester.pumpWidget(
+        buildTestApp(
+          LoginScreen(
+            authService: AuthService(),
+            onLoginSuccess: () {},
+          ),
+        ),
+      );
       await tester.pump(const Duration(seconds: 2));
 
-      expect(
-        find.text('admin@workforce.app'),
-        findsOneWidget,
-      );
+      expect(find.text('admin@workforce.app'), findsOneWidget);
     });
   });
 
   group('LoginScreen — password visibility toggle', () {
     testWidgets('password is obscured by default', (tester) async {
-      await tester.pumpWidget(buildTestApp(LoginScreen(
-        authService: AuthService(),
-        onLoginSuccess: () {},
-      )));
+      await tester.pumpWidget(
+        buildTestApp(
+          LoginScreen(
+            authService: AuthService(),
+            onLoginSuccess: () {},
+          ),
+        ),
+      );
       await tester.pump(const Duration(seconds: 2));
 
       final fields = tester.widgetList<TextField>(find.byType(TextField));
-      final passwordField = fields.lastWhere((f) => f.obscureText == true, orElse: () => throw TestFailure('No obscured field found'));
+      final passwordField = fields.lastWhere(
+        (f) => f.obscureText == true,
+        orElse: () => throw TestFailure('No obscured field found'),
+      );
       expect(passwordField.obscureText, isTrue);
     });
 
-    testWidgets('tapping the visibility icon reveals the password', (tester) async {
-      await tester.pumpWidget(buildTestApp(LoginScreen(
-        authService: AuthService(),
-        onLoginSuccess: () {},
-      )));
+    testWidgets('tapping the visibility icon reveals the password',
+        (tester) async {
+      await tester.pumpWidget(
+        buildTestApp(
+          LoginScreen(
+            authService: AuthService(),
+            onLoginSuccess: () {},
+          ),
+        ),
+      );
       await tester.pump(const Duration(seconds: 2));
 
       final visIcon = find.byIcon(Icons.visibility_off_outlined);
@@ -73,7 +94,8 @@ void main() {
         await tester.tap(visIcon.first);
         await tester.pump();
 
-        final fields = tester.widgetList<TextField>(find.byType(TextField)).toList();
+        final finder = find.byType(TextField);
+        final fields = tester.widgetList<TextField>(finder).toList();
         final nowVisible = fields.where((f) => !f.obscureText);
         expect(nowVisible.isNotEmpty, isTrue);
       }
@@ -82,10 +104,14 @@ void main() {
 
   group('LoginScreen — authentication flow', () {
     testWidgets('shows loading indicator while signing in', (tester) async {
-      await tester.pumpWidget(buildTestApp(LoginScreen(
-        authService: AuthService(),
-        onLoginSuccess: () {},
-      )));
+      await tester.pumpWidget(
+        buildTestApp(
+          LoginScreen(
+            authService: AuthService(),
+            onLoginSuccess: () {},
+          ),
+        ),
+      );
       await tester.pump(const Duration(seconds: 2));
 
       await tester.tap(find.widgetWithText(ElevatedButton, 'Sign In'));
@@ -95,15 +121,18 @@ void main() {
 
       await tester.pump(const Duration(milliseconds: 2000));
       await tester.pumpAndSettle();
-      // loginCallbackFired may be true or false depending on whether
-      // sign-in completed; we're testing the loading indicator only.
+      // Testing the loading indicator only; sign-in result is irrelevant here.
     });
 
     testWidgets('shows error message for wrong password', (tester) async {
-      await tester.pumpWidget(buildTestApp(LoginScreen(
-        authService: AuthService(),
-        onLoginSuccess: () {},
-      )));
+      await tester.pumpWidget(
+        buildTestApp(
+          LoginScreen(
+            authService: AuthService(),
+            onLoginSuccess: () {},
+          ),
+        ),
+      );
       await tester.pump(const Duration(seconds: 2));
 
       // Replace prefilled password with a wrong one.
@@ -112,15 +141,23 @@ void main() {
       await tester.tap(find.widgetWithText(ElevatedButton, 'Sign In'));
       await pumpUntilSettled(tester);
 
-      expect(find.text('Incorrect password. Please try again.'), findsOneWidget);
+      expect(
+        find.text('Incorrect password. Please try again.'),
+        findsOneWidget,
+      );
     });
 
-    testWidgets('fires onLoginSuccess after correct credentials', (tester) async {
+    testWidgets('fires onLoginSuccess after correct credentials',
+        (tester) async {
       bool fired = false;
-      await tester.pumpWidget(buildTestApp(LoginScreen(
-        authService: AuthService(),
-        onLoginSuccess: () => fired = true,
-      )));
+      await tester.pumpWidget(
+        buildTestApp(
+          LoginScreen(
+            authService: AuthService(),
+            onLoginSuccess: () => fired = true,
+          ),
+        ),
+      );
       await tester.pump(const Duration(seconds: 2));
 
       // The screen pre-fills admin credentials; just submit.
@@ -133,14 +170,19 @@ void main() {
 
   group('LoginScreen — demo account helper', () {
     testWidgets('has a button to show the demo accounts sheet', (tester) async {
-      await tester.pumpWidget(buildTestApp(LoginScreen(
-        authService: AuthService(),
-        onLoginSuccess: () {},
-      )));
+      await tester.pumpWidget(
+        buildTestApp(
+          LoginScreen(
+            authService: AuthService(),
+            onLoginSuccess: () {},
+          ),
+        ),
+      );
       await tester.pump(const Duration(seconds: 2));
 
-      // The quick-fill button contains "Demo" or "Accounts" text.
-      final demoBtn = find.textContaining(RegExp(r'Demo|Account', caseSensitive: false));
+      final demoBtn = find.textContaining(
+        RegExp(r'Demo|Account', caseSensitive: false),
+      );
       expect(demoBtn, findsAtLeastNWidgets(1));
     });
   });
