@@ -284,6 +284,13 @@ class AuthService extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Resets in-memory rate-limiting state. Test use only.
+  @visibleForTesting
+  void resetRateLimitingForTest() {
+    _failedAttempts = 0;
+    _lockoutUntil = null;
+  }
+
   /// Sign out the current user and clear session.
   Future<void> signOut() async {
     _isLoading = true;
