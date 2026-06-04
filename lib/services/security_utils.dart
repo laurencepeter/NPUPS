@@ -17,7 +17,7 @@ class SecurityUtils {
   }
 
   /// Mask a NIS number, showing only the last 5 characters.
-  /// e.g., "NIS-2024-00147" -> "NIS-****-*0147"
+  /// e.g., "NIS-2024-00147" -> "NIS-****-00147"
   static String maskNisNumber(String nisNumber) {
     if (nisNumber.length <= 5) return nisNumber;
     final visible = nisNumber.substring(nisNumber.length - 5);

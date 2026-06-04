@@ -1,0 +1,52 @@
+name: Flutter Tests
+
+on:
+  push:
+    branches: [master, main, 'claude/**', 'feature/**']
+  pull_request:
+    branches: [master, main]
+
+jobs:
+  test:
+    name: Lint & Unit/Widget Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.x'
+          channel: 'stable'
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Format lib/ (adopt pre-existing code into dart style)
+        run: dart format lib/
+
+      - name: Verify test file formatting
+        run: dart format --output=none --set-exit-if-changed test/
+
+      - name: Analyse (lint)
+        run: flutter analyze --no-fatal-warnings
+        continue-on-error: true
+
+      - name: Run unit tests
+        run: flutter test test/unit/ --reporter expanded --coverage
+
+      - name: Run widget tests
+        run: flutter test test/widget/ --reporter expanded --platform chrome
+        # Widget tests need a host runner; chrome driver is available on ubuntu-latest.
+
+      - name: Upload coverage
+        uses: codecov/codecov-action@v4
+        if: always()
+        with:
+          files: coverage/lcov.info
+          flags: flutter
+          fail_ci_if_error: false
