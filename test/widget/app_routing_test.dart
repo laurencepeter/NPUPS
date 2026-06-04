@@ -62,8 +62,7 @@ void main() {
       expect(
         navBar.destinations.length,
         expectedCount,
-        reason:
-            'Expected $expectedCount tabs for role ${role.displayName}',
+        reason: 'Expected $expectedCount tabs for role ${role.displayName}',
       );
     }
 
