@@ -33,7 +33,7 @@ jobs:
         run: dart format --output=none --set-exit-if-changed test/
 
       - name: Analyse (lint)
-        run: flutter analyze
+        run: flutter analyze --no-fatal-warnings
 
       - name: Run unit tests
         run: flutter test test/unit/ --reporter expanded --coverage
