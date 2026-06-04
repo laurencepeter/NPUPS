@@ -25,7 +25,7 @@ void main() {
     test('masks all but the last 5 chars', () {
       expect(
         SecurityUtils.maskNisNumber('NIS-2024-00147'),
-        'NIS-****-*0147',
+        'NIS-****-00147',
       );
     });
 
