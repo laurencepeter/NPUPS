@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:workforce/main.dart' show WorkForceApp;
 import 'package:workforce/screens/login_screen.dart';
+import 'package:workforce/models/user_model.dart';
 import 'package:workforce/services/auth_service.dart';
 import '../helpers/test_helpers.dart';
 
