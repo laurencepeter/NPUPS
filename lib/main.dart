@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'config/supabase_config.dart';
 import 'theme/app_theme.dart';
 import 'models/user_model.dart';
 import 'services/auth_service.dart';
+import 'services/supabase_auth_service.dart';
 import 'services/bootstrap.dart';
 import 'screens/login_screen.dart';
 import 'screens/dashboard_screen.dart';
@@ -36,6 +39,18 @@ import 'screens/backpay_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize Supabase when a self-hosted instance is configured at build time
+  // (--dart-define=SUPABASE_URL=... SUPABASE_ANON_KEY=...). When absent, the app
+  // falls back to the existing demo AuthService so local/demo builds are
+  // unaffected. See db/supabase/README.md and lib/config/supabase_config.dart.
+  if (SupabaseConfig.isConfigured) {
+    await Supabase.initialize(
+      url: SupabaseConfig.url,
+      anonKey: SupabaseConfig.anonKey,
+    );
+    SupabaseAuthService().start();
+  }
 
   // Restore persisted theme and user session before the first frame.
   await Future.wait([
