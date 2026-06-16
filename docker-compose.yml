@@ -1,44 +1,20 @@
-# Bring up Postgres + the WorkForce API + the Flutter web build in one shot.
+# Bring up the WorkForce API + Flutter web build against an external database.
 #
-#   docker compose up --build
+#   DATABASE_URL=postgres://... docker compose up --build
+#
+# Or put DATABASE_URL in a .env file in this directory.
+# For Supabase, use the "Direct connection" URL from your project's
+# Settings → Database → Connection string.
 #
 # Then point a browser at http://localhost:8081
 #   (or open http://localhost:8080/api/health to verify the API)
-#
-# The Postgres container auto-runs every *.sql in db/ on first boot, so the
-# domain seed (19 workers, 17 timesheets, 13 audit entries, etc.) is loaded
-# before the API starts.
 
 services:
-  postgres:
-    image: postgres:16-alpine
-    environment:
-      POSTGRES_USER: workforce
-      POSTGRES_PASSWORD: workforce
-      POSTGRES_DB: workforce
-    volumes:
-      - workforce_pgdata:/var/lib/postgresql/data
-      # Schemas are sourced alphabetically; rbac_ comes before domain_ which
-      # matches the order required by the foreign keys.
-      - ./db/rbac_schema.sql:/docker-entrypoint-initdb.d/01_rbac_schema.sql:ro
-      - ./db/domain_schema.sql:/docker-entrypoint-initdb.d/02_domain_schema.sql:ro
-      - ./db/edit_locks_schema.sql:/docker-entrypoint-initdb.d/03_edit_locks_schema.sql:ro
-    ports:
-      - "5432:5432"
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U workforce -d workforce"]
-      interval: 3s
-      timeout: 3s
-      retries: 20
-
   api:
     build: ./server
     environment:
-      DATABASE_URL: postgres://workforce:workforce@postgres:5432/workforce
+      DATABASE_URL: ${DATABASE_URL:?set DATABASE_URL to your Supabase (or other) Postgres connection string}
       PORT: "8080"
-    depends_on:
-      postgres:
-        condition: service_healthy
     ports:
       - "8080:8080"
 
@@ -54,6 +30,3 @@ services:
       - api
     ports:
       - "8081:80"
-
-volumes:
-  workforce_pgdata: {}
