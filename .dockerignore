@@ -1,0 +1,29 @@
+# Version control
+.git
+.gitignore
+
+# Flutter build output and cache
+build/
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+
+# Test files
+test/
+integration_test/
+coverage/
+
+# Node / server (separate build context handled by docker-compose)
+server/
+
+# IDE / editor
+.idea/
+.vscode/
+*.iml
+
+# Docs and local config
+*.md
+.env
+.env.*
+docker-compose*.yml
