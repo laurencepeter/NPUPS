@@ -1,19 +1,17 @@
-# Bring up the WorkForce API + Flutter web build against an external database.
+# Bring up the WorkForce API + Flutter web build against Supabase.
 #
-#   DATABASE_URL=postgres://... docker compose up --build
+#   SUPABASE_URL=https://supabase.fireydev.com \
+#   SUPABASE_ANON_KEY=eyJ... \
+#   docker compose up --build
 #
-# Or put DATABASE_URL in a .env file in this directory.
-# For Supabase, use the "Direct connection" URL from your project's
-# Settings → Database → Connection string.
-#
-# Then point a browser at http://localhost:8081
-#   (or open http://localhost:8080/api/health to verify the API)
+# Or put both vars in a .env file in this directory.
 
 services:
   api:
     build: ./server
     environment:
-      DATABASE_URL: ${DATABASE_URL:?set DATABASE_URL to your Supabase (or other) Postgres connection string}
+      SUPABASE_URL: ${SUPABASE_URL:?set SUPABASE_URL to your Supabase project URL}
+      SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY:?set SUPABASE_ANON_KEY to your Supabase anon key}
       PORT: "8080"
     ports:
       - "8080:8080"
@@ -22,8 +20,6 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    # No API_BASE_URL build arg: the web app talks to its own origin and nginx
-    # forwards /api/* to the api service below. API_UPSTREAM tells nginx where.
     environment:
       API_UPSTREAM: "http://api:8080"
     depends_on:
