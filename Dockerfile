@@ -24,22 +24,11 @@ WORKDIR /app
 COPY pubspec.* ./
 RUN flutter pub get
 
-# Supabase build args. These are passed via --dart-define so the Flutter web
-# bundle can reach the configured Supabase project. When empty, the app falls
-# back to the existing demo AuthService (see lib/config/supabase_config.dart).
-# The anon key is public by design — RLS enforces tenant isolation. NEVER pass
-# the service_role key here.
-ARG SUPABASE_URL=""
-ARG SUPABASE_ANON_KEY=""
-
-# Copy full project and build web. No API_BASE_URL is baked in: the bundle
-# always talks to its own origin and nginx forwards /api/* to the backend
-# (see the proxy block in nginx.conf), so the image is environment-agnostic
-# and cannot be misconfigured by a stray build arg.
+# Copy full project and build web. Supabase credentials are baked into
+# lib/config/supabase_config.dart. No API_BASE_URL is baked in: the bundle
+# always talks to its own origin and nginx forwards /api/* to the backend.
 COPY . .
-RUN flutter build web --release \
-      --dart-define=SUPABASE_URL="$SUPABASE_URL" \
-      --dart-define=SUPABASE_ANON_KEY="$SUPABASE_ANON_KEY"
+RUN flutter build web --release
 
 # Stage 2: Serve with nginx
 FROM nginx:alpine

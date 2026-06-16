@@ -1,50 +1,32 @@
 # ─────────────────────────────────────────────────────────────────────────────
-# PRODUCTION compose — for Coolify (or any host with a managed/external Postgres)
+# PRODUCTION compose — for Coolify
 # ─────────────────────────────────────────────────────────────────────────────
 #
-# This stack is web + api ONLY. There is deliberately NO postgres service here:
-# in production the database is your Coolify-managed Postgres, which lives
-# outside this compose and is never exposed to the internet.
+# This stack is web + api ONLY. The database is Supabase (hosted externally).
 #
-#   Browser ──▶ web (nginx + Flutter)  ──▶  api (Node)  ──▶  Postgres
-#               public: your domain        internal only    host port 5433
+#   Browser ──▶ web (nginx + Flutter)  ──▶  api (Node)  ──▶  Supabase
+#               public: your domain        internal only
 #
 # ── Coolify setup ────────────────────────────────────────────────────────────
 #   1. Create a resource of type "Docker Compose" (not "Dockerfile").
 #   2. Set its "Docker Compose Location" to:  docker-compose.prod.yml
-#   3. Add ONE environment variable in the Coolify UI — DATABASE_URL (below).
-#   4. Assign your public domain to the `web` service (port 80) in the Coolify
-#      UI. Do NOT give `api` a domain — it must stay internal.
-#
-# ── DATABASE_URL format ───────────────────────────────────────────────────────
-#   The Coolify-managed Postgres is reachable from containers via the host
-#   gateway (host.docker.internal) on the port Coolify mapped it to (5433).
-#   Set DATABASE_URL in Coolify to:
-#     postgres://<user>:<password>@host.docker.internal:5433/<dbname>
-#
-# ── Where each env var is configured ─────────────────────────────────────────
-#   DATABASE_URL  → set in COOLIFY (mark it secret). Use host.docker.internal
-#                   as the host and 5433 as the port (see above).
-#   PORT          → set HERE (below). Internal only — no reason to change.
-#   API_UPSTREAM  → set HERE (below). Internal compose DNS — no reason to change.
+#   3. Add TWO environment variables in the Coolify UI:
+#        SUPABASE_URL      → https://supabase.fireydev.com
+#        SUPABASE_ANON_KEY → eyJ...
+#   4. Assign your public domain to the `web` service (port 80).
+#      Do NOT give `api` a domain — it must stay internal.
 # ─────────────────────────────────────────────────────────────────────────────
 
 services:
   api:
     build: ./server
     restart: unless-stopped
-    extra_hosts:
-      # Maps host.docker.internal → the Docker host gateway so the api
-      # container can reach the Coolify-managed Postgres on host port 5433.
-      - "host.docker.internal:host-gateway"
     environment:
-      # COOLIFY: set DATABASE_URL to:
-      #   postgres://<user>:<password>@host.docker.internal:5433/<dbname>
-      DATABASE_URL: ${DATABASE_URL:?set DATABASE_URL in the Coolify environment variables}
-      # COMPOSE: internal API port. web/nginx proxies to api:8080 (see below).
+      SUPABASE_URL: ${SUPABASE_URL:?set SUPABASE_URL in Coolify environment variables}
+      SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY:?set SUPABASE_ANON_KEY in Coolify environment variables}
       PORT: "8080"
     expose:
-      - "8080"          # internal only — never published, never given a domain
+      - "8080"
 
   web:
     build:
@@ -52,10 +34,8 @@ services:
       dockerfile: Dockerfile
     restart: unless-stopped
     environment:
-      # COMPOSE: nginx forwards /api/* here. "api" is this compose's service
-      # name and resolves on the internal network — leave exactly as-is.
       API_UPSTREAM: "http://api:8080"
     depends_on:
       - api
     expose:
-      - "80"            # COOLIFY: attach your public domain to this service/port
+      - "80"

@@ -1,42 +1,25 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// WorkForce REST API
-//
-// Bridges the Flutter frontend (lib/services/api_client.dart) with the
-// PostgreSQL schemas in db/. JSON shapes match each model's `fromJson` /
-// `toJson` exactly — see the corresponding Dart model for the contract.
+// WorkForce REST API — backed by Supabase
 //
 // Run:
-//   DATABASE_URL=postgres://workforce:workforce@localhost:5432/workforce \
+//   SUPABASE_URL=https://supabase.fireydev.com \
+//   SUPABASE_ANON_KEY=eyJ... \
 //   PORT=8080 node index.js
-//
-// docker-compose.yml in the repo root brings up Postgres + this server with
-// the schema and seed data already loaded.
 // ─────────────────────────────────────────────────────────────────────────────
 
 const express = require('express');
 const cors = require('cors');
-const { Pool } = require('pg');
+const { createClient } = require('@supabase/supabase-js');
 
 const PORT = parseInt(process.env.PORT || '8080', 10);
-const DATABASE_URL = process.env.DATABASE_URL;
-if (!DATABASE_URL) {
-  console.error('FATAL: DATABASE_URL must be set');
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
+if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+  console.error('FATAL: SUPABASE_URL and SUPABASE_ANON_KEY must be set');
   process.exit(1);
 }
 
-// keepAlive stops idle pooled connections from being silently dropped by the
-// managed Postgres / cloud network (idle timeouts, failovers, NAT eviction).
-const pool = new Pool({ connectionString: DATABASE_URL, keepAlive: true });
-
-// An idle pooled client can still emit 'error' if the backend closes the
-// connection (managed-Postgres idle timeout, restart, failover, or hitting a
-// connection limit). On an EventEmitter an unhandled 'error' throws an
-// uncaught exception and kills the whole process — which made nginx's /api
-// proxy return 502 until the container restarted. Logging it here keeps the
-// process alive; the pool just opens a fresh connection on the next query.
-pool.on('error', (err) => {
-  console.error('[pg pool] idle client error (connection will be recycled):', err.message);
-});
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 const app = express();
 app.use(cors());
@@ -55,27 +38,27 @@ function isoOrNull(v) {
 // ─── Health / readiness ──────────────────────────────────────────────────────
 
 app.get('/api/health', asyncRoute(async (req, res) => {
-  const { rows } = await pool.query('SELECT 1 AS ok');
-  res.json({ ok: rows[0].ok === 1, version: '1.0.0' });
+  const { error } = await supabase.from('workers').select('id').limit(1);
+  res.json({ ok: !error, version: '1.0.0' });
 }));
 
 // ─── Workers ─────────────────────────────────────────────────────────────────
 // JSON shape mirrors lib/models/worker_model.dart Worker.fromJson.
 
 async function fetchWorkerRow(id) {
-  const w = await pool.query(`SELECT * FROM workers WHERE id = $1`, [id]);
-  if (w.rowCount === 0) return null;
-  const docs = await pool.query(
-    `SELECT doc_name AS name, status, file_name, uploaded_at
-       FROM worker_documents WHERE worker_id = $1 ORDER BY doc_name`,
-    [id]
-  );
-  const allows = await pool.query(
-    `SELECT id, name, rate, per_day_worked, is_active, created_at, note
-       FROM worker_allowances WHERE worker_id = $1 ORDER BY created_at`,
-    [id]
-  );
-  return shapeWorker(w.rows[0], docs.rows, allows.rows);
+  const { data: wRow, error: wErr } = await supabase.from('workers').select('*').eq('id', id).single();
+  if (wErr || !wRow) return null;
+  const { data: docs } = await supabase
+    .from('worker_documents')
+    .select('doc_name, status, file_name, uploaded_at')
+    .eq('worker_id', id)
+    .order('doc_name');
+  const { data: allows } = await supabase
+    .from('worker_allowances')
+    .select('id, name, rate, per_day_worked, is_active, created_at, note')
+    .eq('worker_id', id)
+    .order('created_at');
+  return shapeWorker(wRow, docs || [], allows || []);
 }
 
 function shapeWorker(row, docs, allowances) {
@@ -83,7 +66,7 @@ function shapeWorker(row, docs, allowances) {
     id: row.id,
     full_name: row.full_name,
     nis_number: row.nis_number,
-    date_of_birth: row.date_of_birth.toISOString(),
+    date_of_birth: new Date(row.date_of_birth).toISOString(),
     position: row.position,
     id_number: row.id_number,
     corporation_id: row.corporation_id,
@@ -96,7 +79,7 @@ function shapeWorker(row, docs, allowances) {
     account_number: row.account_number,
     branch_name: row.branch_name,
     documents: docs.map(d => ({
-      name: d.name,
+      name: d.doc_name,
       status: d.status,
       file_name: d.file_name,
       uploaded_at: isoOrNull(d.uploaded_at),
@@ -107,10 +90,10 @@ function shapeWorker(row, docs, allowances) {
       rate: Number(a.rate),
       per_day_worked: a.per_day_worked,
       is_active: a.is_active,
-      created_at: a.created_at.toISOString(),
+      created_at: new Date(a.created_at).toISOString(),
       note: a.note,
     })),
-    date_registered: row.date_registered.toISOString(),
+    date_registered: new Date(row.date_registered).toISOString(),
     is_active: row.is_active,
     contact: row.contact,
     address: row.address,
@@ -124,24 +107,25 @@ function shapeWorker(row, docs, allowances) {
 }
 
 app.get('/api/workers', asyncRoute(async (req, res) => {
-  const w = await pool.query(`SELECT * FROM workers ORDER BY id`);
-  const docs = await pool.query(
-    `SELECT worker_id, doc_name AS name, status, file_name, uploaded_at
-       FROM worker_documents`);
-  const allows = await pool.query(
-    `SELECT worker_id, id, name, rate, per_day_worked, is_active, created_at, note
-       FROM worker_allowances`);
+  const { data: wRows, error: wErr } = await supabase.from('workers').select('*').order('id');
+  if (wErr) throw new Error(wErr.message);
+  const { data: docs } = await supabase
+    .from('worker_documents')
+    .select('worker_id, doc_name, status, file_name, uploaded_at');
+  const { data: allows } = await supabase
+    .from('worker_allowances')
+    .select('worker_id, id, name, rate, per_day_worked, is_active, created_at, note');
   const docsByWorker = new Map();
-  for (const d of docs.rows) {
+  for (const d of (docs || [])) {
     if (!docsByWorker.has(d.worker_id)) docsByWorker.set(d.worker_id, []);
     docsByWorker.get(d.worker_id).push(d);
   }
   const allowsByWorker = new Map();
-  for (const a of allows.rows) {
+  for (const a of (allows || [])) {
     if (!allowsByWorker.has(a.worker_id)) allowsByWorker.set(a.worker_id, []);
     allowsByWorker.get(a.worker_id).push(a);
   }
-  res.json(w.rows.map(r => shapeWorker(
+  res.json((wRows || []).map(r => shapeWorker(
     r, docsByWorker.get(r.id) || [], allowsByWorker.get(r.id) || []
   )));
 }));
@@ -154,66 +138,72 @@ app.get('/api/workers/:id', asyncRoute(async (req, res) => {
 
 app.post('/api/workers', asyncRoute(async (req, res) => {
   const b = req.body || {};
-  const client = await pool.connect();
-  try {
-    await client.query('BEGIN');
-    await client.query(
-      `INSERT INTO workers (
-         id, full_name, nis_number, date_of_birth, position, id_number,
-         corporation_id, corporation_name, electoral_district,
-         wage_rate, cola_rate, allowance_rate,
-         bank_name, account_number, branch_name,
-         date_registered, is_active,
-         contact, address, bir_number, driver_permit_number, passport_number,
-         start_date, end_date, reference_number
-       ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25)`,
-      [
-        b.id, b.full_name, b.nis_number, b.date_of_birth, b.position, b.id_number,
-        b.corporation_id, b.corporation_name, b.electoral_district,
-        b.wage_rate, b.cola_rate ?? 0, b.allowance_rate,
-        b.bank_name, b.account_number, b.branch_name,
-        b.date_registered, b.is_active ?? true,
-        b.contact, b.address, b.bir_number, b.driver_permit_number, b.passport_number,
-        b.start_date, b.end_date, b.reference_number,
-      ]
+
+  const { error: wErr } = await supabase.from('workers').insert({
+    id: b.id,
+    full_name: b.full_name,
+    nis_number: b.nis_number,
+    date_of_birth: b.date_of_birth,
+    position: b.position,
+    id_number: b.id_number,
+    corporation_id: b.corporation_id,
+    corporation_name: b.corporation_name,
+    electoral_district: b.electoral_district,
+    wage_rate: b.wage_rate,
+    cola_rate: b.cola_rate ?? 0,
+    allowance_rate: b.allowance_rate,
+    bank_name: b.bank_name,
+    account_number: b.account_number,
+    branch_name: b.branch_name,
+    date_registered: b.date_registered,
+    is_active: b.is_active ?? true,
+    contact: b.contact,
+    address: b.address,
+    bir_number: b.bir_number,
+    driver_permit_number: b.driver_permit_number,
+    passport_number: b.passport_number,
+    start_date: b.start_date,
+    end_date: b.end_date,
+    reference_number: b.reference_number,
+  });
+  if (wErr) throw new Error(wErr.message);
+
+  // Documents — seed missing rows for all required docs.
+  const REQUIRED_DOCS = [
+    'NIS Registration', 'Birth Certificate', 'Bank Verification Letter',
+    'National ID Card', 'Police Certificate of Good Character',
+  ];
+  const provided = new Map((b.documents || []).map(d => [d.name, d]));
+  for (const name of REQUIRED_DOCS) {
+    const d = provided.get(name) || { name, status: 'missing' };
+    const { error: docErr } = await supabase.from('worker_documents').upsert(
+      {
+        worker_id: b.id,
+        doc_name: name,
+        status: d.status || 'missing',
+        file_name: d.file_name || null,
+        uploaded_at: d.uploaded_at || null,
+      },
+      { onConflict: 'worker_id,doc_name' }
     );
-
-    // Documents — seed missing rows for all required docs.
-    const REQUIRED_DOCS = [
-      'NIS Registration', 'Birth Certificate', 'Bank Verification Letter',
-      'National ID Card', 'Police Certificate of Good Character',
-    ];
-    const provided = new Map((b.documents || []).map(d => [d.name, d]));
-    for (const name of REQUIRED_DOCS) {
-      const d = provided.get(name) || { name, status: 'missing' };
-      await client.query(
-        `INSERT INTO worker_documents (worker_id, doc_name, status, file_name, uploaded_at)
-         VALUES ($1,$2,$3::document_status_enum,$4,$5)
-         ON CONFLICT (worker_id, doc_name) DO UPDATE
-           SET status = EXCLUDED.status,
-               file_name = EXCLUDED.file_name,
-               uploaded_at = EXCLUDED.uploaded_at`,
-        [b.id, name, d.status || 'missing', d.file_name || null, d.uploaded_at || null]
-      );
-    }
-
-    // Custom allowances — full replace on create.
-    for (const a of (b.custom_allowances || [])) {
-      await client.query(
-        `INSERT INTO worker_allowances
-           (id, worker_id, name, rate, per_day_worked, is_active, note, created_at)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
-        [a.id, b.id, a.name, a.rate, a.per_day_worked, a.is_active, a.note,
-         a.created_at || new Date().toISOString()]
-      );
-    }
-    await client.query('COMMIT');
-  } catch (e) {
-    await client.query('ROLLBACK');
-    throw e;
-  } finally {
-    client.release();
+    if (docErr) throw new Error(docErr.message);
   }
+
+  // Custom allowances — full replace on create.
+  for (const a of (b.custom_allowances || [])) {
+    const { error: aErr } = await supabase.from('worker_allowances').insert({
+      id: a.id,
+      worker_id: b.id,
+      name: a.name,
+      rate: a.rate,
+      per_day_worked: a.per_day_worked,
+      is_active: a.is_active,
+      note: a.note,
+      created_at: a.created_at || new Date().toISOString(),
+    });
+    if (aErr) throw new Error(aErr.message);
+  }
+
   res.status(201).json(await fetchWorkerRow(b.id));
 }));
 
@@ -251,25 +241,28 @@ app.patch('/api/workers/:id', asyncRoute(async (req, res) => {
     if (!existing) return res.status(404).json({ error: 'worker not found' });
     return res.json(existing);
   }
-  const sets = cols.map((c, i) => `${c} = $${i + 1}`).join(', ');
-  const values = cols.map(c => editable[c]);
-  values.push(req.params.id);
-  const r = await pool.query(
-    `UPDATE workers SET ${sets}, updated_at = NOW() WHERE id = $${values.length}`,
-    values
-  );
-  if (r.rowCount === 0) return res.status(404).json({ error: 'worker not found' });
+  const updateObj = {};
+  cols.forEach(c => { updateObj[c] = editable[c]; });
+  updateObj.updated_at = new Date().toISOString();
+  const { data, error } = await supabase
+    .from('workers')
+    .update(updateObj)
+    .eq('id', req.params.id)
+    .select()
+    .single();
+  if (error || !data) return res.status(404).json({ error: 'worker not found' });
   res.json(await fetchWorkerRow(req.params.id));
 }));
 
 app.delete('/api/workers/:id', asyncRoute(async (req, res) => {
   // Soft-delete by deactivating; preserves all FKs (timesheets, audit, etc).
-  const r = await pool.query(
-    `UPDATE workers SET is_active = FALSE, updated_at = NOW()
-       WHERE id = $1`,
-    [req.params.id]
-  );
-  if (r.rowCount === 0) return res.status(404).json({ error: 'worker not found' });
+  const { data, error } = await supabase
+    .from('workers')
+    .update({ is_active: false, updated_at: new Date().toISOString() })
+    .eq('id', req.params.id)
+    .select()
+    .single();
+  if (error || !data) return res.status(404).json({ error: 'worker not found' });
   res.status(204).end();
 }));
 
@@ -277,13 +270,17 @@ app.delete('/api/workers/:id', asyncRoute(async (req, res) => {
 
 app.post('/api/workers/:id/allowances', asyncRoute(async (req, res) => {
   const a = req.body || {};
-  await pool.query(
-    `INSERT INTO worker_allowances
-       (id, worker_id, name, rate, per_day_worked, is_active, note, created_at)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
-    [a.id, req.params.id, a.name, a.rate, a.per_day_worked ?? true,
-     a.is_active ?? true, a.note, a.created_at || new Date().toISOString()]
-  );
+  const { error } = await supabase.from('worker_allowances').insert({
+    id: a.id,
+    worker_id: req.params.id,
+    name: a.name,
+    rate: a.rate,
+    per_day_worked: a.per_day_worked ?? true,
+    is_active: a.is_active ?? true,
+    note: a.note,
+    created_at: a.created_at || new Date().toISOString(),
+  });
+  if (error) throw new Error(error.message);
   res.status(201).json(a);
 }));
 
@@ -298,21 +295,26 @@ app.patch('/api/worker-allowances/:id', asyncRoute(async (req, res) => {
   };
   const cols = Object.keys(editable).filter(k => editable[k] !== undefined);
   if (cols.length === 0) return res.status(204).end();
-  const sets = cols.map((c, i) => `${c} = $${i + 1}`).join(', ');
-  const values = [...cols.map(c => editable[c]), req.params.id];
-  const r = await pool.query(
-    `UPDATE worker_allowances SET ${sets} WHERE id = $${values.length}`,
-    values
-  );
-  if (r.rowCount === 0) return res.status(404).json({ error: 'allowance not found' });
+  const updateObj = {};
+  cols.forEach(c => { updateObj[c] = editable[c]; });
+  const { data, error } = await supabase
+    .from('worker_allowances')
+    .update(updateObj)
+    .eq('id', req.params.id)
+    .select()
+    .single();
+  if (error || !data) return res.status(404).json({ error: 'allowance not found' });
   res.status(204).end();
 }));
 
 app.delete('/api/worker-allowances/:id', asyncRoute(async (req, res) => {
-  const r = await pool.query(
-    `DELETE FROM worker_allowances WHERE id = $1`, [req.params.id]
-  );
-  if (r.rowCount === 0) return res.status(404).json({ error: 'allowance not found' });
+  const { data, error } = await supabase
+    .from('worker_allowances')
+    .delete()
+    .eq('id', req.params.id)
+    .select()
+    .single();
+  if (error || !data) return res.status(404).json({ error: 'allowance not found' });
   res.status(204).end();
 }));
 
@@ -320,49 +322,52 @@ app.delete('/api/worker-allowances/:id', asyncRoute(async (req, res) => {
 
 app.put('/api/workers/:id/documents/:name', asyncRoute(async (req, res) => {
   const b = req.body || {};
-  await pool.query(
-    `INSERT INTO worker_documents (worker_id, doc_name, status, file_name, uploaded_at)
-       VALUES ($1,$2,$3::document_status_enum,$4,$5)
-       ON CONFLICT (worker_id, doc_name) DO UPDATE
-         SET status = EXCLUDED.status,
-             file_name = EXCLUDED.file_name,
-             uploaded_at = EXCLUDED.uploaded_at`,
-    [req.params.id, req.params.name, b.status || 'missing',
-     b.file_name || null, b.uploaded_at || null]
+  const { error } = await supabase.from('worker_documents').upsert(
+    {
+      worker_id: req.params.id,
+      doc_name: req.params.name,
+      status: b.status || 'missing',
+      file_name: b.file_name || null,
+      uploaded_at: b.uploaded_at || null,
+    },
+    { onConflict: 'worker_id,doc_name' }
   );
+  if (error) throw new Error(error.message);
   res.status(204).end();
 }));
 
 // ─── Worker replacements ─────────────────────────────────────────────────────
 
 app.get('/api/worker-replacements', asyncRoute(async (req, res) => {
-  const r = await pool.query(
-    `SELECT id, original_worker_id, replacement_worker_id, days_missed,
-            reason, replaced_at FROM worker_replacements ORDER BY replaced_at DESC`);
-  res.json(r.rows.map(x => ({
+  const { data, error } = await supabase
+    .from('worker_replacements')
+    .select('id, original_worker_id, replacement_worker_id, days_missed, reason, replaced_at')
+    .order('replaced_at', { ascending: false });
+  if (error) throw new Error(error.message);
+  res.json((data || []).map(x => ({
     id: x.id,
     original_worker_id: x.original_worker_id,
     replacement_worker_id: x.replacement_worker_id,
     days_missed: x.days_missed,
     reason: x.reason,
-    replaced_at: x.replaced_at.toISOString(),
+    replaced_at: new Date(x.replaced_at).toISOString(),
   })));
 }));
 
 app.post('/api/worker-replacements', asyncRoute(async (req, res) => {
   const b = req.body || {};
-  await pool.query(
-    `INSERT INTO worker_replacements
-       (id, original_worker_id, replacement_worker_id, days_missed, reason, replaced_at)
-     VALUES ($1,$2,$3,$4,$5,$6)
-     ON CONFLICT (original_worker_id) DO UPDATE
-       SET replacement_worker_id = EXCLUDED.replacement_worker_id,
-           days_missed = EXCLUDED.days_missed,
-           reason = EXCLUDED.reason,
-           replaced_at = EXCLUDED.replaced_at`,
-    [b.id, b.original_worker_id, b.replacement_worker_id,
-     b.days_missed, b.reason, b.replaced_at]
+  const { error } = await supabase.from('worker_replacements').upsert(
+    {
+      id: b.id,
+      original_worker_id: b.original_worker_id,
+      replacement_worker_id: b.replacement_worker_id,
+      days_missed: b.days_missed,
+      reason: b.reason,
+      replaced_at: b.replaced_at,
+    },
+    { onConflict: 'original_worker_id' }
   );
+  if (error) throw new Error(error.message);
   res.status(201).json(b);
 }));
 
@@ -390,8 +395,8 @@ function shapeTimesheet(row, dailyRows, approvalRows) {
     corporation_name: row.corporation_name,
     electoral_district: row.electoral_district,
     group_number: row.group_number,
-    fortnight_start: row.fortnight_start.toISOString(),
-    fortnight_end: row.fortnight_end.toISOString(),
+    fortnight_start: new Date(row.fortnight_start).toISOString(),
+    fortnight_end: new Date(row.fortnight_end).toISOString(),
     bank_name: row.bank_name,
     account_number: row.account_number,
     branch_name: row.branch_name,
@@ -404,178 +409,186 @@ function shapeTimesheet(row, dailyRows, approvalRows) {
       reviewer_role: a.reviewer_role,
       state: a.state,
       note: a.note,
-      ts: a.ts.toISOString(),
+      ts: new Date(a.ts).toISOString(),
     })),
-    created_at: row.created_at.toISOString(),
-    updated_at: row.updated_at.toISOString(),
+    created_at: new Date(row.created_at).toISOString(),
+    updated_at: new Date(row.updated_at).toISOString(),
   };
 }
 
 app.get('/api/timesheets', asyncRoute(async (req, res) => {
-  const ts = await pool.query(`SELECT * FROM timesheets ORDER BY id`);
-  const daily = await pool.query(
-    `SELECT timesheet_id, day_index,
-            to_char(time_in, 'HH24:MI:SS') AS time_in,
-            to_char(time_out, 'HH24:MI:SS') AS time_out
-       FROM timesheet_daily_entries`);
-  const approvals = await pool.query(
-    `SELECT timesheet_id, reviewer_name, reviewer_role, state, note, ts, sequence_no
-       FROM timesheet_approvals ORDER BY timesheet_id, sequence_no`);
+  const { data: tsRows, error: tsErr } = await supabase.from('timesheets').select('*').order('id');
+  if (tsErr) throw new Error(tsErr.message);
+  const { data: daily } = await supabase
+    .from('timesheet_daily_entries')
+    .select('timesheet_id, day_index, time_in, time_out');
+  const { data: approvals } = await supabase
+    .from('timesheet_approvals')
+    .select('timesheet_id, reviewer_name, reviewer_role, state, note, ts, sequence_no')
+    .order('timesheet_id')
+    .order('sequence_no');
   const dailyByTs = new Map();
-  for (const d of daily.rows) {
+  for (const d of (daily || [])) {
     if (!dailyByTs.has(d.timesheet_id)) dailyByTs.set(d.timesheet_id, []);
     dailyByTs.get(d.timesheet_id).push(d);
   }
   const approvalsByTs = new Map();
-  for (const a of approvals.rows) {
+  for (const a of (approvals || [])) {
     if (!approvalsByTs.has(a.timesheet_id)) approvalsByTs.set(a.timesheet_id, []);
     approvalsByTs.get(a.timesheet_id).push(a);
   }
-  res.json(ts.rows.map(r => shapeTimesheet(
+  res.json((tsRows || []).map(r => shapeTimesheet(
     r, dailyByTs.get(r.id) || [], approvalsByTs.get(r.id) || []
   )));
 }));
 
 async function fetchTimesheet(id) {
-  const ts = await pool.query(`SELECT * FROM timesheets WHERE id = $1`, [id]);
-  if (ts.rowCount === 0) return null;
-  const daily = await pool.query(
-    `SELECT day_index,
-            to_char(time_in, 'HH24:MI:SS') AS time_in,
-            to_char(time_out, 'HH24:MI:SS') AS time_out
-       FROM timesheet_daily_entries WHERE timesheet_id = $1`, [id]);
-  const approvals = await pool.query(
-    `SELECT reviewer_name, reviewer_role, state, note, ts, sequence_no
-       FROM timesheet_approvals WHERE timesheet_id = $1 ORDER BY sequence_no`, [id]);
-  return shapeTimesheet(ts.rows[0], daily.rows, approvals.rows);
+  const { data: tsRow, error: tsErr } = await supabase.from('timesheets').select('*').eq('id', id).single();
+  if (tsErr || !tsRow) return null;
+  const { data: daily } = await supabase
+    .from('timesheet_daily_entries')
+    .select('day_index, time_in, time_out')
+    .eq('timesheet_id', id);
+  const { data: approvals } = await supabase
+    .from('timesheet_approvals')
+    .select('reviewer_name, reviewer_role, state, note, ts, sequence_no')
+    .eq('timesheet_id', id)
+    .order('sequence_no');
+  return shapeTimesheet(tsRow, daily || [], approvals || []);
 }
 
 app.post('/api/timesheets', asyncRoute(async (req, res) => {
   const b = req.body || {};
-  const client = await pool.connect();
-  try {
-    await client.query('BEGIN');
-    await client.query(
-      `INSERT INTO timesheets (
-         id, worker_id, worker_name, position, id_number, nis_number,
-         wage_rate, cola_rate, allowance_rate,
-         corporation_id, corporation_name, electoral_district, group_number,
-         fortnight_start, fortnight_end,
-         bank_name, account_number, branch_name,
-         allowance_days, remarks, stage, created_at, updated_at
-       ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21::timesheet_stage_enum,$22,$23)`,
-      [
-        b.id, b.worker_id, b.worker_name, b.position, b.id_number, b.nis_number,
-        b.wage_rate, b.cola_rate ?? 0, b.allowance_rate,
-        b.corporation_id, b.corporation_name, b.electoral_district, b.group_number,
-        b.fortnight_start, b.fortnight_end,
-        b.bank_name, b.account_number, b.branch_name,
-        b.allowance_days ?? 0, b.remarks ?? '', b.stage || 'notStarted',
-        b.created_at || new Date().toISOString(), b.updated_at || new Date().toISOString(),
-      ]
-    );
-    const entries = b.daily_entries || [];
-    for (let i = 0; i < entries.length; i++) {
-      const e = entries[i];
-      await client.query(
-        `INSERT INTO timesheet_daily_entries (timesheet_id, day_index, time_in, time_out)
-         VALUES ($1,$2,$3,$4)`,
-        [b.id, i, e.time_in || null, e.time_out || null]
-      );
-    }
-    await client.query('COMMIT');
-  } catch (e) {
-    await client.query('ROLLBACK');
-    throw e;
-  } finally {
-    client.release();
+
+  const { error: tsErr } = await supabase.from('timesheets').insert({
+    id: b.id,
+    worker_id: b.worker_id,
+    worker_name: b.worker_name,
+    position: b.position,
+    id_number: b.id_number,
+    nis_number: b.nis_number,
+    wage_rate: b.wage_rate,
+    cola_rate: b.cola_rate ?? 0,
+    allowance_rate: b.allowance_rate,
+    corporation_id: b.corporation_id,
+    corporation_name: b.corporation_name,
+    electoral_district: b.electoral_district,
+    group_number: b.group_number,
+    fortnight_start: b.fortnight_start,
+    fortnight_end: b.fortnight_end,
+    bank_name: b.bank_name,
+    account_number: b.account_number,
+    branch_name: b.branch_name,
+    allowance_days: b.allowance_days ?? 0,
+    remarks: b.remarks ?? '',
+    stage: b.stage || 'notStarted',
+    created_at: b.created_at || new Date().toISOString(),
+    updated_at: b.updated_at || new Date().toISOString(),
+  });
+  if (tsErr) throw new Error(tsErr.message);
+
+  const entries = b.daily_entries || [];
+  for (let i = 0; i < entries.length; i++) {
+    const e = entries[i];
+    const { error: eErr } = await supabase.from('timesheet_daily_entries').insert({
+      timesheet_id: b.id,
+      day_index: i,
+      time_in: e.time_in || null,
+      time_out: e.time_out || null,
+    });
+    if (eErr) throw new Error(eErr.message);
   }
+
   res.status(201).json(await fetchTimesheet(b.id));
 }));
 
 app.patch('/api/timesheets/:id', asyncRoute(async (req, res) => {
   const b = req.body || {};
-  const client = await pool.connect();
-  try {
-    await client.query('BEGIN');
-    if (b.stage || b.allowance_days !== undefined || b.remarks !== undefined) {
-      const cols = [];
-      const vals = [];
-      if (b.stage) { cols.push(`stage = $${cols.length + 1}::timesheet_stage_enum`); vals.push(b.stage); }
-      if (b.allowance_days !== undefined) { cols.push(`allowance_days = $${cols.length + 1}`); vals.push(b.allowance_days); }
-      if (b.remarks !== undefined) { cols.push(`remarks = $${cols.length + 1}`); vals.push(b.remarks); }
-      cols.push(`updated_at = NOW()`);
-      vals.push(req.params.id);
-      const sql = `UPDATE timesheets SET ${cols.join(', ')} WHERE id = $${vals.length}`;
-      const r = await client.query(sql, vals);
-      if (r.rowCount === 0) {
-        await client.query('ROLLBACK');
-        return res.status(404).json({ error: 'timesheet not found' });
-      }
-    }
-    if (Array.isArray(b.daily_entries)) {
-      for (let i = 0; i < b.daily_entries.length; i++) {
-        const e = b.daily_entries[i];
-        await client.query(
-          `INSERT INTO timesheet_daily_entries (timesheet_id, day_index, time_in, time_out)
-           VALUES ($1,$2,$3,$4)
-           ON CONFLICT (timesheet_id, day_index) DO UPDATE
-             SET time_in = EXCLUDED.time_in, time_out = EXCLUDED.time_out`,
-          [req.params.id, i, e.time_in || null, e.time_out || null]
-        );
-      }
-    }
-    await client.query('COMMIT');
-  } catch (e) {
-    await client.query('ROLLBACK');
-    throw e;
-  } finally {
-    client.release();
+
+  if (b.stage || b.allowance_days !== undefined || b.remarks !== undefined) {
+    const updateObj = { updated_at: new Date().toISOString() };
+    if (b.stage !== undefined) updateObj.stage = b.stage;
+    if (b.allowance_days !== undefined) updateObj.allowance_days = b.allowance_days;
+    if (b.remarks !== undefined) updateObj.remarks = b.remarks;
+    const { data, error } = await supabase
+      .from('timesheets')
+      .update(updateObj)
+      .eq('id', req.params.id)
+      .select()
+      .single();
+    if (error || !data) return res.status(404).json({ error: 'timesheet not found' });
   }
+
+  if (Array.isArray(b.daily_entries)) {
+    for (let i = 0; i < b.daily_entries.length; i++) {
+      const e = b.daily_entries[i];
+      const { error: eErr } = await supabase.from('timesheet_daily_entries').upsert(
+        {
+          timesheet_id: req.params.id,
+          day_index: i,
+          time_in: e.time_in || null,
+          time_out: e.time_out || null,
+        },
+        { onConflict: 'timesheet_id,day_index' }
+      );
+      if (eErr) throw new Error(eErr.message);
+    }
+  }
+
   res.json(await fetchTimesheet(req.params.id));
 }));
 
 app.post('/api/timesheets/:id/approvals', asyncRoute(async (req, res) => {
   const a = req.body || {};
-  const seqRow = await pool.query(
-    `SELECT COALESCE(MAX(sequence_no), 0) + 1 AS next FROM timesheet_approvals WHERE timesheet_id = $1`,
-    [req.params.id]
-  );
-  const seq = seqRow.rows[0].next;
-  await pool.query(
-    `INSERT INTO timesheet_approvals
-       (timesheet_id, sequence_no, reviewer_name, reviewer_role, state, note, ts)
-     VALUES ($1,$2,$3,$4,$5::approval_state_enum,$6,$7)`,
-    [req.params.id, seq, a.reviewer_name, a.reviewer_role,
-     a.state || 'approved', a.note, a.ts || new Date().toISOString()]
-  );
+  const { data: seqData } = await supabase
+    .from('timesheet_approvals')
+    .select('sequence_no')
+    .eq('timesheet_id', req.params.id)
+    .order('sequence_no', { ascending: false })
+    .limit(1);
+  const seq = seqData && seqData.length > 0 ? seqData[0].sequence_no + 1 : 1;
+  const { error } = await supabase.from('timesheet_approvals').insert({
+    timesheet_id: req.params.id,
+    sequence_no: seq,
+    reviewer_name: a.reviewer_name,
+    reviewer_role: a.reviewer_role,
+    state: a.state || 'approved',
+    note: a.note,
+    ts: a.ts || new Date().toISOString(),
+  });
+  if (error) throw new Error(error.message);
   res.status(201).json({ ...a, sequence_no: seq });
 }));
 
 // ─── Audit log ───────────────────────────────────────────────────────────────
 
 app.get('/api/audit-logs', asyncRoute(async (req, res) => {
-  const logs = await pool.query(
-    `SELECT * FROM app_audit_logs ORDER BY sequence_no`);
-  const fields = await pool.query(
-    `SELECT audit_log_id, sequence_no, field_name, old_value, new_value
-       FROM app_audit_field_changes ORDER BY audit_log_id, sequence_no`);
-  const atts = await pool.query(
-    `SELECT audit_log_id, id, file_name, mime_type, size_bytes, content_hash, uploaded_at
-       FROM app_audit_attachments`);
+  const { data: logs, error: lErr } = await supabase
+    .from('app_audit_logs')
+    .select('*')
+    .order('sequence_no');
+  if (lErr) throw new Error(lErr.message);
+  const { data: fields } = await supabase
+    .from('app_audit_field_changes')
+    .select('audit_log_id, sequence_no, field_name, old_value, new_value')
+    .order('audit_log_id')
+    .order('sequence_no');
+  const { data: atts } = await supabase
+    .from('app_audit_attachments')
+    .select('audit_log_id, id, file_name, mime_type, size_bytes, content_hash, uploaded_at');
   const fByLog = new Map();
-  for (const f of fields.rows) {
+  for (const f of (fields || [])) {
     if (!fByLog.has(f.audit_log_id)) fByLog.set(f.audit_log_id, []);
     fByLog.get(f.audit_log_id).push(f);
   }
   const aByLog = new Map();
-  for (const a of atts.rows) {
+  for (const a of (atts || [])) {
     if (!aByLog.has(a.audit_log_id)) aByLog.set(a.audit_log_id, []);
     aByLog.get(a.audit_log_id).push(a);
   }
-  res.json(logs.rows.map(r => ({
+  res.json((logs || []).map(r => ({
     id: r.id,
-    timestamp: r.timestamp.toISOString(),
+    timestamp: new Date(r.timestamp).toISOString(),
     user_id: r.user_id,
     user_name: r.user_name,
     user_role: r.user_role,
@@ -595,7 +608,7 @@ app.get('/api/audit-logs', asyncRoute(async (req, res) => {
       mime_type: a.mime_type,
       size_bytes: Number(a.size_bytes),
       content_hash: a.content_hash,
-      uploaded_at: a.uploaded_at.toISOString(),
+      uploaded_at: new Date(a.uploaded_at).toISOString(),
     })),
     note: r.note,
     actor_context: r.actor_context,
@@ -606,121 +619,125 @@ app.get('/api/audit-logs', asyncRoute(async (req, res) => {
 
 app.post('/api/audit-logs', asyncRoute(async (req, res) => {
   const b = req.body || {};
-  const client = await pool.connect();
-  try {
-    await client.query('BEGIN');
-    await client.query(
-      `INSERT INTO app_audit_logs (
-         id, timestamp, user_id, user_name, user_role, session_id,
-         action, entity_type, entity_id, entity_display_name,
-         note, actor_context, hash, previous_hash
-       ) VALUES ($1,$2,$3,$4,$5,$6,$7::audit_action_enum,$8::audit_entity_type_enum,$9,$10,$11,$12,$13,$14)`,
-      [b.id, b.timestamp, b.user_id, b.user_name, b.user_role, b.session_id,
-       b.action, b.entity_type, b.entity_id, b.entity_display_name,
-       b.note, b.actor_context, b.hash, b.previous_hash || '']
-    );
-    const fcs = b.field_changes || [];
-    for (let i = 0; i < fcs.length; i++) {
-      await client.query(
-        `INSERT INTO app_audit_field_changes
-           (audit_log_id, sequence_no, field_name, old_value, new_value)
-         VALUES ($1,$2,$3,$4,$5)`,
-        [b.id, i + 1, fcs[i].field_name, fcs[i].old_value, fcs[i].new_value]
-      );
-    }
-    const atts = b.attachments || [];
-    for (const a of atts) {
-      await client.query(
-        `INSERT INTO app_audit_attachments
-           (id, audit_log_id, file_name, mime_type, size_bytes, content_hash, uploaded_at)
-         VALUES ($1,$2,$3,$4,$5,$6,$7)`,
-        [a.id, b.id, a.file_name, a.mime_type, a.size_bytes, a.content_hash, a.uploaded_at]
-      );
-    }
-    await client.query('COMMIT');
-  } catch (e) {
-    await client.query('ROLLBACK');
-    throw e;
-  } finally {
-    client.release();
+
+  const { error: lErr } = await supabase.from('app_audit_logs').insert({
+    id: b.id,
+    timestamp: b.timestamp,
+    user_id: b.user_id,
+    user_name: b.user_name,
+    user_role: b.user_role,
+    session_id: b.session_id,
+    action: b.action,
+    entity_type: b.entity_type,
+    entity_id: b.entity_id,
+    entity_display_name: b.entity_display_name,
+    note: b.note,
+    actor_context: b.actor_context,
+    hash: b.hash,
+    previous_hash: b.previous_hash || '',
+  });
+  if (lErr) throw new Error(lErr.message);
+
+  const fcs = b.field_changes || [];
+  for (let i = 0; i < fcs.length; i++) {
+    const { error: fcErr } = await supabase.from('app_audit_field_changes').insert({
+      audit_log_id: b.id,
+      sequence_no: i + 1,
+      field_name: fcs[i].field_name,
+      old_value: fcs[i].old_value,
+      new_value: fcs[i].new_value,
+    });
+    if (fcErr) throw new Error(fcErr.message);
   }
+
+  const attachments = b.attachments || [];
+  for (const a of attachments) {
+    const { error: attErr } = await supabase.from('app_audit_attachments').insert({
+      id: a.id,
+      audit_log_id: b.id,
+      file_name: a.file_name,
+      mime_type: a.mime_type,
+      size_bytes: a.size_bytes,
+      content_hash: a.content_hash,
+      uploaded_at: a.uploaded_at,
+    });
+    if (attErr) throw new Error(attErr.message);
+  }
+
   res.status(201).json(b);
 }));
 
 // ─── Roster settings + Rosters ───────────────────────────────────────────────
 
 app.get('/api/roster-settings', asyncRoute(async (req, res) => {
-  const r = await pool.query(
-    `SELECT corporation_id, max_days_per_fortnight, allow_weekend_work,
-            allow_max_days_override, data_entry_can_override
-       FROM roster_settings`);
-  res.json(r.rows);
+  const { data, error } = await supabase
+    .from('roster_settings')
+    .select('corporation_id, max_days_per_fortnight, allow_weekend_work, allow_max_days_override, data_entry_can_override');
+  if (error) throw new Error(error.message);
+  res.json(data || []);
 }));
 
 app.patch('/api/roster-settings/:corporationId', asyncRoute(async (req, res) => {
   const b = req.body || {};
-  await pool.query(
-    `INSERT INTO roster_settings (
-       corporation_id, max_days_per_fortnight, allow_weekend_work,
-       allow_max_days_override, data_entry_can_override, updated_at
-     ) VALUES ($1,$2,$3,$4,$5, NOW())
-     ON CONFLICT (corporation_id) DO UPDATE SET
-       max_days_per_fortnight = EXCLUDED.max_days_per_fortnight,
-       allow_weekend_work = EXCLUDED.allow_weekend_work,
-       allow_max_days_override = EXCLUDED.allow_max_days_override,
-       data_entry_can_override = EXCLUDED.data_entry_can_override,
-       updated_at = NOW()`,
-    [req.params.corporationId,
-     b.max_days_per_fortnight ?? 10,
-     b.allow_weekend_work ?? false,
-     b.allow_max_days_override ?? true,
-     b.data_entry_can_override ?? false]
+  const { error } = await supabase.from('roster_settings').upsert(
+    {
+      corporation_id: req.params.corporationId,
+      max_days_per_fortnight: b.max_days_per_fortnight ?? 10,
+      allow_weekend_work: b.allow_weekend_work ?? false,
+      allow_max_days_override: b.allow_max_days_override ?? true,
+      data_entry_can_override: b.data_entry_can_override ?? false,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: 'corporation_id' }
   );
+  if (error) throw new Error(error.message);
   res.status(204).end();
 }));
 
 app.get('/api/rosters', asyncRoute(async (req, res) => {
-  const rosters = await pool.query(
-    `SELECT * FROM rosters ORDER BY fortnight_start DESC, corporation_id`);
-  const recs = await pool.query(
-    `SELECT rwr.roster_id, rwr.worker_id, w.full_name AS worker_name,
-            w.position, w.corporation_id, rwr.max_days_override, rwr.notes
-       FROM roster_worker_records rwr
-       JOIN workers w ON w.id = rwr.worker_id`);
-  const days = await pool.query(
-    `SELECT roster_id, worker_id, day_index, entry_date, is_present, absence_reason
-       FROM roster_day_entries`);
+  const { data: rosters, error: rErr } = await supabase
+    .from('rosters')
+    .select('*')
+    .order('fortnight_start', { ascending: false })
+    .order('corporation_id');
+  if (rErr) throw new Error(rErr.message);
+  const { data: recs } = await supabase
+    .from('roster_worker_records')
+    .select('roster_id, worker_id, max_days_override, notes, workers(full_name, position, corporation_id)');
+  const { data: days } = await supabase
+    .from('roster_day_entries')
+    .select('roster_id, worker_id, day_index, entry_date, is_present, absence_reason');
   const recsByRoster = new Map();
-  for (const r of recs.rows) {
+  for (const r of (recs || [])) {
     if (!recsByRoster.has(r.roster_id)) recsByRoster.set(r.roster_id, []);
     recsByRoster.get(r.roster_id).push(r);
   }
   const daysByKey = new Map();
-  for (const d of days.rows) {
+  for (const d of (days || [])) {
     const k = `${d.roster_id}|${d.worker_id}`;
     if (!daysByKey.has(k)) daysByKey.set(k, []);
     daysByKey.get(k).push(d);
   }
-  res.json(rosters.rows.map(r => ({
+  res.json((rosters || []).map(r => ({
     id: r.id,
     corporation_id: r.corporation_id,
     corporation_name: r.corporation_name,
-    fortnight_start: r.fortnight_start.toISOString(),
-    fortnight_end: r.fortnight_end.toISOString(),
-    last_modified: r.last_modified.toISOString(),
+    fortnight_start: new Date(r.fortnight_start).toISOString(),
+    fortnight_end: new Date(r.fortnight_end).toISOString(),
+    last_modified: new Date(r.last_modified).toISOString(),
     last_modified_by: r.last_modified_by,
     worker_records: (recsByRoster.get(r.id) || []).map(rec => {
       const ds = (daysByKey.get(`${r.id}|${rec.worker_id}`) || [])
         .sort((a, b) => a.day_index - b.day_index);
       return {
         worker_id: rec.worker_id,
-        worker_name: rec.worker_name,
-        position: rec.position,
-        corporation_id: rec.corporation_id,
+        worker_name: rec.workers?.full_name ?? null,
+        position: rec.workers?.position ?? null,
+        corporation_id: rec.workers?.corporation_id ?? null,
         max_days_override: rec.max_days_override,
         notes: rec.notes,
         days: ds.map(d => ({
-          entry_date: d.entry_date.toISOString(),
+          entry_date: new Date(d.entry_date).toISOString(),
           is_present: d.is_present,
           absence_reason: d.absence_reason,
         })),
@@ -732,19 +749,24 @@ app.get('/api/rosters', asyncRoute(async (req, res) => {
 app.put('/api/rosters/:rosterId/workers/:workerId/days/:dayIndex',
   asyncRoute(async (req, res) => {
     const b = req.body || {};
-    await pool.query(
-      `UPDATE roster_day_entries
-          SET is_present = $1,
-              absence_reason = $2
-        WHERE roster_id = $3 AND worker_id = $4 AND day_index = $5`,
-      [b.is_present, b.absence_reason || null,
-       req.params.rosterId, req.params.workerId, parseInt(req.params.dayIndex, 10)]
-    );
-    await pool.query(
-      `UPDATE rosters SET last_modified = NOW(), last_modified_by = $1
-         WHERE id = $2`,
-      [b.modified_by || null, req.params.rosterId]
-    );
+    const { error: deErr } = await supabase
+      .from('roster_day_entries')
+      .update({
+        is_present: b.is_present,
+        absence_reason: b.absence_reason || null,
+      })
+      .eq('roster_id', req.params.rosterId)
+      .eq('worker_id', req.params.workerId)
+      .eq('day_index', parseInt(req.params.dayIndex, 10));
+    if (deErr) throw new Error(deErr.message);
+    const { error: rErr } = await supabase
+      .from('rosters')
+      .update({
+        last_modified: new Date().toISOString(),
+        last_modified_by: b.modified_by || null,
+      })
+      .eq('id', req.params.rosterId);
+    if (rErr) throw new Error(rErr.message);
     res.status(204).end();
   })
 );
@@ -752,31 +774,33 @@ app.put('/api/rosters/:rosterId/workers/:workerId/days/:dayIndex',
 // ─── Backpay ─────────────────────────────────────────────────────────────────
 
 app.get('/api/backpay-records', asyncRoute(async (req, res) => {
-  const recs = await pool.query(
-    `SELECT * FROM backpay_records ORDER BY calculated_at DESC`);
-  const lines = await pool.query(
-    `SELECT backpay_record_id, timesheet_id, fortnight_start, days_worked,
-            old_daily_rate, new_daily_rate, old_cola_rate, new_cola_rate
-       FROM backpay_line_items`);
+  const { data: recs, error: rErr } = await supabase
+    .from('backpay_records')
+    .select('*')
+    .order('calculated_at', { ascending: false });
+  if (rErr) throw new Error(rErr.message);
+  const { data: lines } = await supabase
+    .from('backpay_line_items')
+    .select('backpay_record_id, timesheet_id, fortnight_start, days_worked, old_daily_rate, new_daily_rate, old_cola_rate, new_cola_rate');
   const linesByRec = new Map();
-  for (const l of lines.rows) {
+  for (const l of (lines || [])) {
     if (!linesByRec.has(l.backpay_record_id)) linesByRec.set(l.backpay_record_id, []);
     linesByRec.get(l.backpay_record_id).push(l);
   }
-  res.json(recs.rows.map(r => ({
+  res.json((recs || []).map(r => ({
     id: r.id,
     worker_id: r.worker_id,
     worker_name: r.worker_name,
     corporation_id: r.corporation_id,
     corporation_name: r.corporation_name,
-    effective_from: r.effective_from.toISOString(),
+    effective_from: new Date(r.effective_from).toISOString(),
     old_wage_rate: Number(r.old_wage_rate),
     new_wage_rate: Number(r.new_wage_rate),
     old_cola_rate: Number(r.old_cola_rate),
     new_cola_rate: Number(r.new_cola_rate),
     line_items: (linesByRec.get(r.id) || []).map(l => ({
       timesheet_id: l.timesheet_id,
-      fortnight_start: l.fortnight_start.toISOString(),
+      fortnight_start: new Date(l.fortnight_start).toISOString(),
       days_worked: l.days_worked,
       old_daily_rate: Number(l.old_daily_rate),
       new_daily_rate: Number(l.new_daily_rate),
@@ -784,7 +808,7 @@ app.get('/api/backpay-records', asyncRoute(async (req, res) => {
       new_cola_rate: Number(l.new_cola_rate),
     })),
     status: r.status,
-    calculated_at: r.calculated_at.toISOString(),
+    calculated_at: new Date(r.calculated_at).toISOString(),
     calculated_by_user_id: r.calculated_by_user_id,
     note: r.note,
   })));
@@ -792,48 +816,52 @@ app.get('/api/backpay-records', asyncRoute(async (req, res) => {
 
 app.post('/api/backpay-records', asyncRoute(async (req, res) => {
   const b = req.body || {};
-  const client = await pool.connect();
-  try {
-    await client.query('BEGIN');
-    await client.query(
-      `INSERT INTO backpay_records (
-         id, worker_id, worker_name, corporation_id, corporation_name,
-         effective_from, old_wage_rate, new_wage_rate, old_cola_rate, new_cola_rate,
-         status, note, calculated_at, calculated_by_user_id
-       ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11::backpay_status_enum,$12,$13,$14)`,
-      [b.id, b.worker_id, b.worker_name, b.corporation_id, b.corporation_name,
-       b.effective_from, b.old_wage_rate, b.new_wage_rate,
-       b.old_cola_rate, b.new_cola_rate,
-       b.status || 'calculated', b.note, b.calculated_at, b.calculated_by_user_id]
-    );
-    for (const l of (b.line_items || [])) {
-      await client.query(
-        `INSERT INTO backpay_line_items
-           (backpay_record_id, timesheet_id, fortnight_start, days_worked,
-            old_daily_rate, new_daily_rate, old_cola_rate, new_cola_rate)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
-        [b.id, l.timesheet_id, l.fortnight_start, l.days_worked,
-         l.old_daily_rate, l.new_daily_rate, l.old_cola_rate, l.new_cola_rate]
-      );
-    }
-    await client.query('COMMIT');
-  } catch (e) {
-    await client.query('ROLLBACK');
-    throw e;
-  } finally {
-    client.release();
+
+  const { error: bErr } = await supabase.from('backpay_records').insert({
+    id: b.id,
+    worker_id: b.worker_id,
+    worker_name: b.worker_name,
+    corporation_id: b.corporation_id,
+    corporation_name: b.corporation_name,
+    effective_from: b.effective_from,
+    old_wage_rate: b.old_wage_rate,
+    new_wage_rate: b.new_wage_rate,
+    old_cola_rate: b.old_cola_rate,
+    new_cola_rate: b.new_cola_rate,
+    status: b.status || 'calculated',
+    note: b.note,
+    calculated_at: b.calculated_at,
+    calculated_by_user_id: b.calculated_by_user_id,
+  });
+  if (bErr) throw new Error(bErr.message);
+
+  for (const l of (b.line_items || [])) {
+    const { error: lErr } = await supabase.from('backpay_line_items').insert({
+      backpay_record_id: b.id,
+      timesheet_id: l.timesheet_id,
+      fortnight_start: l.fortnight_start,
+      days_worked: l.days_worked,
+      old_daily_rate: l.old_daily_rate,
+      new_daily_rate: l.new_daily_rate,
+      old_cola_rate: l.old_cola_rate,
+      new_cola_rate: l.new_cola_rate,
+    });
+    if (lErr) throw new Error(lErr.message);
   }
+
   res.status(201).json(b);
 }));
 
 app.patch('/api/backpay-records/:id', asyncRoute(async (req, res) => {
   const b = req.body || {};
   if (!b.status) return res.status(400).json({ error: 'status required' });
-  const r = await pool.query(
-    `UPDATE backpay_records SET status = $1::backpay_status_enum WHERE id = $2`,
-    [b.status, req.params.id]
-  );
-  if (r.rowCount === 0) return res.status(404).json({ error: 'backpay record not found' });
+  const { data, error } = await supabase
+    .from('backpay_records')
+    .update({ status: b.status })
+    .eq('id', req.params.id)
+    .select()
+    .single();
+  if (error || !data) return res.status(404).json({ error: 'backpay record not found' });
   res.status(204).end();
 }));
 
