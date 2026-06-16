@@ -21,29 +21,68 @@ npups_core, npups_ref, npups_hr, npups_time, npups_pay, npups_bank
 
 (Leave `npups_audit` unexposed.)
 
-## 2. Environment variables to update
+## 2. Environment variables — `.env` + Coolify (do both)
 
-### Flutter web build (dart-define) — Coolify build args / Dockerfile
+Flutter web compiles to static JS, so `SUPABASE_URL` / `SUPABASE_ANON_KEY` must
+be present **at `flutter build` time** — they are baked into the bundle. There
+is no runtime env-var read in the browser. That makes the layout:
+
+| Where | Purpose | Committed? |
+|-------|---------|------------|
+| `.env.example` | Template documenting which keys exist | ✅ yes |
+| `.env` (root) | Local dev convenience | ❌ gitignored |
+| **Coolify → Build Environment Variables** | Production source of truth | (Coolify-managed) |
 
 | Variable | Value | Notes |
 |----------|-------|-------|
 | `SUPABASE_URL` | `https://<your-supabase-domain>` | Your Coolify Supabase Kong/API gateway URL |
 | `SUPABASE_ANON_KEY` | `eyJhbGc...` | The **anon / public** key (never the service_role key) |
 
-Pass them at build time, e.g.:
+> The anon key is **public by design** — it appears in the compiled JS bundle no
+> matter how you provide it. Security comes from RLS (script `99_rls.sql`), not
+> from hiding the anon key. The `service_role` key must never touch the Flutter
+> code or any build arg.
+
+### Local dev — using `.env`
 
 ```bash
-flutter build web \
-  --dart-define=SUPABASE_URL=https://supabase.example.com \
-  --dart-define=SUPABASE_ANON_KEY=eyJhbGc...
+cp .env.example .env          # one-time
+# edit .env with your values
+
+flutter run -d chrome --dart-define-from-file=.env
+# or
+flutter build web --release --dart-define-from-file=.env
 ```
 
-In the `Dockerfile`, forward them into the `flutter build web` step as
-`--dart-define` args (add `ARG`/`ENV` for `SUPABASE_URL` and
-`SUPABASE_ANON_KEY` and reference them in the build command).
+`.env` is gitignored, so values never leave your machine.
 
-> The anon key is public by design — RLS (step 9) is what enforces tenant
-> isolation. Do **not** ship the `service_role` key in the Flutter bundle.
+### Production — Coolify
+
+1. **Coolify dashboard → your NPUPS service → Environment Variables**, set as
+   *Build* (not Runtime) variables:
+   - `SUPABASE_URL`
+   - `SUPABASE_ANON_KEY`
+2. **Build command / image** — the `Dockerfile` already declares matching
+   `ARG`s and forwards them into `flutter build web --dart-define=...`. Make
+   sure Coolify passes the env vars as build args (in Coolify's Dockerfile
+   build, "Build Variables" or equivalent → toggle "Pass as build arg"). With
+   docker build directly:
+   ```bash
+   docker build \
+     --build-arg SUPABASE_URL=$SUPABASE_URL \
+     --build-arg SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY \
+     -t npups-web .
+   ```
+
+### Why both?
+
+| Scenario | What protects you |
+|----------|-------------------|
+| Dev pushes code to git | `.gitignore` keeps `.env` out of history |
+| Dev runs `flutter run` locally | `--dart-define-from-file=.env` injects values |
+| Coolify rebuilds on push | Build env vars → ARGs → `--dart-define` |
+| Browser DevTools opens the bundle | Anon key visible (expected); RLS denies cross-tenant data |
+| A team member rotates the anon key | Update Coolify (prod) + your local `.env`; redeploy |
 
 ### Backend / server (only if you keep `server/index.js`)
 

@@ -1,0 +1,26 @@
+# Build / IDE artifacts
+build/
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub/
+.pub-cache/
+**/generated_plugin_registrant.dart
+
+# Secrets — local-only env files
+.env
+.env.local
+.env.*.local
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Coverage
+coverage/
