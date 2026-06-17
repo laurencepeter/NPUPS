@@ -1,5 +1,5 @@
 # Stage 1: Build Flutter Web
-#FROM ghcr.io/cirruslabs/flutter:stable AS build
+#FROM ghcr.io/cirruslabs/flutter:3.32.2 AS build
 #WORKDIR /app
 #COPY pubspec.yaml ./
 #RUN flutter pub get
@@ -15,7 +15,7 @@
 
 
 # Stage 1: Build Flutter Web
-FROM ghcr.io/cirruslabs/flutter:stable AS build
+FROM ghcr.io/cirruslabs/flutter:3.32.2 AS build
 
 # Create app directory
 WORKDIR /app
