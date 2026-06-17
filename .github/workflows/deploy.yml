@@ -1,10 +1,19 @@
 name: Build and Deploy
 
+# Build + publish the web image only on push to the deploy branches. PRs are
+# gated by test.yml (lint + unit/widget tests); the heavy Flutter+Docker image
+# build is intentionally NOT run on PRs to keep them fast. Trade-off: Dockerfile/
+# nginx changes and release-only (dart2js) compile failures surface on `main`
+# after merge rather than on the PR.
 on:
   push:
     branches: [master, main]
-  pull_request:
-    branches: [master, main]
+
+# Cancel an in-flight build when a newer commit lands on the same branch, so the
+# :latest tag (which the Coolify deploy pulls) always reflects the newest commit.
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build-and-deploy:
@@ -121,4 +130,47 @@ jobs:
                 exit 1
               fi
             done
+          done
+
+      # Trigger the Coolify deployment only AFTER the fresh web image is in GHCR,
+      # so the deploy pulls this commit's image (not the previous one). Configure
+      # the COOLIFY_DEPLOY_WEBHOOK secret (Coolify → resource → Webhooks) and, in
+      # Coolify, disable "deploy on git push" so this is the single trigger.
+      # No-op (skipped) until the secret is set, so it never breaks the build.
+      - name: Trigger Coolify deploy
+        if: >-
+          (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main') &&
+          env.COOLIFY_DEPLOY_WEBHOOK != ''
+        env:
+          COOLIFY_DEPLOY_WEBHOOK: ${{ secrets.COOLIFY_DEPLOY_WEBHOOK }}
+          COOLIFY_API_TOKEN: ${{ secrets.COOLIFY_API_TOKEN }}
+        run: |
+          echo "Triggering Coolify deployment..."
+          AUTH_HEADER=()
+          if [ -n "$COOLIFY_API_TOKEN" ]; then
+            AUTH_HEADER=(-H "Authorization: Bearer $COOLIFY_API_TOKEN")
+          fi
+
+          MAX_RETRIES=5
+          RETRY_DELAY=2
+          ATTEMPT=0
+          while [ $ATTEMPT -lt $MAX_RETRIES ]; do
+            ATTEMPT=$((ATTEMPT + 1))
+            echo "Deploy trigger attempt $ATTEMPT of $MAX_RETRIES..."
+            STATUS=$(curl -sS -o /dev/null -w "%{http_code}" -X GET \
+              "${AUTH_HEADER[@]}" "$COOLIFY_DEPLOY_WEBHOOK" || echo "000")
+
+            if [ "$STATUS" -ge 200 ] && [ "$STATUS" -lt 300 ]; then
+              echo "Coolify deploy triggered (HTTP $STATUS)."
+              break
+            fi
+
+            if [ $ATTEMPT -lt $MAX_RETRIES ]; then
+              echo "Trigger failed (HTTP $STATUS). Retrying in ${RETRY_DELAY}s..."
+              sleep $RETRY_DELAY
+              RETRY_DELAY=$((RETRY_DELAY * 2))
+            else
+              echo "Coolify deploy trigger failed after $MAX_RETRIES attempts (HTTP $STATUS)."
+              exit 1
+            fi
           done

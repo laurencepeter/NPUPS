@@ -122,9 +122,26 @@ Postgres that is never bundled with the app. Deploy with
 
 | Service  | Public?              | Notes                                            |
 |----------|----------------------|--------------------------------------------------|
-| `web`    | yes — your domain    | nginx + Flutter; proxies `/api/*` to `api`       |
+| `web`    | yes — your domain    | nginx + **prebuilt** Flutter bundle, pulled from GHCR; proxies `/api/*` to `api` |
 | `api`    | no — internal only   | Node backend; the only process that reaches the DB |
 | Postgres | no — internal only   | your managed database, outside this compose      |
+
+The `web` image is **not** built on the deploy host. `flutter build web --release`
+(dart2js) peaks at ~1.6 GB RAM and overwhelmed the Coolify build box, killing the
+deploy mid-compile. The Flutter compile now runs in GitHub Actions
+(`.github/workflows/deploy.yml`), which publishes the finished nginx image to
+`ghcr.io/<owner>/npups:latest`; Coolify just pulls it. The small `api` image still
+builds on the host (~15 s).
+
+For this to work:
+
+- The GHCR package must be **public**, or add registry credentials in Coolify.
+- Disable Coolify's **deploy-on-git-push** and let the GitHub Actions workflow
+  trigger the deploy *after* it pushes the image — set a `COOLIFY_DEPLOY_WEBHOOK`
+  repo secret (and optional `COOLIFY_API_TOKEN`). Otherwise a deploy that races CI
+  pulls the previous commit's web image.
+- To pin a specific image instead of tracking `latest`, set `WEB_IMAGE` in Coolify
+  (e.g. `ghcr.io/<owner>/npups:<sha>`).
 
 In Coolify, create a **Docker Compose** resource (not a Dockerfile app), set
 its compose location to `docker-compose.prod.yml`, then configure:

@@ -7,14 +7,30 @@
 #   Browser ──▶ web (nginx + Flutter)  ──▶  api (Node)  ──▶  Supabase
 #               public: your domain        internal only
 #
+# ── Why `web` is a prebuilt image, not a `build:` ─────────────────────────────
+#   `flutter build web --release` runs dart2js, which peaks at ~1.6 GB RAM and is
+#   CPU-heavy. On the constrained Coolify build host it exhausted resources and
+#   the build container was killed mid-compile (deploy exit 255). The Flutter
+#   compile now happens in GitHub Actions (.github/workflows/deploy.yml), which
+#   publishes the finished nginx image to GHCR. Coolify simply *pulls* it — no
+#   dart2js on the host. The tiny `api` image still builds on the host (~15 s).
+#
 # ── Coolify setup ────────────────────────────────────────────────────────────
 #   1. Create a resource of type "Docker Compose" (not "Dockerfile").
 #   2. Set its "Docker Compose Location" to:  docker-compose.prod.yml
-#   3. Add TWO environment variables in the Coolify UI:
+#   3. Add environment variables in the Coolify UI:
 #        SUPABASE_URL      → https://supabase.fireydev.com
 #        SUPABASE_ANON_KEY → eyJ...
+#        WEB_IMAGE         → (optional) override the web image tag; defaults to
+#                            ghcr.io/laurencepeter/npups:latest
 #   4. Assign your public domain to the `web` service (port 80).
 #      Do NOT give `api` a domain — it must stay internal.
+#   5. The web image must be pullable by the host: make the GHCR package public,
+#      or add registry credentials in Coolify.
+#   6. IMPORTANT ordering: deploy *after* CI publishes the image. Disable
+#      Coolify's "deploy on push" and instead let the GitHub Actions deploy
+#      workflow trigger the Coolify deploy webhook (see deploy.yml). Otherwise a
+#      deploy that races CI will pull the previous commit's web image.
 # ─────────────────────────────────────────────────────────────────────────────
 
 services:
@@ -29,9 +45,10 @@ services:
       - "8080"
 
   web:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    # Prebuilt by CI — see deploy.yml. Override the tag with the WEB_IMAGE env var
+    # (e.g. pin to a commit SHA) if you don't want to track :latest.
+    image: ${WEB_IMAGE:-ghcr.io/laurencepeter/npups:latest}
+    pull_policy: always
     restart: unless-stopped
     environment:
       API_UPSTREAM: "http://api:8080"
