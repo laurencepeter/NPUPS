@@ -1,9 +1,12 @@
 name: Build and Deploy
 
+# Build + publish the web image only on push to the deploy branches. PRs are
+# gated by test.yml (lint + unit/widget tests); the heavy Flutter+Docker image
+# build is intentionally NOT run on PRs to keep them fast. Trade-off: Dockerfile/
+# nginx changes and release-only (dart2js) compile failures surface on `main`
+# after merge rather than on the PR.
 on:
   push:
-    branches: [master, main]
-  pull_request:
     branches: [master, main]
 
 # Cancel an in-flight build when a newer commit lands on the same branch, so the
