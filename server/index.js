@@ -12,14 +12,43 @@ const cors = require('cors');
 const { createClient } = require('@supabase/supabase-js');
 
 const PORT = parseInt(process.env.PORT || '8080', 10);
-const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
-if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-  console.error('FATAL: SUPABASE_URL and SUPABASE_ANON_KEY must be set');
+// Trim so a stray space/newline pasted into the Coolify env UI doesn't turn a
+// valid value into a "fails to parse as URL" crash that's hard to spot.
+const SUPABASE_URL = (process.env.SUPABASE_URL || '').trim();
+const SUPABASE_ANON_KEY = (process.env.SUPABASE_ANON_KEY || '').trim();
+
+// Fail fast WITH a specific reason. A bare crash here just shows up in Coolify
+// as "no containers running"; naming the exact missing/invalid var is the
+// difference between a 30-second fix and an hour of guessing.
+const missing = [];
+if (!SUPABASE_URL) missing.push('SUPABASE_URL');
+if (!SUPABASE_ANON_KEY) missing.push('SUPABASE_ANON_KEY');
+if (missing.length) {
+  console.error(
+    `FATAL: missing required environment variable(s): ${missing.join(', ')}. ` +
+      'Set them on the api service in the Coolify UI (Environment Variables).',
+  );
+  process.exit(1);
+}
+try {
+  // Validate before handing to createClient, which throws an opaque error on a
+  // malformed URL. This message points straight at the typo.
+  new URL(SUPABASE_URL);
+} catch {
+  console.error(
+    `FATAL: SUPABASE_URL is not a valid URL: "${SUPABASE_URL}". ` +
+      'Expected something like https://your-project.supabase.co (no trailing space).',
+  );
   process.exit(1);
 }
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+let supabase;
+try {
+  supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+} catch (e) {
+  console.error(`FATAL: failed to initialise Supabase client: ${e.message}`);
+  process.exit(1);
+}
 
 const app = express();
 app.use(cors());
