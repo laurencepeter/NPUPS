@@ -36,10 +36,42 @@ function isoOrNull(v) {
 }
 
 // ─── Health / readiness ──────────────────────────────────────────────────────
+//
+// Two distinct checks, on purpose:
+//
+//   /api/health  — LIVENESS. Answers "is this process up and accepting
+//                  connections?" and nothing more. It must NOT touch Supabase
+//                  or any other external dependency: the container healthcheck
+//                  (docker-compose.prod.yml) polls this, and if it depended on
+//                  Supabase, any Supabase slowness/outage would make Docker
+//                  mark the container unhealthy and Coolify would restart-loop
+//                  it — even though Express is fine. Returns 200 instantly.
+//
+//   /api/ready   — READINESS. Answers "can I actually reach Supabase right
+//                  now?". Used for debugging/observability, NOT by the
+//                  container healthcheck. Bounded by a short timeout so a
+//                  hung/unreachable Supabase host can never make this request
+//                  hang either.
 
-app.get('/api/health', asyncRoute(async (req, res) => {
-  const { error } = await supabase.from('workers').select('id').limit(1);
-  res.json({ ok: !error, version: '1.0.0' });
+app.get('/api/health', (req, res) => {
+  res.json({ ok: true, version: '1.0.0' });
+});
+
+app.get('/api/ready', asyncRoute(async (req, res) => {
+  const TIMEOUT_MS = 3000;
+  const probe = supabase.from('workers').select('id').limit(1);
+  const timeout = new Promise((_, reject) =>
+    setTimeout(() => reject(new Error('supabase probe timed out')), TIMEOUT_MS),
+  );
+  try {
+    const { error } = await Promise.race([probe, timeout]);
+    if (error) {
+      return res.status(503).json({ ok: false, supabase: 'error', detail: error.message });
+    }
+    res.json({ ok: true, supabase: 'reachable', version: '1.0.0' });
+  } catch (e) {
+    res.status(503).json({ ok: false, supabase: 'unreachable', detail: e.message });
+  }
 }));
 
 // ─── Workers ─────────────────────────────────────────────────────────────────
