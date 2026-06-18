@@ -22,8 +22,14 @@ services:
     build: ./server
     restart: unless-stopped
     environment:
-      SUPABASE_URL: ${SUPABASE_URL:?set SUPABASE_URL in Coolify environment variables}
-      SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY:?set SUPABASE_ANON_KEY in Coolify environment variables}
+      # NOTE: no ${VAR:?...} guard on purpose. That guard aborts `docker compose
+      # up` before any container is created, leaving nothing in `docker ps -a`
+      # and no logs — which makes a missing env var almost impossible to
+      # diagnose on Coolify. Instead we let the container start and have the app
+      # (server/index.js) fail fast with a specific FATAL message you can read
+      # via `docker logs`. Set these in the Coolify UI on the api service.
+      SUPABASE_URL: ${SUPABASE_URL}
+      SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY}
       PORT: "8080"
     expose:
       - "8080"
