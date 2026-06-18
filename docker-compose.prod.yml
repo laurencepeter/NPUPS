@@ -11,10 +11,10 @@
 #   `web` builds on the Coolify host from the root Dockerfile (`build: .`), which
 #   runs `flutter build web --release` (dart2js). dart2js is memory/CPU-heavy and
 #   at the default optimization (O4) it OOM-killed this constrained host
-#   mid-compile (deploy exit 255). The fix lives in the Dockerfile: the build now
-#   runs at dart2js optimization O2 to cap peak RAM. If the host is still killed
-#   mid-compile, lower it to O1 there, or give the host more RAM/swap. The tiny
-#   `api` image also builds on the host (~15 s).
+#   mid-compile (deploy exit 255). O2 still got killed, so the Dockerfile now
+#   builds at dart2js optimization O1 to cap peak RAM. If the host is STILL killed
+#   mid-compile, the only remaining lever is host RAM/swap. The tiny `api` image
+#   also builds on the host (~15 s).
 #
 #   (Pulling a CI-built image from GHCR was tried instead, but the package is
 #   private and the host pulls anonymously, so `docker compose up` failed with

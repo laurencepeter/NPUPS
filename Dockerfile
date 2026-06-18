@@ -31,11 +31,13 @@ COPY . .
 # This image is built ON the Coolify host (docker-compose.prod.yml `build: .`).
 # dart2js is memory/CPU-heavy and at the default optimization (O4) its
 # whole-program inlining peaked high enough to OOM-kill the constrained build
-# host mid-compile (deploy exit 255). O2 keeps tree-shaking + minification but
-# drops the most memory-hungry global passes, cutting peak RAM and build time.
-# If the host still gets killed mid-compile, lower this to O1 (larger/slower
-# output) or give the host more RAM/swap.
-RUN flutter build web --release --dart2js-optimization=O2
+# host mid-compile (deploy exit 255). O2 still got killed on this host, so we
+# drop to O1: it keeps tree-shaking + minification (the output is still a real
+# release bundle, just larger/slower) but disables the most memory-hungry global
+# optimization passes, which is what caps peak RAM enough to survive the build.
+# If the host STILL gets OOM-killed here, the remaining lever is host resources:
+# give it more RAM/swap (dart2js below O1 is not supported).
+RUN flutter build web --release --dart2js-optimization=O1
 
 # Stage 2: Serve with nginx
 FROM nginx:alpine
