@@ -27,6 +27,15 @@ services:
       PORT: "8080"
     expose:
       - "8080"
+    # node:alpine ships busybox wget. /api/health always returns HTTP 200 once
+    # Express is up (its JSON body reports Supabase reachability separately), so
+    # a 200 here means the process is live and accepting connections.
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8080/api/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
 
   web:
     build: .
@@ -37,3 +46,13 @@ services:
       - api
     expose:
       - "80"
+    # Without an explicit healthcheck, Coolify cannot tell a healthy nginx (which
+    # prints nothing to stdout on a clean start) apart from a broken one, so it
+    # restart-loops the container and the log pane looks empty. nginx:alpine ships
+    # busybox wget; fetching index.html proves nginx is serving the Flutter build.
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:80/ || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
