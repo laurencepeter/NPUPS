@@ -86,6 +86,23 @@ flutter build web --release --dart-define-from-file=.env
 
 ### Backend / server (only if you keep `server/index.js`)
 
+> ⚠️ **Different schema from the `db/supabase/` scripts above.** The REST server
+> (`server/index.js`) queries flat, denormalised tables in the **`public`**
+> schema (`public.workers`, `public.timesheets`, …) — it does **not** use the
+> `npups_*` multi-schema layout. If you run the server and only loaded
+> `db/supabase/*.sql`, every request fails with
+> `relation "public.workers" does not exist`.
+>
+> **To run the server, load `db/domain_schema.sql` into your database** (Supabase
+> SQL Editor, or `psql "$DATABASE_URL" -f db/domain_schema.sql`). It creates all
+> the tables the server expects in `public`, plus seed data, and is independent
+> of `db/rbac_schema.sql`. The server connects with the anon key and no RLS, so
+> it relies on the default `public`-schema grants Supabase gives the `anon` role.
+>
+> The `db/supabase/*.sql` (`npups_*`) scripts are for the direct
+> Flutter→Supabase path (`lib/.../Db`), which is a separate, staged migration —
+> see section 3 below. Pick one backend; the two schemas are not interchangeable.
+
 | Variable | Value |
 |----------|-------|
 | `DATABASE_URL` | Postgres connection string to the Supabase DB |
