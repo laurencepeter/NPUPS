@@ -27,9 +27,11 @@ services:
       PORT: "8080"
     expose:
       - "8080"
-    # node:alpine ships busybox wget. /api/health always returns HTTP 200 once
-    # Express is up (its JSON body reports Supabase reachability separately), so
-    # a 200 here means the process is live and accepting connections.
+    # node:alpine ships busybox wget. /api/health is a pure LIVENESS probe: it
+    # returns HTTP 200 the moment Express is up and does NOT touch Supabase, so
+    # a Supabase outage can never make this container unhealthy (and trigger a
+    # Coolify restart loop). Supabase reachability is reported separately by
+    # /api/ready, which is for debugging and is deliberately not polled here.
     healthcheck:
       test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8080/api/health || exit 1"]
       interval: 15s
