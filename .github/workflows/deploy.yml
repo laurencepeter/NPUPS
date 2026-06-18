@@ -1,27 +1,28 @@
-name: Build and Deploy
+name: Validate web build
 
-# Build + publish the web image only on push to the deploy branches. PRs are
-# gated by test.yml (lint + unit/widget tests); the heavy Flutter+Docker image
-# build is intentionally NOT run on PRs to keep them fast. Trade-off: Dockerfile/
-# nginx changes and release-only (dart2js) compile failures surface on `main`
-# after merge rather than on the PR.
+# The production `web` image is built ON the Coolify host at deploy time
+# (docker-compose.prod.yml uses `build: .`), so nothing is published to a
+# registry. This workflow does NOT deploy or push anything — it compiles the
+# release web build on a roomy GitHub runner so dart2js *compile* errors surface
+# on `main` instead of only when the constrained host runs the build.
+#
+# Note: a green run here does NOT prove the host has enough RAM (the runner has
+# far more); host OOM mitigation lives in the Dockerfile (--dart2js-optimization).
 on:
   push:
     branches: [master, main]
 
-# Cancel an in-flight build when a newer commit lands on the same branch, so the
-# :latest tag (which the Coolify deploy pulls) always reflects the newest commit.
+# Cancel an in-flight build when a newer commit lands on the same branch.
 concurrency:
-  group: deploy-${{ github.ref }}
+  group: web-build-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  build-and-deploy:
+  build:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
       contents: read
-      packages: write
 
     steps:
       - name: Checkout repository
@@ -32,42 +33,8 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Authenticate to GitHub Container Registry
-        id: auth
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build web image (validation only — not published)
         run: |
-          MAX_RETRIES=5
-          RETRY_DELAY=2
-          ATTEMPT=0
-
-          while [ $ATTEMPT -lt $MAX_RETRIES ]; do
-            ATTEMPT=$((ATTEMPT + 1))
-            echo "Authentication attempt $ATTEMPT of $MAX_RETRIES..."
-
-            if echo "$GITHUB_TOKEN" | docker login ghcr.io \
-                -u "${{ github.actor }}" \
-                --password-stdin 2>&1; then
-              echo "Authentication successful on attempt $ATTEMPT"
-              break
-            fi
-
-            if [ $ATTEMPT -lt $MAX_RETRIES ]; then
-              echo "Authentication failed. Retrying in ${RETRY_DELAY}s..."
-              sleep $RETRY_DELAY
-              RETRY_DELAY=$((RETRY_DELAY * 2))
-            else
-              echo "Authentication failed after $MAX_RETRIES attempts."
-              exit 1
-            fi
-          done
-
-      - name: Build Docker image
-        id: build
-        run: |
-          IMAGE_NAME="ghcr.io/${{ github.repository_owner }}/npups:${{ github.sha }}"
-          IMAGE_LATEST="ghcr.io/${{ github.repository_owner }}/npups:latest"
-
           MAX_RETRIES=3
           RETRY_DELAY=4
           ATTEMPT=0
@@ -77,15 +44,10 @@ jobs:
             echo "Build attempt $ATTEMPT of $MAX_RETRIES..."
 
             if docker buildx build \
-                --tag "$IMAGE_NAME" \
-                --tag "$IMAGE_LATEST" \
                 --cache-from "type=gha" \
                 --cache-to "type=gha,mode=max" \
-                --load \
                 . 2>&1; then
               echo "Build successful on attempt $ATTEMPT"
-              echo "image_name=$IMAGE_NAME" >> "$GITHUB_OUTPUT"
-              echo "image_latest=$IMAGE_LATEST" >> "$GITHUB_OUTPUT"
               break
             fi
 
@@ -95,82 +57,6 @@ jobs:
               RETRY_DELAY=$((RETRY_DELAY * 2))
             else
               echo "Build failed after $MAX_RETRIES attempts."
-              exit 1
-            fi
-          done
-
-      - name: Push Docker image
-        if: github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main'
-        run: |
-          IMAGE_NAME="${{ steps.build.outputs.image_name }}"
-          IMAGE_LATEST="${{ steps.build.outputs.image_latest }}"
-
-          MAX_RETRIES=5
-          RETRY_DELAY=2
-
-          for TAG in "$IMAGE_NAME" "$IMAGE_LATEST"; do
-            ATTEMPT=0
-            RETRY_DELAY=2
-
-            while [ $ATTEMPT -lt $MAX_RETRIES ]; do
-              ATTEMPT=$((ATTEMPT + 1))
-              echo "Push attempt $ATTEMPT of $MAX_RETRIES for $TAG..."
-
-              if docker push "$TAG" 2>&1; then
-                echo "Push successful for $TAG on attempt $ATTEMPT"
-                break
-              fi
-
-              if [ $ATTEMPT -lt $MAX_RETRIES ]; then
-                echo "Push failed. Retrying in ${RETRY_DELAY}s..."
-                sleep $RETRY_DELAY
-                RETRY_DELAY=$((RETRY_DELAY * 2))
-              else
-                echo "Push failed after $MAX_RETRIES attempts for $TAG."
-                exit 1
-              fi
-            done
-          done
-
-      # Trigger the Coolify deployment only AFTER the fresh web image is in GHCR,
-      # so the deploy pulls this commit's image (not the previous one). Configure
-      # the COOLIFY_DEPLOY_WEBHOOK secret (Coolify → resource → Webhooks) and, in
-      # Coolify, disable "deploy on git push" so this is the single trigger.
-      # No-op (skipped) until the secret is set, so it never breaks the build.
-      - name: Trigger Coolify deploy
-        if: >-
-          (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main') &&
-          env.COOLIFY_DEPLOY_WEBHOOK != ''
-        env:
-          COOLIFY_DEPLOY_WEBHOOK: ${{ secrets.COOLIFY_DEPLOY_WEBHOOK }}
-          COOLIFY_API_TOKEN: ${{ secrets.COOLIFY_API_TOKEN }}
-        run: |
-          echo "Triggering Coolify deployment..."
-          AUTH_HEADER=()
-          if [ -n "$COOLIFY_API_TOKEN" ]; then
-            AUTH_HEADER=(-H "Authorization: Bearer $COOLIFY_API_TOKEN")
-          fi
-
-          MAX_RETRIES=5
-          RETRY_DELAY=2
-          ATTEMPT=0
-          while [ $ATTEMPT -lt $MAX_RETRIES ]; do
-            ATTEMPT=$((ATTEMPT + 1))
-            echo "Deploy trigger attempt $ATTEMPT of $MAX_RETRIES..."
-            STATUS=$(curl -sS -o /dev/null -w "%{http_code}" -X GET \
-              "${AUTH_HEADER[@]}" "$COOLIFY_DEPLOY_WEBHOOK" || echo "000")
-
-            if [ "$STATUS" -ge 200 ] && [ "$STATUS" -lt 300 ]; then
-              echo "Coolify deploy triggered (HTTP $STATUS)."
-              break
-            fi
-
-            if [ $ATTEMPT -lt $MAX_RETRIES ]; then
-              echo "Trigger failed (HTTP $STATUS). Retrying in ${RETRY_DELAY}s..."
-              sleep $RETRY_DELAY
-              RETRY_DELAY=$((RETRY_DELAY * 2))
-            else
-              echo "Coolify deploy trigger failed after $MAX_RETRIES attempts (HTTP $STATUS)."
               exit 1
             fi
           done
