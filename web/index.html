@@ -24,6 +24,17 @@
   <title>WorkForce</title>
   <link rel="manifest" href="manifest.json">
 
+  <!-- Corbado Passkeys Web SDK. supabase_flutter pulls in the `passkeys`
+       plugin transitively; its web registrant runs during Flutter engine
+       init and throws ("Passkeys Web SDK not loaded" → null-check crash,
+       blanking the whole app) unless this global is already defined. The app
+       itself signs in with a password and never calls passkeys, but the
+       plugin still registers, so the SDK must be present. Vendored as
+       web/bundle.js and loaded here (parser-blocking, so it runs before the
+       deferred main.dart.js boots the engine). Source:
+       https://github.com/corbado/flutter-passkeys/releases/download/2.4.0/bundle.js -->
+  <script src="bundle.js"></script>
+
   <!-- Start fetching the app bundle as early as the parser sees this. -->
   <link rel="preload" as="script" href="main.dart.js">
 
