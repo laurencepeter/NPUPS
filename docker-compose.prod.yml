@@ -48,8 +48,13 @@ services:
     # a Supabase outage can never make this container unhealthy (and trigger a
     # Coolify restart loop). Supabase reachability is reported separately by
     # /api/ready, which is for debugging and is deliberately not polled here.
+    #
+    # Probe 127.0.0.1, NOT localhost: in the container `localhost` resolves to
+    # IPv6 ::1 first and busybox wget does not fall back to IPv4, so a localhost
+    # probe only works by luck of the server binding ::. The IPv4 literal removes
+    # that dependency (see the web probe below, which broke for exactly this).
     healthcheck:
-      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8080/api/health || exit 1"]
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:8080/api/health || exit 1"]
       interval: 15s
       timeout: 5s
       retries: 3
@@ -57,7 +62,7 @@ services:
 
   web:
     # Built on the Coolify host from the root Dockerfile. dart2js peak memory is
-    # capped via --dart2js-optimization=O2 in that Dockerfile to avoid the
+    # capped via --dart2js-optimization=O1 in that Dockerfile to avoid the
     # OOM-kill the default O4 caused on this host (deploy exit 255; see header).
     build: .
     restart: unless-stopped
@@ -71,8 +76,16 @@ services:
     # prints nothing to stdout on a clean start) apart from a broken one, so it
     # restart-loops the container and the log pane looks empty. nginx:alpine ships
     # busybox wget; fetching index.html proves nginx is serving the Flutter build.
+    #
+    # Probe 127.0.0.1, NOT localhost. nginx here binds IPv4 (listen 80 →
+    # 0.0.0.0:80) but `localhost` resolves to IPv6 ::1 first, and busybox wget
+    # connects to ::1 without falling back to 127.0.0.1 → "connection refused" on
+    # every probe → container stuck `unhealthy` forever (and restart:
+    # unless-stopped does NOT restart an unhealthy container, so it just sits
+    # there while nginx is actually fine). The IPv4 literal is what nginx listens
+    # on, so the probe matches the server.
     healthcheck:
-      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:80/ || exit 1"]
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:80/ || exit 1"]
       interval: 15s
       timeout: 5s
       retries: 3
