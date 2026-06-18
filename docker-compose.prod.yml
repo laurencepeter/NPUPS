@@ -7,13 +7,18 @@
 #   Browser ──▶ web (nginx + Flutter)  ──▶  api (Node)  ──▶  Supabase
 #               public: your domain        internal only
 #
-# ── Why `web` is a prebuilt image, not a `build:` ─────────────────────────────
-#   `flutter build web --release` runs dart2js, which peaks at ~1.6 GB RAM and is
-#   CPU-heavy. On the constrained Coolify build host it exhausted resources and
-#   the build container was killed mid-compile (deploy exit 255). The Flutter
-#   compile now happens in GitHub Actions (.github/workflows/deploy.yml), which
-#   publishes the finished nginx image to GHCR. Coolify simply *pulls* it — no
-#   dart2js on the host. The tiny `api` image still builds on the host (~15 s).
+# ── How `web` is built ────────────────────────────────────────────────────────
+#   `web` builds on the Coolify host from the root Dockerfile (`build: .`), which
+#   runs `flutter build web --release` (dart2js). dart2js is memory/CPU-heavy and
+#   at the default optimization (O4) it OOM-killed this constrained host
+#   mid-compile (deploy exit 255). The fix lives in the Dockerfile: the build now
+#   runs at dart2js optimization O2 to cap peak RAM. If the host is still killed
+#   mid-compile, lower it to O1 there, or give the host more RAM/swap. The tiny
+#   `api` image also builds on the host (~15 s).
+#
+#   (Pulling a CI-built image from GHCR was tried instead, but the package is
+#   private and the host pulls anonymously, so `docker compose up` failed with
+#   `error from registry: unauthorized`. Building on the host needs no registry.)
 #
 # ── Coolify setup ────────────────────────────────────────────────────────────
 #   1. Create a resource of type "Docker Compose" (not "Dockerfile").
@@ -21,17 +26,11 @@
 #   3. Add environment variables in the Coolify UI:
 #        SUPABASE_URL      → https://supabase.fireydev.com
 #        SUPABASE_ANON_KEY → eyJ...
-#        WEB_IMAGE         → (optional) override the web image tag; defaults to
-#                            ghcr.io/laurencepeter/npups:latest
 #   4. Assign your public domain to the `web` service (port 80).
 #      Do NOT give `api` a domain — it must stay internal.
-#   5. The web image must be pullable by the host: make the GHCR package public,
-#      or add registry credentials in Coolify. A private package that the host
-#      cannot pull is the usual reason this model "silently" fails.
-#   6. IMPORTANT ordering: deploy *after* CI publishes the image. Disable
-#      Coolify's "deploy on push" and instead let the GitHub Actions deploy
-#      workflow trigger the Coolify deploy webhook (see deploy.yml). Otherwise a
-#      deploy that races CI will pull the previous commit's web image.
+#   5. Everything builds on the host at deploy time, so there is no external image
+#      to publish first and no CI/deploy ordering race: leave Coolify's "deploy on
+#      push" ENABLED — it is the deploy trigger.
 # ─────────────────────────────────────────────────────────────────────────────
 
 services:
@@ -57,11 +56,10 @@ services:
       start_period: 20s
 
   web:
-    # Prebuilt by CI — see deploy.yml. Override the tag with the WEB_IMAGE env var
-    # (e.g. pin to a commit SHA) if you don't want to track :latest. NOT `build: .`
-    # on purpose: dart2js OOMs/times out on the Coolify host (see header above).
-    image: ${WEB_IMAGE:-ghcr.io/laurencepeter/npups:latest}
-    pull_policy: always
+    # Built on the Coolify host from the root Dockerfile. dart2js peak memory is
+    # capped via --dart2js-optimization=O2 in that Dockerfile to avoid the
+    # OOM-kill the default O4 caused on this host (deploy exit 255; see header).
+    build: .
     restart: unless-stopped
     environment:
       API_UPSTREAM: "http://api:8080"
