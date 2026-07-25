@@ -23,6 +23,10 @@ CREATE TABLE IF NOT EXISTS npups_bank.payment_instructions (
   amount numeric(14,2) NOT NULL,
   reference text NOT NULL
 );
+-- Covering indexes for the payment_instructions FKs (lint 0001). The batch_id
+-- index also speeds the ON DELETE CASCADE when a payment_batch is removed.
+CREATE INDEX IF NOT EXISTS payment_instructions_batch_idx   ON npups_bank.payment_instructions (batch_id);
+CREATE INDEX IF NOT EXISTS payment_instructions_payslip_idx ON npups_bank.payment_instructions (payslip_id);
 
 CREATE TABLE IF NOT EXISTS npups_bank.bank_files (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -32,3 +36,5 @@ CREATE TABLE IF NOT EXISTS npups_bank.bank_files (
   sha256 bytea NOT NULL,
   generated_at timestamptz NOT NULL DEFAULT now()
 );
+-- Covering index for the bank_files.batch_id FK (lint 0001).
+CREATE INDEX IF NOT EXISTS bank_files_batch_idx ON npups_bank.bank_files (batch_id);

@@ -20,6 +20,8 @@ CREATE TABLE IF NOT EXISTS npups_ref.banks (
   name text NOT NULL,
   country_iso2 char(2) REFERENCES npups_ref.countries
 );
+-- Covering index for the banks.country_iso2 FK (lint 0001).
+CREATE INDEX IF NOT EXISTS banks_country_idx ON npups_ref.banks (country_iso2);
 
 CREATE TABLE IF NOT EXISTS npups_ref.public_holidays (
   jurisdiction text NOT NULL,

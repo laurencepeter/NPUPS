@@ -10,6 +10,8 @@ CREATE TABLE IF NOT EXISTS npups_time.rosters (
   attendance_settings jsonb,
   created_at timestamptz NOT NULL DEFAULT now()
 );
+-- Covering index for the rosters.corporation_id FK (lint 0001).
+CREATE INDEX IF NOT EXISTS rosters_corp_idx ON npups_time.rosters (corporation_id);
 
 CREATE TABLE IF NOT EXISTS npups_time.roster_day_entries (
   roster_id uuid REFERENCES npups_time.rosters ON DELETE CASCADE,
@@ -19,6 +21,9 @@ CREATE TABLE IF NOT EXISTS npups_time.roster_day_entries (
   absence_reason text,
   PRIMARY KEY (roster_id, worker_id, day)
 );
+-- roster_id is the PK's leading column, so it's already covered. worker_id is
+-- not a PK prefix, so its FK needs its own covering index (lint 0001).
+CREATE INDEX IF NOT EXISTS roster_day_entries_worker_idx ON npups_time.roster_day_entries (worker_id);
 
 CREATE TABLE IF NOT EXISTS npups_time.timesheets (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -49,6 +54,9 @@ CREATE TABLE IF NOT EXISTS npups_time.timesheet_approvals (
   comment text,
   at timestamptz NOT NULL DEFAULT now()
 );
+-- Covering index for the timesheet_approvals.timesheet_id FK (lint 0001); also
+-- speeds the ON DELETE CASCADE when a timesheet is removed.
+CREATE INDEX IF NOT EXISTS timesheet_approvals_timesheet_idx ON npups_time.timesheet_approvals (timesheet_id);
 
 CREATE TABLE IF NOT EXISTS npups_time.leave_types (
   code text PRIMARY KEY,
@@ -64,6 +72,9 @@ CREATE TABLE IF NOT EXISTS npups_time.leave_balances (
   balance_days numeric(6,2) NOT NULL,
   PRIMARY KEY (worker_id, leave_code, as_of)
 );
+-- worker_id is the PK's leading column (already covered). leave_code is not a
+-- PK prefix, so its FK to leave_types needs its own covering index (lint 0001).
+CREATE INDEX IF NOT EXISTS leave_balances_leave_idx ON npups_time.leave_balances (leave_code);
 
 CREATE TABLE IF NOT EXISTS npups_time.leave_requests (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -75,6 +86,9 @@ CREATE TABLE IF NOT EXISTS npups_time.leave_requests (
   status text NOT NULL DEFAULT 'pending',
   reason text
 );
+-- Covering indexes for the leave_requests.worker_id / leave_code FKs (lint 0001).
+CREATE INDEX IF NOT EXISTS leave_requests_worker_idx ON npups_time.leave_requests (worker_id);
+CREATE INDEX IF NOT EXISTS leave_requests_leave_idx  ON npups_time.leave_requests (leave_code);
 
 INSERT INTO npups_time.leave_types(code, name, accrual_per_year) VALUES
   ('VAC','Vacation',14),
