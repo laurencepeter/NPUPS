@@ -283,10 +283,16 @@ class AuditService extends ChangeNotifier {
         .map((a) => '${a.id}|${a.contentHash}|${a.sizeBytes}')
         .join(';');
 
+    // NOTE: millisecondsSinceEpoch (not micros). The chain is persisted and
+    // re-hydrated through the API, whose JSON timestamps carry only
+    // millisecond precision (server serialises with Date.toISOString()).
+    // Hashing at millisecond granularity keeps a re-loaded entry's recomputed
+    // hash identical to the one written, so the chain still verifies after a
+    // round-trip. The SQL seed (db/domain_schema.sql) mirrors this exactly.
     final payload = [
       previousHash,
       id,
-      timestamp.microsecondsSinceEpoch.toString(),
+      timestamp.millisecondsSinceEpoch.toString(),
       userId,
       action.name,
       entityType.name,

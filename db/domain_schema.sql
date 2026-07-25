@@ -343,11 +343,13 @@ CREATE INDEX idx_backpay_line_items_record_id ON backpay_line_items (backpay_rec
 -- =============================================================================
 -- Kept separate from `audit_logs` in rbac_schema.sql so the RBAC schema is
 -- untouched. Tamper-evident hash chain matches the Dart implementation:
---   sha256( previousHash || id || microsSinceEpoch || userId
+--   sha256( previousHash || id || millisSinceEpoch || userId
 --         || action.name || entityType.name || entityId
 --         || changesStr  || attachStr )
--- changesStr = "<field>|<old>|<new>" joined by ';'
--- attachStr  = "<id>|<contentHash>|<sizeBytes>" joined by ';'
+-- changesStr = "<field>|<old>|<new>" joined by ';' (ordered by sequence_no)
+-- attachStr  = "<id>|<contentHash>|<sizeBytes>" joined by ';' (ordered by id)
+-- Milliseconds (not micros): the API transports timestamps at millisecond
+-- precision, so hashing any finer would break re-verification after a reload.
 
 CREATE TABLE app_audit_logs (
     id                  TEXT        PRIMARY KEY,
@@ -717,15 +719,15 @@ INSERT INTO backpay_line_items (
 -- =============================================================================
 -- Application audit log seed
 -- =============================================================================
--- The Dart audit trail is hash-chained. Computing real chain hashes here would
--- require duplicating the Dart payload format in plpgsql; instead the seeded
--- entries carry explicit `previous_hash` linkage and a deterministic synthetic
--- hash, so the chain is internally consistent for read-only display. The
--- moment a real backend writes the first new entry, that entry will be hashed
--- correctly and the chain continues from there.
---
--- App callers that verify chain integrity should treat seeded rows as the
--- "genesis prefix" by accepting the seeded hashes as authoritative.
+-- The Dart audit trail is hash-chained. These rows carry REAL chain hashes:
+-- after the entries, their field changes and attachments are all inserted, the
+-- chain-hashing pass at the end of this block computes each row's hash with the
+-- exact payload format used by AuditService._computeHash. That means the
+-- Flutter client re-computes an identical hash for every seeded row and the
+-- Audit Trail screen reports "Chain Intact" — while any later tampering with a
+-- seeded row (in the DB or in transit) still breaks verification, exactly as a
+-- tamper-evident log should. New entries written at runtime hash themselves the
+-- same way and continue the chain seamlessly.
 
 WITH seed AS (
     SELECT * FROM (VALUES
@@ -758,10 +760,10 @@ SELECT
     s.action::audit_action_enum,
     s.entity_type::audit_entity_type_enum,
     s.entity_id, s.entity_display_name, s.note,
-    encode(digest(s.id || '|seed', 'sha256'), 'hex'),
-    COALESCE(LAG(encode(digest(s.id || '|seed', 'sha256'), 'hex'))
-             OVER (ORDER BY s.id), '')
-  FROM seed s;
+    '',   -- hash: filled by the chain-hashing pass below (needs field changes + attachments first)
+    ''    -- previous_hash: filled by the same pass
+  FROM seed s
+  ORDER BY s.id;   -- assign sequence_no in chain order (AUDIT-000001 first)
 
 -- Field changes for entries that record diffs
 INSERT INTO app_audit_field_changes (audit_log_id, sequence_no, field_name, old_value, new_value) VALUES
@@ -807,6 +809,68 @@ INSERT INTO app_audit_attachments (id, audit_log_id, file_name, mime_type, size_
      152432,
      'b9c3d6f2e1a87045d3c5b9e8f0a172bd5e84c2f9a1b6d307f4e8c2b1d50a9f6e',
      '2026-04-26 12:00:00+00');
+
+-- ---------------------------------------------------------------------------
+-- Chain-hashing pass — compute the real tamper-evident hashes now that every
+-- entry, field change and attachment exists. This mirrors
+-- AuditService._computeHash (lib/services/audit_service.dart) EXACTLY, so the
+-- Flutter client recomputes an identical hash per row → "Chain Intact":
+--
+--   payload = previousHash ||'||'|| id ||'||'|| millisSinceEpoch
+--          ||'||'|| userId ||'||'|| action ||'||'|| entityType
+--          ||'||'|| entityId ||'||'|| changesStr ||'||'|| attachStr
+--   hash    = sha256_hex(payload)          (genesis previousHash = '')
+--
+-- Rows are walked in sequence_no order (the same order the API returns and the
+-- client verifies), so the previous_hash linkage is self-consistent.
+-- ---------------------------------------------------------------------------
+DO $$
+DECLARE
+    r          RECORD;
+    prev_hash  TEXT := '';
+    changes    TEXT;
+    attach     TEXT;
+    millis     TEXT;
+    payload    TEXT;
+    row_hash   TEXT;
+BEGIN
+    FOR r IN SELECT * FROM app_audit_logs ORDER BY sequence_no LOOP
+        -- changesStr: "<field>|<old>|<new>" joined by ';', ordered by sequence_no
+        SELECT COALESCE(
+                 string_agg(
+                   field_name || '|' || COALESCE(old_value, '') || '|' || COALESCE(new_value, ''),
+                   ';' ORDER BY sequence_no),
+                 '')
+          INTO changes
+          FROM app_audit_field_changes
+         WHERE audit_log_id = r.id;
+
+        -- attachStr: "<id>|<contentHash>|<sizeBytes>" joined by ';', ordered by id
+        SELECT COALESCE(
+                 string_agg(
+                   id || '|' || content_hash || '|' || size_bytes::TEXT,
+                   ';' ORDER BY id),
+                 '')
+          INTO attach
+          FROM app_audit_attachments
+         WHERE audit_log_id = r.id;
+
+        -- Epoch milliseconds — matches DateTime.millisecondsSinceEpoch client-side.
+        millis := (EXTRACT(EPOCH FROM r.timestamp) * 1000)::BIGINT::TEXT;
+
+        payload := prev_hash || '||' || r.id || '||' || millis || '||'
+                || r.user_id || '||' || r.action::TEXT || '||' || r.entity_type::TEXT
+                || '||' || r.entity_id || '||' || changes || '||' || attach;
+
+        row_hash := encode(digest(payload, 'sha256'), 'hex');
+
+        UPDATE app_audit_logs
+           SET hash = row_hash, previous_hash = prev_hash
+         WHERE id = r.id;
+
+        prev_hash := row_hash;
+    END LOOP;
+END $$;
 
 COMMIT;
 

@@ -636,7 +636,11 @@ app.get('/api/audit-logs', asyncRoute(async (req, res) => {
     .order('sequence_no');
   const { data: atts } = await supabase
     .from('app_audit_attachments')
-    .select('audit_log_id, id, file_name, mime_type, size_bytes, content_hash, uploaded_at');
+    .select('audit_log_id, id, file_name, mime_type, size_bytes, content_hash, uploaded_at')
+    // Deterministic order so the re-hydrated attachment list matches the order
+    // the chain hash was computed over (see AuditService._computeHash / DB seed).
+    .order('audit_log_id')
+    .order('id');
   const fByLog = new Map();
   for (const f of (fields || [])) {
     if (!fByLog.has(f.audit_log_id)) fByLog.set(f.audit_log_id, []);
