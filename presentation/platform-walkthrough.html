@@ -1,0 +1,777 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Interactive bottom-up walkthrough of the WorkForce (NPUPS) payroll platform: the timesheet approval pipeline, a live pay calculator, and bottleneck mitigations.">
+<title>WorkForce · Platform Walkthrough</title>
+<style>
+  :root { color-scheme: light dark; }
+  html, body { margin: 0; }
+</style>
+</head>
+<body>
+<style>
+  /* ─────────────────────────────────────────────────────────────
+     WorkForce · Platform Walkthrough — interactive deck
+     Treasury/ledger identity: deep-ink ground, brass accent,
+     tabular figures, a vertical "ascent" for the payroll flow.
+     ───────────────────────────────────────────────────────────── */
+
+  :root {
+    /* Light — cool parchment, not cream */
+    --ground:      #ECEAE3;
+    --ground-2:    #F4F2EC;
+    --card:        #FFFFFF;
+    --ink:         #16202F;
+    --ink-soft:    #4A5666;
+    --ink-faint:   #7B8697;
+    --line:        rgba(22,32,47,.12);
+    --line-soft:   rgba(22,32,47,.07);
+    --brass:       #9C731C;
+    --brass-ink:   #6E4E10;
+    --good:        #1F8A5B;
+    --warn:        #B47614;
+    --bad:         #B33322;
+    --shadow:      0 1px 2px rgba(16,24,40,.06), 0 8px 30px rgba(16,24,40,.08);
+    --glow: transparent;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ground:    #0C1220;
+      --ground-2:  #0F1728;
+      --card:      #131D30;
+      --ink:       #ECE6D8;
+      --ink-soft:  #A9B4C4;
+      --ink-faint: #6C7A8E;
+      --line:      rgba(236,230,216,.12);
+      --line-soft: rgba(236,230,216,.06);
+      --brass:     #D2AC57;
+      --brass-ink: #E7C888;
+      --good:      #3BB37E;
+      --warn:      #D8A23C;
+      --bad:       #D9614C;
+      --shadow:    0 1px 2px rgba(0,0,0,.4), 0 18px 50px rgba(0,0,0,.45);
+      --glow: 0 0 60px rgba(210,172,87,.10);
+    }
+  }
+  /* Explicit toggle overrides (must win both directions) */
+  :root[data-theme="light"] {
+    --ground:#ECEAE3; --ground-2:#F4F2EC; --card:#FFFFFF;
+    --ink:#16202F; --ink-soft:#4A5666; --ink-faint:#7B8697;
+    --line:rgba(22,32,47,.12); --line-soft:rgba(22,32,47,.07);
+    --brass:#9C731C; --brass-ink:#6E4E10;
+    --good:#1F8A5B; --warn:#B47614; --bad:#B33322;
+    --shadow:0 1px 2px rgba(16,24,40,.06),0 8px 30px rgba(16,24,40,.08);
+    --glow:transparent;
+  }
+  :root[data-theme="dark"] {
+    --ground:#0C1220; --ground-2:#0F1728; --card:#131D30;
+    --ink:#ECE6D8; --ink-soft:#A9B4C4; --ink-faint:#6C7A8E;
+    --line:rgba(236,230,216,.12); --line-soft:rgba(236,230,216,.06);
+    --brass:#D2AC57; --brass-ink:#E7C888;
+    --good:#3BB37E; --warn:#D8A23C; --bad:#D9614C;
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 18px 50px rgba(0,0,0,.45);
+    --glow:0 0 60px rgba(210,172,87,.10);
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+    -webkit-font-smoothing: antialiased;
+    overflow: hidden;
+  }
+
+  :root {
+    --serif: "Iowan Old Style", "Palatino Linotype", "Charter", Palatino, Georgia, serif;
+    --mono:  ui-monospace, "SF Mono", "Cascadia Code", "JetBrains Mono", Menlo, Consolas, monospace;
+  }
+
+  /* ── Deck frame ─────────────────────────────────────────────── */
+  #deck { position: fixed; inset: 0; }
+
+  .slide {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column;
+    justify-content: center;
+    padding: clamp(20px, 5.2vw, 92px);
+    padding-bottom: clamp(64px, 8vh, 104px);
+    opacity: 0; visibility: hidden;
+    transform: translateY(14px);
+    transition: opacity .5s ease, transform .5s ease, visibility .5s;
+    overflow-y: auto;
+  }
+  .slide.active { opacity: 1; visibility: visible; transform: none; z-index: 2; }
+  .slide.leaving { opacity: 0; transform: translateY(-14px); z-index: 1; }
+
+  .wrap { width: 100%; max-width: 1160px; margin: 0 auto; }
+
+  /* Reveal-on-enter */
+  [data-r] { opacity: 0; transform: translateY(12px); }
+  .slide.active [data-r] {
+    opacity: 1; transform: none;
+    transition: opacity .55s ease, transform .55s cubic-bezier(.2,.7,.2,1);
+    transition-delay: calc(var(--i, 0) * 85ms + 120ms);
+  }
+
+  /* ── Typography ─────────────────────────────────────────────── */
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 12px; letter-spacing: .22em; text-transform: uppercase;
+    color: var(--brass); font-weight: 600;
+    display: inline-flex; align-items: center; gap: 10px;
+  }
+  .eyebrow::before {
+    content: ""; width: 26px; height: 1px; background: var(--brass); opacity: .7;
+  }
+  h1 {
+    font-family: var(--serif);
+    font-weight: 600; letter-spacing: -.015em; text-wrap: balance;
+    font-size: clamp(34px, 6vw, 74px); line-height: 1.02; margin: .35em 0 0;
+  }
+  h2 {
+    font-family: var(--serif);
+    font-weight: 600; letter-spacing: -.01em; text-wrap: balance;
+    font-size: clamp(27px, 4vw, 46px); line-height: 1.08; margin: .2em 0 0;
+  }
+  h3 { font-size: 17px; font-weight: 650; margin: 0; letter-spacing: -.01em; }
+  p { color: var(--ink-soft); line-height: 1.6; margin: 0; }
+  .lead { font-size: clamp(16px, 1.9vw, 21px); max-width: 60ch; }
+  .fig { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+  .accent { color: var(--brass); }
+  strong { color: var(--ink); font-weight: 650; }
+
+  /* ── Cover ──────────────────────────────────────────────────── */
+  .cover-badge {
+    display: inline-flex; align-items: center; gap: 12px;
+    padding: 8px 14px; border: 1px solid var(--line); border-radius: 999px;
+    background: color-mix(in srgb, var(--card) 60%, transparent);
+    font-family: var(--mono); font-size: 12.5px; letter-spacing: .06em; color: var(--ink-soft);
+  }
+  .coin {
+    width: 30px; height: 30px; border-radius: 50%; flex: none;
+    background:
+      radial-gradient(circle at 34% 30%, color-mix(in srgb, var(--brass) 55%, #fff) 0%, var(--brass) 42%, var(--brass-ink) 100%);
+    box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--brass-ink) 60%, transparent), 0 2px 8px rgba(0,0,0,.25);
+    display: grid; place-items: center;
+    color: #fff5df; font-family: var(--serif); font-weight: 700; font-size: 15px;
+  }
+  .cover-foot {
+    display: flex; flex-wrap: wrap; gap: 10px 30px; align-items: center;
+    font-family: var(--mono); font-size: 12.5px; color: var(--ink-faint); letter-spacing: .04em;
+  }
+  .cover-foot b { color: var(--brass); font-weight: 600; }
+
+  /* ── Generic layout helpers ─────────────────────────────────── */
+  .grid { display: grid; gap: 16px; }
+  .g2 { grid-template-columns: repeat(2, 1fr); }
+  .g3 { grid-template-columns: repeat(3, 1fr); }
+  .g4 { grid-template-columns: repeat(4, 1fr); }
+  @media (max-width: 860px) { .g2,.g3,.g4 { grid-template-columns: 1fr; } .split { grid-template-columns: 1fr !important; } }
+
+  .card {
+    background: var(--card); border: 1px solid var(--line);
+    border-radius: 14px; padding: 20px; box-shadow: var(--shadow);
+  }
+  .card.tight { padding: 15px 16px; }
+  .card .k { font-family: var(--mono); font-size: 11.5px; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-faint); }
+  .card .big { font-family: var(--serif); font-size: clamp(26px,3.4vw,40px); font-variant-numeric: tabular-nums; line-height: 1; margin-top: 6px; }
+  .card p { font-size: 14.5px; margin-top: 8px; }
+
+  .pill {
+    display: inline-flex; align-items: center; gap: 7px; font-family: var(--mono);
+    font-size: 11.5px; letter-spacing: .04em; padding: 4px 10px; border-radius: 999px;
+    border: 1px solid var(--line); color: var(--ink-soft);
+  }
+  .dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+  .b-good { background: var(--good); } .b-warn { background: var(--warn); } .b-bad { background: var(--bad); } .b-brass { background: var(--brass); }
+
+  .split { display: grid; grid-template-columns: 1.05fr .95fr; gap: clamp(20px,3.5vw,52px); align-items: center; }
+
+  ul.ticks { list-style: none; padding: 0; margin: 14px 0 0; display: grid; gap: 11px; }
+  ul.ticks li { display: grid; grid-template-columns: 22px 1fr; gap: 10px; align-items: start; color: var(--ink-soft); line-height: 1.5; font-size: 15.5px; }
+  ul.ticks li::before { content: ""; }
+  ul.ticks .mk { width: 22px; height: 22px; border-radius: 6px; display: grid; place-items: center; font-family: var(--mono); font-size: 12px; font-weight: 700; }
+
+  /* ── Vertical ascent (the pipeline) ─────────────────────────── */
+  .ascent-layout { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: clamp(18px,3vw,44px); align-items: stretch; }
+  @media (max-width: 900px) { .ascent-layout { grid-template-columns: 1fr; } .ascent-detail { position: static !important; } }
+
+  .ladder { display: flex; flex-direction: column-reverse; gap: 8px; position: relative; }
+  .rung {
+    display: grid; grid-template-columns: 40px 1fr auto; align-items: center; gap: 14px;
+    padding: 12px 15px; border-radius: 12px; border: 1px solid var(--line);
+    background: var(--card); cursor: pointer; text-align: left; width: 100%;
+    color: var(--ink); font: inherit; transition: transform .18s ease, border-color .18s, box-shadow .18s, background .18s;
+  }
+  .rung:hover { transform: translateX(4px); border-color: color-mix(in srgb, var(--stage) 55%, var(--line)); }
+  .rung:focus-visible { outline: 2px solid var(--brass); outline-offset: 2px; }
+  .rung.on { border-color: var(--stage); background: color-mix(in srgb, var(--stage) 10%, var(--card)); box-shadow: var(--shadow); }
+  .rung .num { font-family: var(--mono); font-size: 12px; color: var(--stage); font-weight: 700; display: grid; place-items: center; width: 40px; height: 40px; border-radius: 9px; border: 1px solid color-mix(in srgb, var(--stage) 45%, var(--line)); background: color-mix(in srgb, var(--stage) 12%, transparent); }
+  .rung .nm { font-weight: 600; font-size: 15px; letter-spacing: -.01em; }
+  .rung .ow { font-family: var(--mono); font-size: 11.5px; color: var(--ink-faint); margin-top: 2px; }
+  .rung .stg { width: 9px; height: 9px; border-radius: 50%; background: var(--stage); }
+  .ladder .flowline { position: absolute; left: 34px; top: 8px; bottom: 8px; width: 2px; background: linear-gradient(to top, var(--good), var(--brass), var(--ink-faint)); opacity: .28; z-index: -1; }
+
+  .ascent-detail { position: sticky; top: 0; align-self: start; }
+  .detail-card { border-left: 3px solid var(--stage); min-height: 260px; }
+  .detail-card .tag { color: var(--stage); }
+  .detail-kv { display: grid; grid-template-columns: auto 1fr; gap: 6px 16px; margin-top: 14px; font-size: 14px; }
+  .detail-kv dt { font-family: var(--mono); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-faint); align-self: center; }
+  .detail-kv dd { margin: 0; color: var(--ink); }
+
+  /* ── Calculator ─────────────────────────────────────────────── */
+  .calc { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(16px,2.5vw,32px); align-items: start; }
+  @media (max-width: 900px) { .calc { grid-template-columns: 1fr; } }
+  .ctrl { display: grid; gap: 16px; }
+  .field { display: grid; gap: 7px; }
+  .field .row { display: flex; justify-content: space-between; align-items: baseline; }
+  .field label { font-size: 13.5px; font-weight: 600; color: var(--ink); }
+  .field .val { font-family: var(--mono); font-variant-numeric: tabular-nums; color: var(--brass); font-weight: 600; font-size: 14px; }
+  .field .hint { font-family: var(--mono); font-size: 11px; color: var(--ink-faint); }
+  input[type=range] { -webkit-appearance: none; appearance: none; height: 5px; border-radius: 999px; background: var(--line); outline: none; }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 18px; height: 18px; border-radius: 50%; background: var(--brass); border: 3px solid var(--card); box-shadow: 0 1px 4px rgba(0,0,0,.3); cursor: pointer; }
+  input[type=range]::-moz-range-thumb { width: 18px; height: 18px; border-radius: 50%; background: var(--brass); border: 3px solid var(--card); cursor: pointer; }
+  input[type=range]:focus-visible { outline: 2px solid var(--brass); outline-offset: 4px; }
+
+  .ledger { background: var(--card); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; box-shadow: var(--shadow); }
+  .ledger .head { padding: 12px 18px; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; align-items: center; }
+  .ledger .head .t { font-family: var(--mono); font-size: 11.5px; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-faint); }
+  .lrow { display: flex; justify-content: space-between; align-items: baseline; padding: 10px 18px; border-bottom: 1px solid var(--line-soft); }
+  .lrow .l { font-size: 14px; color: var(--ink-soft); }
+  .lrow .l small { display: block; font-family: var(--mono); font-size: 10.5px; color: var(--ink-faint); letter-spacing: .03em; }
+  .lrow .v { font-family: var(--mono); font-variant-numeric: tabular-nums; font-size: 15px; color: var(--ink); }
+  .lrow.sub .v { color: var(--bad); }
+  .lrow.total { background: color-mix(in srgb, var(--brass) 12%, var(--card)); border-top: 1px solid var(--line); border-bottom: none; padding: 15px 18px; }
+  .lrow.total .l { font-family: var(--serif); font-size: 17px; color: var(--ink); font-weight: 600; }
+  .lrow.total .v { font-size: 21px; color: var(--brass); font-weight: 700; }
+  .lrow.gross { background: color-mix(in srgb, var(--ink-faint) 8%, transparent); }
+
+  /* ── Bottlenecks ────────────────────────────────────────────── */
+  .flip { perspective: 1000px; }
+  .flip-card {
+    position: relative; min-height: 178px; border-radius: 14px; cursor: pointer;
+    transition: transform .5s cubic-bezier(.2,.7,.2,1); transform-style: preserve-3d;
+  }
+  .flip.on .flip-card { transform: rotateY(180deg); }
+  .flip-face {
+    position: absolute; inset: 0; backface-visibility: hidden; -webkit-backface-visibility: hidden;
+    border-radius: 14px; padding: 18px; border: 1px solid var(--line); background: var(--card);
+    box-shadow: var(--shadow); display: flex; flex-direction: column;
+  }
+  .flip-face.back { transform: rotateY(180deg); border-color: color-mix(in srgb, var(--good) 45%, var(--line)); background: color-mix(in srgb, var(--good) 8%, var(--card)); }
+  .flip .risk { font-family: var(--serif); font-size: 19px; font-weight: 600; margin-top: 6px; }
+  .flip .meta { margin-top: auto; font-family: var(--mono); font-size: 11px; color: var(--ink-faint); letter-spacing: .04em; display: flex; align-items: center; gap: 8px; }
+  .flip-face.back h3 { color: var(--good); }
+  .flip-face.back p { font-size: 14px; margin-top: 8px; }
+
+  /* ── Nav / chrome ───────────────────────────────────────────── */
+  .topbar {
+    position: fixed; top: 0; left: 0; right: 0; height: 5px; background: var(--line-soft); z-index: 40;
+  }
+  .topbar .fill { height: 100%; width: 0; background: linear-gradient(90deg, var(--brass), var(--brass-ink)); transition: width .5s cubic-bezier(.2,.7,.2,1); }
+
+  .chrome {
+    position: fixed; z-index: 41; bottom: 0; left: 0; right: 0;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px clamp(16px, 4vw, 40px);
+    pointer-events: none;
+  }
+  .chrome > * { pointer-events: auto; }
+  .brandmark { display: flex; align-items: center; gap: 10px; font-family: var(--mono); font-size: 12px; color: var(--ink-faint); letter-spacing: .04em; }
+  .brandmark .coin { width: 22px; height: 22px; font-size: 11px; }
+  .nav { display: flex; align-items: center; gap: 8px; }
+  .navbtn {
+    width: 40px; height: 40px; border-radius: 10px; border: 1px solid var(--line);
+    background: var(--card); color: var(--ink); cursor: pointer; display: grid; place-items: center;
+    font-size: 17px; transition: border-color .15s, transform .1s, background .15s;
+  }
+  .navbtn:hover { border-color: var(--brass); color: var(--brass); }
+  .navbtn:active { transform: translateY(1px); }
+  .navbtn:focus-visible { outline: 2px solid var(--brass); outline-offset: 2px; }
+  .counter { font-family: var(--mono); font-size: 12.5px; color: var(--ink-faint); min-width: 58px; text-align: center; font-variant-numeric: tabular-nums; }
+  .counter b { color: var(--ink); }
+
+  .dots { position: fixed; z-index: 41; right: clamp(12px,2vw,20px); top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; gap: 9px; }
+  @media (max-width: 720px) { .dots { display: none; } }
+  .dots button { width: 9px; height: 9px; border-radius: 50%; border: none; padding: 0; cursor: pointer; background: var(--line); transition: background .2s, transform .2s; }
+  .dots button:hover { transform: scale(1.35); background: var(--ink-faint); }
+  .dots button.on { background: var(--brass); transform: scale(1.35); }
+
+  .theme-toggle {
+    position: fixed; z-index: 42; top: 16px; right: clamp(14px,3vw,24px);
+    width: 38px; height: 38px; border-radius: 10px; border: 1px solid var(--line);
+    background: var(--card); color: var(--ink-soft); cursor: pointer; display: grid; place-items: center; font-size: 15px;
+  }
+  .theme-toggle:hover { color: var(--brass); border-color: var(--brass); }
+  .theme-toggle:focus-visible { outline: 2px solid var(--brass); outline-offset: 2px; }
+
+  .hint-key { font-family: var(--mono); font-size: 11.5px; color: var(--ink-faint); display: inline-flex; align-items: center; gap: 6px; }
+  kbd { font-family: var(--mono); font-size: 11px; background: var(--card); border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 5px; padding: 1px 6px; color: var(--ink-soft); }
+
+  .quiet { color: var(--ink-faint); font-family: var(--mono); font-size: 12px; letter-spacing: .03em; }
+  .rule { height: 1px; background: var(--line); margin: 22px 0; border: 0; }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; animation: none !important; }
+    .slide { transition: opacity .001s !important; }
+  }
+</style>
+
+<div class="topbar"><div class="fill" id="progress"></div></div>
+<button class="theme-toggle" id="themeToggle" aria-label="Toggle light/dark theme" title="Toggle theme">◑</button>
+
+<div id="deck">
+
+  <!-- 1 · COVER ─────────────────────────────────────────────── -->
+  <section class="slide" data-title="Cover">
+    <div class="wrap">
+      <div data-r style="--i:0" class="cover-badge">
+        <span class="coin">$</span> WorkForce · NPUPS — Digital Payroll Platform
+      </div>
+      <div class="eyebrow" data-r style="--i:1; margin-top:26px">Platform Walkthrough</div>
+      <h1 data-r style="--i:2">From a single timesheet<br>to exact payment.</h1>
+      <p class="lead" data-r style="--i:3; margin-top:22px">
+        A guided tour of how work flows <strong>up</strong> the chain — from the worker at the
+        bottom to the cheque at the top — <strong>automating everything between the one input and the one recheck</strong>,
+        so every person is paid their actual salary. Not a penny more, not a penny less.
+      </p>
+      <div class="rule" data-r style="--i:4"></div>
+      <div class="cover-foot" data-r style="--i:5">
+        <span>9 roles</span><span><b>9</b> pipeline stages</span><span>1 manual input</span>
+        <span>Weeks&nbsp;→&nbsp;<b>days</b> to first pay</span>
+      </div>
+      <p class="hint-key" data-r style="--i:6; margin-top:34px">
+        Use <kbd>→</kbd> / <kbd>←</kbd> or the arrows below · click stages &amp; drag the sliders to explore
+      </p>
+    </div>
+  </section>
+
+  <!-- 2 · THE PROBLEM ───────────────────────────────────────── -->
+  <section class="slide" data-title="Why">
+    <div class="wrap split">
+      <div>
+        <div class="eyebrow" data-r style="--i:0">The old way</div>
+        <h2 data-r style="--i:1">Paper turned two weeks of work into weeks of waiting.</h2>
+        <p class="lead" data-r style="--i:2; margin-top:18px">
+          Fortnightly timesheets travelled by hand through four departments. Totals were added on
+          calculators, re-keyed at each desk, and reconciled against bank details on a separate sheet.
+          Every hop was a chance to lose a form — or a few dollars.
+        </p>
+      </div>
+      <div class="grid" data-r style="--i:3">
+        <div class="card tight"><div class="k">Time to first payment</div><div class="big accent">Weeks</div><p>Files stalled on desks with no visibility into where.</p></div>
+        <div class="grid g2">
+          <div class="card tight"><div class="k">Re-keying</div><div class="big">4×</div><p>The same numbers entered at every stage.</p></div>
+          <div class="card tight"><div class="k">Drift risk</div><div class="big">±$</div><p>Manual arithmetic on wage, COLA &amp; deductions.</p></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 · THE THESIS ────────────────────────────────────────── -->
+  <section class="slide" data-title="Thesis">
+    <div class="wrap" style="text-align:center">
+      <div class="eyebrow" data-r style="--i:0">The promise</div>
+      <h1 data-r style="--i:1; max-width:16ch; margin-inline:auto">One input. One recheck. Exact pay.</h1>
+      <p class="lead" data-r style="--i:2; margin:24px auto 0; text-align:center">
+        Humans do the two things only humans should: <strong>record the attendance</strong> and
+        <strong>verify the result</strong>. The platform does everything in between — the same way, every fortnight.
+      </p>
+      <div class="grid g3" data-r style="--i:3; margin-top:38px; text-align:left">
+        <div class="card"><span class="pill"><span class="dot b-brass"></span>Input</span><h3 style="margin-top:12px">The timesheet</h3><p>14 days of Time In / Time Out. The only figures a person types.</p></div>
+        <div class="card"><span class="pill"><span class="dot b-warn"></span>Automation</span><h3 style="margin-top:12px">The maths</h3><p>Days, wage, COLA, allowance, NIS &amp; health surcharge — all derived.</p></div>
+        <div class="card"><span class="pill"><span class="dot b-good"></span>Recheck</span><h3 style="margin-top:12px">The verify</h3><p>Accounts confirms the figures against the record before payment is authorised.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 · THE CAST (roles, bottom-up) ───────────────────────── -->
+  <section class="slide" data-title="Roles">
+    <div class="wrap">
+      <div class="eyebrow" data-r style="--i:0">The cast · who touches a timesheet</div>
+      <h2 data-r style="--i:1">Nine roles, one direction of travel.</h2>
+      <p class="lead" data-r style="--i:2; margin-top:14px">Each user holds exactly one role. Read it bottom-to-top — that is the order a fortnight actually moves.</p>
+      <div class="grid g3" data-r style="--i:3; margin-top:26px">
+        <div class="card tight"><span class="pill"><span class="dot b-brass"></span>Originates</span><h3 style="margin-top:10px">Worker</h3><p>Submits their own fortnightly timesheet.</p></div>
+        <div class="card tight"><h3>Regional Coordinator</h3><p>Enters group/paper timesheets; reviews &amp; approves worker submissions.</p></div>
+        <div class="card tight"><h3>HR Department</h3><p>Confirms active employment, leave &amp; programme compliance.</p></div>
+        <div class="card tight"><h3>Sub-Accounts Clerk</h3><p><strong>The recheck</strong> — verifies rates, days, totals &amp; bank details.</p></div>
+        <div class="card tight"><h3>Main Accounts Clerk</h3><p>Authorises approved payments; manages cheque processing.</p></div>
+        <div class="card tight"><h3>DMCR</h3><p>Worker-data compilation &amp; coordination across corporations.</p></div>
+        <div class="card tight"><span class="pill"><span class="dot b-good"></span>Oversees</span><h3 style="margin-top:10px">Director</h3><p>Whole-pipeline visibility &amp; bottleneck detection.</p></div>
+        <div class="card tight"><h3>Executive Department</h3><p>Programme-level oversight across the corporation.</p></div>
+        <div class="card tight"><h3>System Administrator</h3><p>Full access; user management &amp; troubleshooting.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 · THE ASCENT (interactive pipeline) ─────────────────── -->
+  <section class="slide" data-title="The Ascent">
+    <div class="wrap">
+      <div class="eyebrow" data-r style="--i:0">The ascent · click a stage</div>
+      <h2 data-r style="--i:1">Every fortnight climbs the same nine steps.</h2>
+      <p data-r style="--i:2; margin-top:10px; font-size:15px">Bottom = where a timesheet is born. Top = money in the bank. Rejection at any step drops it back one rung, with a written reason.</p>
+      <div class="ascent-layout" data-r style="--i:3; margin-top:22px">
+        <div class="ladder" id="ladder"><div class="flowline"></div></div>
+        <div class="ascent-detail">
+          <div class="card detail-card" id="stageDetail"><!-- filled by JS --></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6 · STAGE 1 — worker input ────────────────────────────── -->
+  <section class="slide" data-title="Input">
+    <div class="wrap split">
+      <div>
+        <div class="eyebrow" data-r style="--i:0">Bottom of the ladder · the one input</div>
+        <h2 data-r style="--i:1">The worker fills a 14-day grid. That's it.</h2>
+        <p class="lead" data-r style="--i:2; margin-top:16px">
+          Name, position, NIS, ID, wage, COLA, allowance and bank details are <strong>pre-filled and read-only</strong> —
+          pulled from the verified registry. The worker only touches attendance.
+        </p>
+        <ul class="ticks" data-r style="--i:3">
+          <li><span class="mk" style="background:color-mix(in srgb,var(--brass) 18%,transparent);color:var(--brass)">✎</span><span><strong>Editable:</strong> Time In / Time Out for each of 14 days, allowance days, remarks.</span></li>
+          <li><span class="mk" style="background:color-mix(in srgb,var(--good) 18%,transparent);color:var(--good)">∑</span><span><strong>Auto:</strong> days worked, wage total, COLA total, allowance total &amp; grand total recompute as you type.</span></li>
+          <li><span class="mk" style="background:color-mix(in srgb,var(--ink-faint) 22%,transparent);color:var(--ink-soft)">🔒</span><span><strong>On Submit</strong> the sheet locks and moves to the Coordinator — no edits unless it's rejected back.</span></li>
+        </ul>
+      </div>
+      <div class="card" data-r style="--i:4">
+        <div class="lrow" style="padding-inline:0"><span class="l">Rule applied</span><span class="v">daysWorked = Σ present days</span></div>
+        <div class="lrow" style="padding-inline:0"><span class="l">Present day</span><span class="v">Time In &amp; Time Out both set</span></div>
+        <div class="lrow" style="padding-inline:0"><span class="l">Roster default</span><span class="v">Mon–Fri present · max 10/fortnight</span></div>
+        <div class="lrow" style="padding-inline:0; border:none"><span class="l">No digital access?</span><span class="v">Coordinator enters the group of 12</span></div>
+        <p style="margin-top:14px; font-size:13.5px">Group entry mirrors the paper form exactly — up to 12 workers, supervisor confirmation, then one Submit advances the whole group.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7 · THE ENGINE — live calculator ──────────────────────── -->
+  <section class="slide" data-title="Automation">
+    <div class="wrap">
+      <div class="eyebrow" data-r style="--i:0">The automation engine · drag to test</div>
+      <h2 data-r style="--i:1">Type attendance — the pay computes itself.</h2>
+      <p data-r style="--i:2; margin-top:10px; font-size:15px">Every figure below is derived by the platform's own formulas. Change the inputs; the ledger stays exact to the cent.</p>
+
+      <div class="calc" data-r style="--i:3; margin-top:24px">
+        <div class="ctrl">
+          <div class="field">
+            <div class="row"><label for="days">Days worked</label><span class="val" id="daysV">10</span></div>
+            <input type="range" id="days" min="0" max="14" step="1" value="10">
+            <span class="hint">0–14 days in the fortnight · each present day = Time In + Time Out</span>
+          </div>
+          <div class="field">
+            <div class="row"><label for="wage">Wage rate / day</label><span class="val" id="wageV">$168.00</span></div>
+            <input type="range" id="wage" min="80" max="400" step="1" value="168">
+            <span class="hint">Set from the verified registry — read-only to the worker</span>
+          </div>
+          <div class="field">
+            <div class="row"><label for="cola">COLA rate / day</label><span class="val" id="colaV">$30.00</span></div>
+            <input type="range" id="cola" min="0" max="120" step="1" value="30">
+            <span class="hint">Cost-of-living allowance, paid per day worked</span>
+          </div>
+          <div class="field">
+            <div class="row"><label for="aldays">Allowance days</label><span class="val" id="aldaysV">5</span></div>
+            <input type="range" id="aldays" min="0" max="14" step="1" value="5">
+            <span class="hint">× allowance rate <span id="alrateLbl">$25.00</span>/day · non-taxable</span>
+          </div>
+        </div>
+
+        <div class="ledger">
+          <div class="head"><span class="t">Fortnight pay statement</span><span class="t" id="stmtDays">10 days</span></div>
+          <div class="lrow"><span class="l">Wage total<small id="wageCalc">10 × $168.00</small></span><span class="v" id="wageT">$1,680.00</span></div>
+          <div class="lrow"><span class="l">COLA total<small id="colaCalc">10 × $30.00</small></span><span class="v" id="colaT">$300.00</span></div>
+          <div class="lrow"><span class="l">Allowance total<small id="alCalc">5 × $25.00</small></span><span class="v" id="alT">$125.00</span></div>
+          <div class="lrow gross"><span class="l">Gross salary<small>wage + COLA · basis for deductions</small></span><span class="v" id="grossT">$1,980.00</span></div>
+          <div class="lrow sub"><span class="l">NIS — employee<small>3.4% of gross</small></span><span class="v" id="nisT">−$67.32</span></div>
+          <div class="lrow sub"><span class="l">Health surcharge<small id="hsCalc">$8.25/wk × 2</small></span><span class="v" id="hsT">−$16.50</span></div>
+          <div class="lrow total"><span class="l">Net pay</span><span class="v" id="netT">$2,021.18</span></div>
+        </div>
+      </div>
+      <p class="quiet" data-r style="--i:4; margin-top:16px">Employer also remits NIS at 6.5% (<span class="fig" id="nisEr">$128.70</span>) — tracked separately, never deducted from the worker.</p>
+    </div>
+  </section>
+
+  <!-- 8 · THE RECHECK / integrity ───────────────────────────── -->
+  <section class="slide" data-title="The Recheck">
+    <div class="wrap split">
+      <div>
+        <div class="eyebrow" data-r style="--i:0">Top of the ladder · not a penny more or less</div>
+        <h2 data-r style="--i:1">The recheck is a verification, not a re-entry.</h2>
+        <p class="lead" data-r style="--i:2; margin-top:16px">
+          By the time a sheet reaches Accounts, the numbers are already computed. The clerk's job is
+          to <strong>confirm</strong>, not recalculate — comparing the derived figures against rates,
+          days and bank details, then authorising or rejecting with a reason.
+        </p>
+        <ul class="ticks" data-r style="--i:3">
+          <li><span class="mk" style="background:color-mix(in srgb,var(--good) 18%,transparent);color:var(--good)">✓</span><span><strong>Deterministic totals</strong> — same inputs always yield the same cent, so a verify is a glance, not a spreadsheet.</span></li>
+          <li><span class="mk" style="background:color-mix(in srgb,var(--good) 18%,transparent);color:var(--good)">↺</span><span><strong>Backpay is exact too</strong> — a retroactive rate change re-runs (new − old) × days per affected fortnight.</span></li>
+          <li><span class="mk" style="background:color-mix(in srgb,var(--bad) 18%,transparent);color:var(--bad)">⤺</span><span><strong>Reject drops it one rung</strong> with a mandatory note; the originator is notified to correct &amp; resubmit.</span></li>
+        </ul>
+      </div>
+      <div class="grid" data-r style="--i:4">
+        <div class="card">
+          <span class="pill"><span class="dot b-brass"></span>Tamper-evident audit</span>
+          <h3 style="margin-top:12px">Every change is chained.</h3>
+          <p>Each mutation is logged with a full before/after diff and a <strong>SHA-256 hash of the entry before it</strong>. Alter any past record and every later hash breaks — provable in review or in court.</p>
+        </div>
+        <div class="grid g2">
+          <div class="card tight"><div class="k">Concurrency</div><h3 style="margin-top:8px">Edit locks</h3><p>Two officers can't overwrite the same sheet — last-editor is shown, edits are serialised.</p></div>
+          <div class="card tight"><div class="k">Export</div><h3 style="margin-top:8px">Payroll .xlsx</h3><p>One-click file matching the official template, with signature lines intact.</p></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 9 · BOTTLENECKS (interactive flip cards) ──────────────── -->
+  <section class="slide" data-title="Bottlenecks">
+    <div class="wrap">
+      <div class="eyebrow" data-r style="--i:0">Where flow stalls · click a card for the fix</div>
+      <h2 data-r style="--i:1">A pipeline is only as fast as its slowest desk.</h2>
+      <p data-r style="--i:2; margin-top:10px; font-size:15px">The system flags any sheet stalled at one stage beyond a threshold (default <span class="fig">48h</span>) and surfaces it on the Director's <strong>Bottlenecks</strong> tab with the responsible role attached.</p>
+      <div class="grid g3" id="bottleGrid" data-r style="--i:3; margin-top:24px"><!-- flip cards injected --></div>
+    </div>
+  </section>
+
+  <!-- 10 · MITIGATIONS / oversight ──────────────────────────── -->
+  <section class="slide" data-title="Safeguards">
+    <div class="wrap">
+      <div class="eyebrow" data-r style="--i:0">Designed-in safeguards</div>
+      <h2 data-r style="--i:1">The flow is built to keep moving.</h2>
+      <div class="grid g2" data-r style="--i:2; margin-top:24px">
+        <div class="card"><h3>Director's live pipeline</h3><p>A horizontal count of sheets at every stage — throughput and pile-ups visible at a glance, with drill-down by corporation, stage, date or worker.</p></div>
+        <div class="card"><h3>Automatic bottleneck detection</h3><p>The 48-hour (configurable) threshold turns "somewhere on someone's desk" into a named list of who owns what, right now.</p></div>
+        <div class="card"><h3>Batch approval</h3><p>Coordinators clear a whole queue in one action instead of card-by-card, collapsing the most common backlog.</p></div>
+        <div class="card"><h3>Roster defaults &amp; caps</h3><p>Mon–Fri pre-marked present and a 10-day cap mean data-entry is subtraction, not entry — and no one is paid beyond the maximum.</p></div>
+      </div>
+      <p class="quiet" data-r style="--i:3; margin-top:18px">Escalation-ready: the same stalled-item signal that feeds the Director can drive reminders and reassignment as the programme scales.</p>
+    </div>
+  </section>
+
+  <!-- 11 · PAYOFF / close ───────────────────────────────────── -->
+  <section class="slide" data-title="Payoff">
+    <div class="wrap" style="text-align:center">
+      <div class="eyebrow" data-r style="--i:0">The result</div>
+      <h1 data-r style="--i:1; max-width:18ch; margin-inline:auto">Paper out. Precision in.</h1>
+      <div class="grid g4" data-r style="--i:2; margin-top:36px; text-align:left">
+        <div class="card tight"><div class="k">First payment</div><div class="big accent">Days</div><p>Down from weeks.</p></div>
+        <div class="card tight"><div class="k">Manual maths</div><div class="big">0</div><p>Every total derived.</p></div>
+        <div class="card tight"><div class="k">Human inputs</div><div class="big">1</div><p>Attendance only.</p></div>
+        <div class="card tight"><div class="k">Pay drift</div><div class="big">±0¢</div><p>Exact, every fortnight.</p></div>
+      </div>
+      <p class="lead" data-r style="--i:3; margin:34px auto 0; text-align:center; max-width:56ch">
+        Enter the timesheet. Verify the result. The platform guarantees the rest —
+        <strong>every worker paid their actual salary, not a penny more or less.</strong>
+      </p>
+      <p class="quiet" data-r style="--i:4; margin-top:26px">WorkForce · NPUPS — developed by Laurence Peter</p>
+    </div>
+  </section>
+
+</div>
+
+<div class="dots" id="dots"></div>
+
+<div class="chrome">
+  <div class="brandmark"><span class="coin">$</span> WorkForce · Platform Walkthrough</div>
+  <div class="nav">
+    <button class="navbtn" id="prev" aria-label="Previous slide">‹</button>
+    <span class="counter"><b id="cur">1</b> / <span id="total">11</span></span>
+    <button class="navbtn" id="next" aria-label="Next slide">›</button>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ── Pipeline data (from the app's TimesheetStage model) ── */
+  var STAGES = [
+    { n:"Not Started",            c:"#9CA3AF", owner:"Worker",              act:"Timesheet exists but no attendance entered yet.",                         sla:"—" },
+    { n:"Draft",                  c:"#6B7280", owner:"Worker",              act:"Attendance being entered; totals preview live. Still fully editable.",     sla:"Worker's own time" },
+    { n:"Submitted",             c:"#2980B9", owner:"Regional Coordinator", act:"Worker locks the sheet; it enters the Coordinator's review queue.",        sla:"Awaiting review" },
+    { n:"Coordinator Review",    c:"#8E44AD", owner:"Regional Coordinator", act:"Coordinator checks entries, then approves (single or batch) or rejects.",  sla:"Flagged after 48h" },
+    { n:"HR Processing",         c:"#D68910", owner:"HR Department",        act:"HR confirms active employment, leave and programme compliance.",           sla:"Flagged after 48h" },
+    { n:"Accounts Processing",   c:"#E67E22", owner:"Accounts (Sub)",       act:"THE RECHECK — verify rates, days, totals and bank details, then approve.", sla:"Flagged after 48h" },
+    { n:"Approved for Payment",  c:"#27AE60", owner:"Accounts (Main)",      act:"Figures confirmed and authorised; awaiting export / cheque run.",          sla:"Batch" },
+    { n:"Exported",              c:"#16A085", owner:"Accounts",             act:"Written to the official payroll .xlsx, matching the standard template.",     sla:"Batch" },
+    { n:"Cheque / Direct Deposit",c:"#1A2C4E", owner:"Accounts",           act:"Money leaves the corporation — cheque printed or deposit issued.",         sla:"Paid" }
+  ];
+
+  var BOTTLENECKS = [
+    { risk:"Coordinator backlog",   where:"Coordinator Review", fix:"Batch approve", body:"Select the whole queue and approve in one action instead of card-by-card." },
+    { risk:"Missing HR compliance", where:"HR Processing",      fix:"Reject with reason", body:"A one-line note bounces the sheet back to be corrected — no silent stalling." },
+    { risk:"Bank-detail mismatch",  where:"Accounts Processing",fix:"Verified registry", body:"Bank fields are read-only from the registry, so the recheck rarely fails here." },
+    { risk:"Paper-only workers",    where:"Submitted",          fix:"Group entry", body:"Coordinator digitises a group of 12 from the paper form in one pass." },
+    { risk:"Invisible stalls",      where:"Any stage",          fix:"48h detection", body:"The Director's Bottlenecks tab names every overdue sheet and its owner." },
+    { risk:"Over-max attendance",   where:"Draft",              fix:"Roster caps", body:"A 10-day fortnight cap blocks anyone being recorded — or paid — beyond the maximum." }
+  ];
+
+  /* ── Build ladder (bottom-up via column-reverse) ── */
+  var ladder = document.getElementById("ladder");
+  var detail = document.getElementById("stageDetail");
+  STAGES.forEach(function (s, i) {
+    var b = document.createElement("button");
+    b.className = "rung";
+    b.style.setProperty("--stage", s.c);
+    b.setAttribute("aria-label", "Stage " + (i + 1) + ": " + s.n);
+    b.innerHTML =
+      '<span class="num">' + (i + 1) + '</span>' +
+      '<span><span class="nm">' + s.n + '</span><span class="ow">' + s.owner + '</span></span>' +
+      '<span class="stg"></span>';
+    b.addEventListener("click", function () { selectStage(i); });
+    ladder.appendChild(b);
+  });
+  var rungs = Array.prototype.slice.call(ladder.querySelectorAll(".rung"));
+
+  function selectStage(i) {
+    var s = STAGES[i];
+    rungs.forEach(function (r, k) { r.classList.toggle("on", k === i); });
+    detail.style.setProperty("--stage", s.c);
+    detail.innerHTML =
+      '<span class="eyebrow tag" style="color:' + s.c + '">Step ' + (i + 1) + ' of 9</span>' +
+      '<h3 style="font-family:var(--serif);font-size:24px;margin-top:12px">' + s.n + '</h3>' +
+      '<p style="margin-top:10px;font-size:15px">' + s.act + '</p>' +
+      '<dl class="detail-kv">' +
+        '<dt>Owner</dt><dd>' + s.owner + '</dd>' +
+        '<dt>Watchdog</dt><dd>' + s.sla + '</dd>' +
+        '<dt>On reject</dt><dd>' + (i === 0 ? '—' : 'Returns to “' + STAGES[i - 1].n + '” with a written reason') + '</dd>' +
+      '</dl>';
+  }
+  selectStage(5); // open on "Accounts Processing" — the recheck
+
+  /* ── Build bottleneck flip cards ── */
+  var bg = document.getElementById("bottleGrid");
+  BOTTLENECKS.forEach(function (x) {
+    var wrap = document.createElement("div");
+    wrap.className = "flip";
+    wrap.innerHTML =
+      '<div class="flip-card">' +
+        '<div class="flip-face front">' +
+          '<span class="pill"><span class="dot b-bad"></span>Risk</span>' +
+          '<div class="risk">' + x.risk + '</div>' +
+          '<div class="meta"><span>at</span> ' + x.where + ' &nbsp;·&nbsp; tap for the fix ↻</div>' +
+        '</div>' +
+        '<div class="flip-face back">' +
+          '<span class="pill"><span class="dot b-good"></span>Mitigation</span>' +
+          '<h3 style="margin-top:8px">' + x.fix + '</h3>' +
+          '<p>' + x.body + '</p>' +
+        '</div>' +
+      '</div>';
+    wrap.addEventListener("click", function () { wrap.classList.toggle("on"); });
+    bg.appendChild(wrap);
+  });
+
+  /* ── Live payroll calculator (matches Timesheet + DeductionBreakdown) ── */
+  var ALLOW_RATE = 25;                 // illustrative allowance rate / day
+  var NIS_EMP = 0.034, NIS_ER = 0.065; // DeductionRateTable defaults
+  var HS_HIGH = 8.25, HS_LOW = 4.80, HS_THRESH = 469.99;
+  var els = {
+    days: document.getElementById("days"), wage: document.getElementById("wage"),
+    cola: document.getElementById("cola"), aldays: document.getElementById("aldays")
+  };
+  function money(v) {
+    return "$" + v.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+  function r2(v) { return Math.round(v * 100) / 100; }
+  function set(id, txt) { var e = document.getElementById(id); if (e) e.textContent = txt; }
+
+  function recompute() {
+    var d = +els.days.value, w = +els.wage.value, c = +els.cola.value, ad = +els.aldays.value;
+    var wageT = d * w, colaT = d * c, alT = ad * ALLOW_RATE;
+    var grand = wageT + colaT + alT;
+    var gross = wageT + colaT;                              // allowance non-taxable
+    var nisEmp = r2(gross * NIS_EMP), nisEr = r2(gross * NIS_ER);
+    var hsWeekly = gross > HS_THRESH ? HS_HIGH : HS_LOW;
+    var hs = r2(hsWeekly * 2);
+    var net = grand - nisEmp - hs;
+
+    set("daysV", d); set("wageV", money(w)); set("colaV", money(c));
+    set("aldaysV", ad); set("alrateLbl", money(ALLOW_RATE)); set("stmtDays", d + (d === 1 ? " day" : " days"));
+    set("wageCalc", d + " × " + money(w)); set("colaCalc", d + " × " + money(c)); set("alCalc", ad + " × " + money(ALLOW_RATE));
+    set("hsCalc", money(hsWeekly) + "/wk × 2  ·  gross " + (gross > HS_THRESH ? ">" : "≤") + " " + money(HS_THRESH));
+    set("wageT", money(wageT)); set("colaT", money(colaT)); set("alT", money(alT));
+    set("grossT", money(gross)); set("nisT", "−" + money(nisEmp)); set("hsT", "−" + money(hs));
+    set("netT", money(net)); set("nisEr", money(nisEr));
+  }
+  Object.keys(els).forEach(function (k) { els[k].addEventListener("input", recompute); });
+  recompute();
+
+  /* ── Deck navigation ── */
+  var slides = Array.prototype.slice.call(document.querySelectorAll(".slide"));
+  var total = slides.length, idx = 0;
+  document.getElementById("total").textContent = total;
+
+  var dotsWrap = document.getElementById("dots");
+  slides.forEach(function (s, i) {
+    var d = document.createElement("button");
+    d.setAttribute("aria-label", "Go to slide " + (i + 1) + (s.dataset.title ? ": " + s.dataset.title : ""));
+    d.addEventListener("click", function () { go(i); });
+    dotsWrap.appendChild(d);
+  });
+  var dots = Array.prototype.slice.call(dotsWrap.children);
+
+  function go(n) {
+    n = Math.max(0, Math.min(total - 1, n));
+    if (n === idx) return;
+    var out = slides[idx], inn = slides[n];
+    out.classList.add("leaving"); out.classList.remove("active");
+    setTimeout(function () { out.classList.remove("leaving"); }, 520);
+    inn.classList.add("active");
+    idx = n; sync();
+  }
+  function sync() {
+    document.getElementById("cur").textContent = idx + 1;
+    document.getElementById("progress").style.width = ((idx) / (total - 1) * 100) + "%";
+    dots.forEach(function (d, i) { d.classList.toggle("on", i === idx); });
+    location.hash = idx === 0 ? "" : "#" + (idx + 1);
+  }
+  function next() { go(idx + 1); }
+  function prev() { go(idx - 1); }
+
+  document.getElementById("next").addEventListener("click", next);
+  document.getElementById("prev").addEventListener("click", prev);
+  document.addEventListener("keydown", function (e) {
+    if (e.target && /INPUT|TEXTAREA/.test(e.target.tagName)) {
+      if (e.key === "ArrowLeft" || e.key === "ArrowRight") return; // let sliders move
+    }
+    if (e.key === "ArrowRight" || e.key === "PageDown") { next(); e.preventDefault(); }
+    else if (e.key === "ArrowLeft" || e.key === "PageUp") { prev(); e.preventDefault(); }
+    else if (e.key === " " && !(e.target && /INPUT|BUTTON/.test(e.target.tagName))) { next(); e.preventDefault(); }
+    else if (e.key === "Home") { go(0); }
+    else if (e.key === "End") { go(total - 1); }
+  });
+
+  // Touch swipe
+  var tsX = null;
+  document.addEventListener("touchstart", function (e) { tsX = e.touches[0].clientX; }, { passive: true });
+  document.addEventListener("touchend", function (e) {
+    if (tsX === null) return;
+    var dx = e.changedTouches[0].clientX - tsX;
+    if (Math.abs(dx) > 60) { dx < 0 ? next() : prev(); }
+    tsX = null;
+  }, { passive: true });
+
+  // Deep link
+  var start = parseInt((location.hash || "").replace("#", ""), 10);
+  if (start >= 1 && start <= total) { idx = start - 1; }
+  slides[idx].classList.add("active");
+  sync();
+
+  /* ── Theme toggle ── */
+  var root = document.documentElement, tt = document.getElementById("themeToggle");
+  tt.addEventListener("click", function () {
+    var isDark = getComputedStyle(root).getPropertyValue("--ground").trim().indexOf("#0") === 0;
+    var cur = root.getAttribute("data-theme");
+    if (!cur) cur = isDark ? "dark" : "light";
+    root.setAttribute("data-theme", cur === "dark" ? "light" : "dark");
+  });
+})();
+</script>
+</body>
+</html>
