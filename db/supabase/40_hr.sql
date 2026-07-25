@@ -20,6 +20,9 @@ CREATE TABLE IF NOT EXISTS npups_hr.workers (
   UNIQUE (corporation_id, worker_code)
 );
 CREATE INDEX IF NOT EXISTS workers_corp_idx ON npups_hr.workers (corporation_id);
+-- Covering indexes for the workers.bank_code / workers.currency FKs (lint 0001).
+CREATE INDEX IF NOT EXISTS workers_bank_idx     ON npups_hr.workers (bank_code);
+CREATE INDEX IF NOT EXISTS workers_currency_idx ON npups_hr.workers (currency);
 
 CREATE TABLE IF NOT EXISTS npups_hr.worker_documents (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -31,6 +34,9 @@ CREATE TABLE IF NOT EXISTS npups_hr.worker_documents (
   verified_by uuid,
   verified_at timestamptz
 );
+-- Covering index for the worker_documents.worker_id FK (lint 0001); also speeds
+-- the ON DELETE CASCADE when a worker row is removed.
+CREATE INDEX IF NOT EXISTS worker_documents_worker_idx ON npups_hr.worker_documents (worker_id);
 
 CREATE TABLE IF NOT EXISTS npups_hr.worker_allowances (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -42,6 +48,9 @@ CREATE TABLE IF NOT EXISTS npups_hr.worker_allowances (
   effective_from date NOT NULL,
   effective_to date
 );
+-- Covering index for the worker_allowances.worker_id FK (lint 0001); also speeds
+-- the ON DELETE CASCADE when a worker row is removed.
+CREATE INDEX IF NOT EXISTS worker_allowances_worker_idx ON npups_hr.worker_allowances (worker_id);
 
 CREATE TABLE IF NOT EXISTS npups_hr.worker_replacements (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -52,3 +61,6 @@ CREATE TABLE IF NOT EXISTS npups_hr.worker_replacements (
   effective_to date,
   days_missed int NOT NULL DEFAULT 0
 );
+-- Covering indexes for the two worker FKs on worker_replacements (lint 0001).
+CREATE INDEX IF NOT EXISTS worker_replacements_replaced_idx    ON npups_hr.worker_replacements (replaced_worker_id);
+CREATE INDEX IF NOT EXISTS worker_replacements_replacement_idx ON npups_hr.worker_replacements (replacement_worker_id);

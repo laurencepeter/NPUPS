@@ -36,6 +36,18 @@ CREATE TABLE IF NOT EXISTS npups_core.user_roles (
   PRIMARY KEY (user_id, role_code, corporation_id)
 );
 
+-- Covering indexes for foreign keys (lint 0001). Each FK a query joins or
+-- cascades through needs an index on its child column, or Postgres falls back
+-- to a sequential scan for the join / constraint check.
+--   corporations.country_iso2, corporations.base_currency  -> npups_ref lookups
+--   user_roles.role_code                                   -> npups_core.roles
+-- Already covered elsewhere, so intentionally omitted here:
+--   app_users.corporation_id, user_roles.corporation_id -> the *_corp_idx below
+--   user_roles.user_id -> leading column of the PK (user_id, role_code, corporation_id)
+CREATE INDEX IF NOT EXISTS corporations_country_idx  ON npups_core.corporations (country_iso2);
+CREATE INDEX IF NOT EXISTS corporations_currency_idx ON npups_core.corporations (base_currency);
+CREATE INDEX IF NOT EXISTS user_roles_role_idx       ON npups_core.user_roles (role_code);
+
 CREATE INDEX IF NOT EXISTS app_users_corp_idx  ON npups_core.app_users (corporation_id);
 CREATE INDEX IF NOT EXISTS user_roles_corp_idx ON npups_core.user_roles (corporation_id);
 
