@@ -67,6 +67,9 @@ class _AuditLogScreenState extends State<AuditLogScreen> {
       listenable: _auditService,
       builder: (context, _) {
         final entries = _filteredEntries;
+        // Re-verify on every rebuild so the badge tracks the data actually
+        // loaded from the backend (initState runs before the fetch resolves).
+        _verificationResult = _auditService.verifyChainIntegrity();
         return Scaffold(
           appBar: AppBar(
             title: const Text('Audit Trail'),
