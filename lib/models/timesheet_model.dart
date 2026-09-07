@@ -177,6 +177,7 @@ class Timesheet {
   double get grossSalary => wageTotal + colaTotal;
   DeductionBreakdown get deductions =>
       DeductionBreakdown.compute(grossSalary: grossSalary);
+  double get paye => deductions.paye;
   double get nisEmployee => deductions.nisEmployee;
   double get nisEmployer => deductions.nisEmployer;
   double get healthSurcharge => deductions.healthSurcharge;

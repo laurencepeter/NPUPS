@@ -39,6 +39,7 @@ Pure Dart, no Flutter framework required. Run in milliseconds. Cover:
 | `security_utils_test.dart` | PII masking (bank, NIS, ID), file-name sanitisation, email validation |
 | `user_model_test.dart` | `AppUser.initials`, role `displayName`/`description` completeness |
 | `auth_service_test.dart` | Sign-in success/failure for every demo account, rate-limiting lockout, session management, role switching |
+| `payroll_deductions_test.dart` | PAYE banding (25%/30%), personal-allowance proration by pay period, inclusion in net pay, configurable/auditable rate tables |
 
 Run alone:
 ```bash

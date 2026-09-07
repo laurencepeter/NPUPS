@@ -289,13 +289,19 @@ change.
 
 | Deduction | Rate (2026 default) | Basis |
 |-----------|---------------------|-------|
+| PAYE income tax | **25%** of chargeable, **30%** on chargeable above $1,000,000/yr | Chargeable = gross − prorated personal allowance ($90,000/yr) |
 | NIS — employee share | **3.4%** of gross | Deducted from the worker |
 | NIS — employer share | **6.5%** of gross | Paid by the employer, **never** deducted from the worker |
 | Health Surcharge (high band) | **$8.25/week** → ×2 = $16.50/fortnight | When gross **> $469.99** |
 | Health Surcharge (low band) | **$4.80/week** → ×2 = $9.60/fortnight | When gross **≤ $469.99** |
 
+- **PAYE** — the annual personal allowance and the $1,000,000 band ceiling are
+  **prorated to the pay period** (`payPeriodsPerYear`, default 26 fortnights),
+  so one fortnight is taxed at its correct share. All PAYE figures live in the
+  year-versioned `DeductionRateTable`, keeping historical fortnights auditable
+  through allowance/rate changes (e.g. the pre-2023 $84,000 allowance).
 - **Gross** for deduction purposes is `Wage + COLA` only — the allowance is
-  non-taxable and does not attract NIS or Health Surcharge.
+  non-taxable and does not attract PAYE, NIS or Health Surcharge.
 - **Total employer cost** = gross + employer NIS. **Total NIS remitted** =
   employee + employer share.
 - All money values are rounded to the cent (`round(v × 100) / 100`).
