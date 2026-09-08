@@ -206,6 +206,35 @@ function requireRole(...roles) {
   };
 }
 
+// ─── Tenant isolation (row-level, corporation-scoped) ───────────────────────
+//
+// A principal whose token carries a corporation_id (regional coordinator, HR,
+// worker) is confined to that corporation. Global roles (systemAdmin, ps,
+// subAccounts, mainAccounts, dmcr, ministersDepartment) have a null
+// corporation_id and see every corporation. Enforced server-side so the API —
+// the only path to the DB — never returns another tenant's rows.
+
+/// The corporation a request is confined to, or null when it may see all
+/// corporations (global role, or auth disabled in the local/demo server).
+function scopeCorporation(req) {
+  if (!AUTH_ENABLED) return null;
+  const c = req.user && req.user.corporation_id;
+  return c ? String(c) : null;
+}
+
+/// True when the request may touch a row belonging to [corporationId].
+function corpAllows(req, corporationId) {
+  const scope = scopeCorporation(req);
+  return scope === null || String(corporationId) === scope;
+}
+
+/// Applies the corporation filter to a Supabase query when the request is
+/// scoped; a no-op for global roles. `column` defaults to corporation_id.
+function scopeQuery(req, query, column = 'corporation_id') {
+  const scope = scopeCorporation(req);
+  return scope === null ? query : query.eq(column, scope);
+}
+
 // Global gate: every /api route requires a valid token except the liveness/
 // readiness probes and the login endpoint itself.
 const OPEN_PATHS = new Set(['/api/health', '/api/ready', '/api/auth/login']);
@@ -355,7 +384,8 @@ function shapeWorker(row, docs, allowances) {
 }
 
 app.get('/api/workers', asyncRoute(async (req, res) => {
-  const { data: wRows, error: wErr } = await supabase.from('workers').select('*').order('id');
+  const { data: wRows, error: wErr } =
+    await scopeQuery(req, supabase.from('workers').select('*').order('id'));
   if (wErr) throw new Error(wErr.message);
   const { data: docs } = await supabase
     .from('worker_documents')
@@ -380,12 +410,20 @@ app.get('/api/workers', asyncRoute(async (req, res) => {
 
 app.get('/api/workers/:id', asyncRoute(async (req, res) => {
   const w = await fetchWorkerRow(req.params.id);
-  if (!w) return res.status(404).json({ error: 'worker not found' });
+  // Return 404 (not 403) for a worker outside the caller's corporation so the
+  // response can't be used to probe which worker ids exist in other tenants.
+  if (!w || !corpAllows(req, w.corporation_id)) {
+    return res.status(404).json({ error: 'worker not found' });
+  }
   res.json(w);
 }));
 
 app.post('/api/workers', asyncRoute(async (req, res) => {
   const b = req.body || {};
+  // A scoped user can only create workers within their own corporation.
+  if (!corpAllows(req, b.corporation_id)) {
+    return res.status(403).json({ error: 'forbidden: worker outside your corporation' });
+  }
 
   const { error: wErr } = await supabase.from('workers').insert({
     id: b.id,
@@ -457,6 +495,15 @@ app.post('/api/workers', asyncRoute(async (req, res) => {
 
 app.patch('/api/workers/:id', asyncRoute(async (req, res) => {
   const b = req.body || {};
+  // Tenant check: the worker must belong to the caller's corporation, and a
+  // scoped user cannot reassign it into another corporation.
+  const current = await fetchWorkerRow(req.params.id);
+  if (!current || !corpAllows(req, current.corporation_id)) {
+    return res.status(404).json({ error: 'worker not found' });
+  }
+  if (b.corporation_id !== undefined && !corpAllows(req, b.corporation_id)) {
+    return res.status(403).json({ error: 'forbidden: cannot reassign worker to another corporation' });
+  }
   // Only update columns the caller actually included.
   const editable = {
     full_name: b.full_name,
@@ -503,6 +550,11 @@ app.patch('/api/workers/:id', asyncRoute(async (req, res) => {
 }));
 
 app.delete('/api/workers/:id', asyncRoute(async (req, res) => {
+  // Tenant check before any mutation.
+  const current = await fetchWorkerRow(req.params.id);
+  if (!current || !corpAllows(req, current.corporation_id)) {
+    return res.status(404).json({ error: 'worker not found' });
+  }
   // Soft-delete by deactivating; preserves all FKs (timesheets, audit, etc).
   const { data, error } = await supabase
     .from('workers')
@@ -518,6 +570,11 @@ app.delete('/api/workers/:id', asyncRoute(async (req, res) => {
 
 app.post('/api/workers/:id/allowances', asyncRoute(async (req, res) => {
   const a = req.body || {};
+  const { data: wRow } = await supabase
+    .from('workers').select('corporation_id').eq('id', req.params.id).maybeSingle();
+  if (!wRow || !corpAllows(req, wRow.corporation_id)) {
+    return res.status(404).json({ error: 'worker not found' });
+  }
   const { error } = await supabase.from('worker_allowances').insert({
     id: a.id,
     worker_id: req.params.id,
@@ -570,6 +627,12 @@ app.delete('/api/worker-allowances/:id', asyncRoute(async (req, res) => {
 
 app.put('/api/workers/:id/documents/:name', asyncRoute(async (req, res) => {
   const b = req.body || {};
+  // Tenant check via the parent worker.
+  const { data: wRow } = await supabase
+    .from('workers').select('corporation_id').eq('id', req.params.id).maybeSingle();
+  if (!wRow || !corpAllows(req, wRow.corporation_id)) {
+    return res.status(404).json({ error: 'worker not found' });
+  }
   const { error } = await supabase.from('worker_documents').upsert(
     {
       worker_id: req.params.id,
@@ -665,7 +728,8 @@ function shapeTimesheet(row, dailyRows, approvalRows) {
 }
 
 app.get('/api/timesheets', asyncRoute(async (req, res) => {
-  const { data: tsRows, error: tsErr } = await supabase.from('timesheets').select('*').order('id');
+  const { data: tsRows, error: tsErr } =
+    await scopeQuery(req, supabase.from('timesheets').select('*').order('id'));
   if (tsErr) throw new Error(tsErr.message);
   const { data: daily } = await supabase
     .from('timesheet_daily_entries')
@@ -707,6 +771,9 @@ async function fetchTimesheet(id) {
 
 app.post('/api/timesheets', asyncRoute(async (req, res) => {
   const b = req.body || {};
+  if (!corpAllows(req, b.corporation_id)) {
+    return res.status(403).json({ error: 'forbidden: timesheet outside your corporation' });
+  }
 
   const { error: tsErr } = await supabase.from('timesheets').insert({
     id: b.id,
@@ -752,6 +819,12 @@ app.post('/api/timesheets', asyncRoute(async (req, res) => {
 
 app.patch('/api/timesheets/:id', asyncRoute(async (req, res) => {
   const b = req.body || {};
+  // Tenant check: timesheet must belong to the caller's corporation.
+  const { data: tsRow } = await supabase
+    .from('timesheets').select('corporation_id').eq('id', req.params.id).maybeSingle();
+  if (!tsRow || !corpAllows(req, tsRow.corporation_id)) {
+    return res.status(404).json({ error: 'timesheet not found' });
+  }
 
   if (b.stage || b.allowance_days !== undefined || b.remarks !== undefined) {
     const updateObj = { updated_at: new Date().toISOString() };
@@ -788,6 +861,11 @@ app.patch('/api/timesheets/:id', asyncRoute(async (req, res) => {
 
 app.post('/api/timesheets/:id/approvals', asyncRoute(async (req, res) => {
   const a = req.body || {};
+  const { data: tsRow } = await supabase
+    .from('timesheets').select('corporation_id').eq('id', req.params.id).maybeSingle();
+  if (!tsRow || !corpAllows(req, tsRow.corporation_id)) {
+    return res.status(404).json({ error: 'timesheet not found' });
+  }
   const { data: seqData } = await supabase
     .from('timesheet_approvals')
     .select('sequence_no')
@@ -922,9 +1000,9 @@ app.post('/api/audit-logs', asyncRoute(async (req, res) => {
 // ─── Roster settings + Rosters ───────────────────────────────────────────────
 
 app.get('/api/roster-settings', asyncRoute(async (req, res) => {
-  const { data, error } = await supabase
+  const { data, error } = await scopeQuery(req, supabase
     .from('roster_settings')
-    .select('corporation_id, max_days_per_fortnight, allow_weekend_work, allow_max_days_override, data_entry_can_override');
+    .select('corporation_id, max_days_per_fortnight, allow_weekend_work, allow_max_days_override, data_entry_can_override'));
   if (error) throw new Error(error.message);
   res.json(data || []);
 }));
@@ -947,10 +1025,10 @@ app.patch('/api/roster-settings/:corporationId', requireRole('systemAdmin'), asy
 }));
 
 app.get('/api/rosters', asyncRoute(async (req, res) => {
-  const { data: rosters, error: rErr } = await supabase
+  const { data: rosters, error: rErr } = await scopeQuery(req, supabase
     .from('rosters')
     .select('*')
-    .order('fortnight_start', { ascending: false })
+    .order('fortnight_start', { ascending: false }))
     .order('corporation_id');
   if (rErr) throw new Error(rErr.message);
   const { data: recs } = await supabase
@@ -1001,6 +1079,12 @@ app.get('/api/rosters', asyncRoute(async (req, res) => {
 app.put('/api/rosters/:rosterId/workers/:workerId/days/:dayIndex',
   asyncRoute(async (req, res) => {
     const b = req.body || {};
+    // Tenant check: the roster must belong to the caller's corporation.
+    const { data: rosterRow } = await supabase
+      .from('rosters').select('corporation_id').eq('id', req.params.rosterId).maybeSingle();
+    if (!rosterRow || !corpAllows(req, rosterRow.corporation_id)) {
+      return res.status(404).json({ error: 'roster not found' });
+    }
     const { error: deErr } = await supabase
       .from('roster_day_entries')
       .update({
@@ -1126,10 +1210,10 @@ app.delete('/api/rate-tables/:id', requireRole('systemAdmin'), asyncRoute(async 
 // ─── Backpay ─────────────────────────────────────────────────────────────────
 
 app.get('/api/backpay-records', asyncRoute(async (req, res) => {
-  const { data: recs, error: rErr } = await supabase
+  const { data: recs, error: rErr } = await scopeQuery(req, supabase
     .from('backpay_records')
     .select('*')
-    .order('calculated_at', { ascending: false });
+    .order('calculated_at', { ascending: false }));
   if (rErr) throw new Error(rErr.message);
   const { data: lines } = await supabase
     .from('backpay_line_items')
@@ -1168,6 +1252,9 @@ app.get('/api/backpay-records', asyncRoute(async (req, res) => {
 
 app.post('/api/backpay-records', asyncRoute(async (req, res) => {
   const b = req.body || {};
+  if (!corpAllows(req, b.corporation_id)) {
+    return res.status(403).json({ error: 'forbidden: backpay outside your corporation' });
+  }
 
   const { error: bErr } = await supabase.from('backpay_records').insert({
     id: b.id,
@@ -1207,6 +1294,11 @@ app.post('/api/backpay-records', asyncRoute(async (req, res) => {
 app.patch('/api/backpay-records/:id', asyncRoute(async (req, res) => {
   const b = req.body || {};
   if (!b.status) return res.status(400).json({ error: 'status required' });
+  const { data: rec } = await supabase
+    .from('backpay_records').select('corporation_id').eq('id', req.params.id).maybeSingle();
+  if (!rec || !corpAllows(req, rec.corporation_id)) {
+    return res.status(404).json({ error: 'backpay record not found' });
+  }
   const { data, error } = await supabase
     .from('backpay_records')
     .update({ status: b.status })

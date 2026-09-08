@@ -85,7 +85,9 @@ directly.
 production it refuses to start without `API_JWT_SECRET`, and every route except
 health/readiness and login requires a valid JWT (obtained from
 `POST /api/auth/login`, verified against a scrypt password hash). Admin-only
-writes (statutory rates, roster settings) require the `systemAdmin` role. See
+writes (statutory rates, roster settings) require the `systemAdmin` role, and
+**tenant isolation** confines corporation-scoped roles (coordinator, HR, worker)
+to their own corporation's rows while global roles see all. See
 `server/README.md` → *Authentication & authorization* and `server/.env.example`.
 
 The browser calls `/api/*` on the **same origin** it was served from; nginx

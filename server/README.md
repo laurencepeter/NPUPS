@@ -39,6 +39,19 @@ there.
   user's id, role, and corporation. Failures are uniform (no user enumeration).
 - **RBAC.** `PUT/DELETE /api/rate-tables/*` and `PATCH /api/roster-settings/*`
   require the `systemAdmin` role; all other data routes require authentication.
+- **Tenant isolation (corporation-scoped).** A token carrying a
+  `corporation_id` (regional coordinator, HR, worker) is confined to that
+  corporation: list endpoints (workers, timesheets, rosters, roster-settings,
+  backpay) return only that corporation's rows, single-record reads/writes
+  outside it return 404, and create/update is rejected (403) if the payload
+  targets another corporation. Global roles (systemAdmin, ps, subAccounts,
+  mainAccounts, dmcr, ministersDepartment — `corporation_id` null) see all
+  corporations. Scoping is inert when auth is disabled (local demo), so the
+  open demo and tests are unaffected.
+  **Known residuals (not yet corp-scoped — for the audit):** the audit-log
+  endpoints (no `corporation_id` on those rows), `worker-replacements`, and
+  `worker-allowances` PATCH/DELETE addressed directly by allowance id. Closing
+  these needs a `corporation_id`/parent lookup on those tables.
 - **Hardening.** `helmet` security headers, a CORS allowlist
   (`CORS_ALLOWED_ORIGINS`, empty ⇒ same-origin only), a global rate limit plus a
   tight limit on `/api/auth/login`, request-body validation on rate-table
