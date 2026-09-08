@@ -1,6 +1,23 @@
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/user_model.dart';
+import 'api_client.dart';
+
+/// Outcome of exchanging credentials with the backend for a session token.
+enum _ServerLoginOutcome {
+  /// Backend accepted the credentials and issued a JWT (now on ApiClient).
+  authorized,
+
+  /// No backend configured, or the backend runs without auth enforced — the
+  /// client proceeds on the local (demo) result with no token.
+  open,
+
+  /// Backend rejected the credentials (401/403). Fail closed.
+  rejected,
+
+  /// Backend unreachable or errored (5xx / network). Fail closed.
+  unavailable,
+}
 
 // ──────────────────────────────────────────────────────────────────────────────
 // WorkForce
@@ -50,6 +67,7 @@ class AuthService extends ChangeNotifier {
 
   static const _keyEmail = 'session_email';
   static const _keyLoginMs = 'session_login_ms';
+  static const _keyToken = 'session_token';
 
   AppUser? get currentUser => _currentUser;
   bool get isAuthenticated => _currentUser != null && !_isSessionExpired;
@@ -95,6 +113,12 @@ class AuthService extends ChangeNotifier {
 
     _currentUser = credential.user;
     _lastActivity = DateTime.now();
+
+    // Re-attach the backend session token (if any) so API calls made after a
+    // restart carry it. The client session (30 min) is shorter than the token
+    // lifetime, so a restored session always has a still-valid token.
+    final token = prefs.getString(_keyToken);
+    if (token != null && token.isNotEmpty) ApiClient().authToken = token;
   }
 
   Future<void> _saveSession(String email) async {
@@ -107,6 +131,8 @@ class AuthService extends ChangeNotifier {
     prefs ??= await SharedPreferences.getInstance();
     await prefs.remove(_keyEmail);
     await prefs.remove(_keyLoginMs);
+    await prefs.remove(_keyToken);
+    ApiClient().authToken = null;
   }
 
   // Demo credentials — all roles for pipeline demo
@@ -243,6 +269,27 @@ class AuthService extends ChangeNotifier {
       return AuthResult.error('This account has been deactivated.');
     }
 
+    final normalizedEmail = email.toLowerCase().trim();
+
+    // Local (demo) credentials matched. When a backend is configured, the
+    // server is the authority: exchange the credentials for a signed session
+    // token and fail closed if it rejects us or is unreachable.
+    if (ApiClient().isConfigured) {
+      final outcome = await _serverLogin(normalizedEmail, password);
+      if (outcome == _ServerLoginOutcome.rejected) {
+        _isLoading = false;
+        _recordFailedAttempt();
+        notifyListeners();
+        return AuthResult.error('Incorrect email or password.');
+      }
+      if (outcome == _ServerLoginOutcome.unavailable) {
+        _isLoading = false;
+        notifyListeners();
+        return AuthResult.error(
+            'Sign-in service is unavailable. Please try again shortly.');
+      }
+    }
+
     // Successful login — reset rate limiting and start session
     _failedAttempts = 0;
     _lockoutUntil = null;
@@ -250,8 +297,37 @@ class AuthService extends ChangeNotifier {
     _currentUser = credential.user;
     _isLoading = false;
     notifyListeners();
-    _saveSession(email.toLowerCase().trim());
+    _saveSession(normalizedEmail);
     return AuthResult.ok(credential.user);
+  }
+
+  /// Exchange credentials with the backend for a JWT. Stores the token on the
+  /// shared [ApiClient] and in persistent storage on success.
+  Future<_ServerLoginOutcome> _serverLogin(String email, String password) async {
+    try {
+      final resp = await ApiClient()
+          .postJson('/api/auth/login', {'email': email, 'password': password});
+      final token = (resp is Map) ? resp['token'] : null;
+      if (token is String && token.isNotEmpty) {
+        ApiClient().authToken = token;
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString(_keyToken, token);
+        return _ServerLoginOutcome.authorized;
+      }
+      return _ServerLoginOutcome.open;
+    } on ApiException catch (e) {
+      // 401/403 → credentials rejected. 404/501 → this backend has no auth
+      // (e.g. an older or open deployment) so proceed on the local result.
+      if (e.statusCode == 401 || e.statusCode == 403) {
+        return _ServerLoginOutcome.rejected;
+      }
+      if (e.statusCode == 404 || e.statusCode == 501) {
+        return _ServerLoginOutcome.open;
+      }
+      return _ServerLoginOutcome.unavailable;
+    } catch (_) {
+      return _ServerLoginOutcome.unavailable;
+    }
   }
 
   void _recordFailedAttempt() {

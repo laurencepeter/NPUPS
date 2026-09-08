@@ -81,6 +81,13 @@ The Flutter app talks to a small Node.js + Express + `pg` API in `server/`
 process that touches PostgreSQL — the browser does not connect to it
 directly.
 
+**Authentication:** the API enforces auth server-side and is fail-secure — in
+production it refuses to start without `API_JWT_SECRET`, and every route except
+health/readiness and login requires a valid JWT (obtained from
+`POST /api/auth/login`, verified against a scrypt password hash). Admin-only
+writes (statutory rates, roster settings) require the `systemAdmin` role. See
+`server/README.md` → *Authentication & authorization* and `server/.env.example`.
+
 The browser calls `/api/*` on the **same origin** it was served from; nginx
 forwards those requests to the API (`API_UPSTREAM`, default `http://api:8080`).
 This means no backend URL is baked into the web build, the deployed bundle

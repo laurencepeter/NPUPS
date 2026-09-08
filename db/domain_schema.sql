@@ -121,8 +121,12 @@ CREATE TABLE app_users (
     corporation_id  TEXT        REFERENCES corporations (id) ON DELETE SET NULL,
     corporation_name TEXT,
     is_active       BOOLEAN     NOT NULL DEFAULT TRUE,
-    -- Demo-only password (kept as proof of concept per project instructions).
+    -- Demo-only plaintext password (published demo creds; proof of concept).
+    -- NOT used for authentication — the API verifies against password_hash.
     password_demo   TEXT,
+    -- Real credential: scrypt hash in the form "scrypt:<saltHex>:<hashHex>",
+    -- verified by the API /api/auth/login endpoint. Never returned by any API.
+    password_hash   TEXT,
     created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -487,6 +491,19 @@ INSERT INTO app_users (id, email, full_name, role, corporation_id, corporation_n
     ('USR-007', 'mainaccounts@workforce.app', 'Catherine Williams',   'mainAccounts',        NULL, 'All Corporations',                'test123'),
     ('USR-008', 'executive@workforce.app',    'Raymond Ali',          'ministersDepartment', NULL, 'All Corporations',                'test123'),
     ('USR-009', 'dmcr@workforce.app',         'Anika Ramlogan',       'dmcr',                NULL, 'All Corporations',                'test123');
+
+-- scrypt password hashes for the demo accounts (admin = admin123, rest =
+-- test123). These are what /api/auth/login actually verifies. Regenerate for a
+-- real deployment via the API's password flow — do not ship demo creds to prod.
+UPDATE app_users SET password_hash = 'scrypt:75be44e6d40eef618f4811657b9c60de:b1982708133c43c85118036ae378a61790fc51f6accdaa3b01e62918c3dacbb15a22c8e5d1947b63e3f13377e6a3d301da730daf4a14b6911c35f01812a001b1' WHERE id = 'USR-001';
+UPDATE app_users SET password_hash = 'scrypt:f5360d69ddc642732409d39b4e2f1651:51a81fb2a8566e6f78a823df6d004cded5514796a127ee1214c9c4ffeb6f788eb20ee3c981c3555545b17d08d9fd48f8ca452470f25ca4608d862940fbe9bf51' WHERE id = 'USR-002';
+UPDATE app_users SET password_hash = 'scrypt:da55d747487b7c7480002ae15c9d5a37:08faef524a19800521596714657fed80dfc21095aafc86bf75c1a6c9a955f01951be6d7f2421e5a42357fc761955c4b4c3ae98d33e37282be751e54cb1faa188' WHERE id = 'USR-003';
+UPDATE app_users SET password_hash = 'scrypt:5dd990d46b6538466c4059e3d0f1d147:e6ff2fbe362694e8b6147d73d7257551a653c81d1da3dae1aacb2024c1c0508ff340f8a21ce1f7507880e3b13f88df6769d5d8f76b0f829af920faeffa55010d' WHERE id = 'USR-004';
+UPDATE app_users SET password_hash = 'scrypt:584166a79f1fcb97bdfa26bc4324089a:c1fb13c9349fa16d1332d1e7efe7a50155148182f6f731b7412a7a068389a9726f8063c5769e09311f4b034a1ee7bf02f8aa8293d36e94288339fd2a02db0102' WHERE id = 'USR-005';
+UPDATE app_users SET password_hash = 'scrypt:f25e47eb38b769fa9690b95b67643b1f:9b32b3c2dbb1f12c485fd08a9b53fb72d7698d2e529bb0ba577fe99d6a549a081c2507cec72f765f7c6f101b12f3b1118c73bdc3599e6e68ef13869d9e94b408' WHERE id = 'USR-006';
+UPDATE app_users SET password_hash = 'scrypt:5f104c49c9009e4dd626c35a1def4ade:16f07f2cfccc01cd2761f714c71b627c7a926ab843836df02abe595aace2d4604207c2a20287d6234696af7159d83b2dbaf75631a2259f0621dba1535c10cca1' WHERE id = 'USR-007';
+UPDATE app_users SET password_hash = 'scrypt:6a4b007815213d797a77e0e5dc7f975f:0b934bf030febfdcf65ebe0292a8e668e7bb5b22dc742475ef9dcf27a05f9b4a141d0e350bd7eb8709a096dd884326fcff29e177df25e8a066c8ea4538f35532' WHERE id = 'USR-008';
+UPDATE app_users SET password_hash = 'scrypt:778dadbdda6a515416a32635ed6b0f0a:b6ddad8cf48aa7f1425efd528d7e539ea5a40f15b1012b9d1ac2f783ab1d548b6ae7954d8d4931666fae6eff5ffbbbf8cd46abaaa9469717d35b5a76da852ff9' WHERE id = 'USR-009';
 
 -- ── Workers ──────────────────────────────────────────────────────────────────
 -- 12 primary workers (WRK-001..WRK-012) from worker_data_store.dart plus

@@ -7,8 +7,12 @@
 //   PORT=8080 node index.js
 // ─────────────────────────────────────────────────────────────────────────────
 
+const crypto = require('crypto');
 const express = require('express');
 const cors = require('cors');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
+const jwt = require('jsonwebtoken');
 const { createClient } = require('@supabase/supabase-js');
 
 const PORT = parseInt(process.env.PORT || '8080', 10);
@@ -16,6 +20,22 @@ const PORT = parseInt(process.env.PORT || '8080', 10);
 // valid value into a "fails to parse as URL" crash that's hard to spot.
 const SUPABASE_URL = (process.env.SUPABASE_URL || '').trim();
 const SUPABASE_ANON_KEY = (process.env.SUPABASE_ANON_KEY || '').trim();
+
+// ─── Auth / transport config ──────────────────────────────────────────────
+const NODE_ENV = process.env.NODE_ENV || 'development';
+const API_JWT_SECRET = (process.env.API_JWT_SECRET || '').trim();
+const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '8h';
+// Explicit, logged opt-out for running WITHOUT auth (local demo / CI only).
+const ALLOW_INSECURE_NO_AUTH = process.env.ALLOW_INSECURE_NO_AUTH === 'true';
+// Cross-origin allowlist. Empty ⇒ CORS disabled (same-origin only), which is
+// correct for the nginx same-origin proxy the web app uses.
+const CORS_ALLOWED_ORIGINS = (process.env.CORS_ALLOWED_ORIGINS || '')
+  .split(',')
+  .map((s) => s.trim())
+  .filter(Boolean);
+// Auth is ON whenever a secret is configured. It is the required posture in
+// production; see the fail-secure check below.
+const AUTH_ENABLED = API_JWT_SECRET.length > 0;
 
 // Fail fast WITH a specific reason. A bare crash here just shows up in Coolify
 // as "no containers running"; naming the exact missing/invalid var is the
@@ -42,6 +62,31 @@ try {
   process.exit(1);
 }
 
+// Fail secure: the API is the only path to the database, so it must not run
+// unauthenticated in production. Require a strong JWT secret; allow an explicit,
+// loudly-logged opt-out only for local/demo use.
+if (AUTH_ENABLED && API_JWT_SECRET.length < 32) {
+  console.error(
+    'FATAL: API_JWT_SECRET is too short. Use at least 32 random characters ' +
+      '(e.g. `openssl rand -base64 48`).',
+  );
+  process.exit(1);
+}
+if (!AUTH_ENABLED) {
+  if (NODE_ENV === 'production' && !ALLOW_INSECURE_NO_AUTH) {
+    console.error(
+      'FATAL: API_JWT_SECRET is not set. Refusing to start unauthenticated in ' +
+        'production. Set API_JWT_SECRET, or set ALLOW_INSECURE_NO_AUTH=true to ' +
+        'explicitly run open (NEVER in production).',
+    );
+    process.exit(1);
+  }
+  console.warn(
+    '⚠  API_JWT_SECRET not set — authentication is DISABLED and every /api ' +
+      'route is open. Acceptable only for local demo / CI. Do NOT deploy like this.',
+  );
+}
+
 let supabase;
 try {
   supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -51,8 +96,42 @@ try {
 }
 
 const app = express();
-app.use(cors());
+// Behind the nginx proxy: trust the first hop so req.ip / rate-limit key use
+// the real client IP from X-Forwarded-For rather than the proxy's address.
+app.set('trust proxy', 1);
+
+// Security headers (HSTS, nosniff, frame-deny, referrer policy, etc.). The API
+// returns JSON only, so the HTML-oriented CSP is not needed here.
+app.use(helmet({ contentSecurityPolicy: false }));
+
+// CORS: only the configured origins may make cross-origin calls. Empty list ⇒
+// no Access-Control-Allow-Origin emitted, so browsers block cross-origin use —
+// the correct default for the same-origin nginx proxy.
+app.use(
+  cors({
+    origin: CORS_ALLOWED_ORIGINS.length ? CORS_ALLOWED_ORIGINS : false,
+    credentials: true,
+  }),
+);
+
 app.use(express.json({ limit: '5mb' }));
+
+// Rate limiting — a broad ceiling on the whole API plus a tight limit on the
+// auth endpoint to blunt credential brute-forcing.
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 1000,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'too many login attempts, try again later' },
+});
+app.use('/api/', apiLimiter);
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -63,6 +142,114 @@ function asyncRoute(fn) {
 function isoOrNull(v) {
   return v == null ? null : new Date(v).toISOString();
 }
+
+// ─── Authentication & RBAC ────────────────────────────────────────────────
+//
+// Passwords are verified against a scrypt hash ("scrypt:<saltHex>:<hashHex>")
+// using Node's built-in crypto — no native/bcrypt dependency to build in the
+// image, and a constant-time comparison. On success the API issues a short-
+// lived HS256 JWT that the client returns as `Authorization: Bearer <token>`.
+
+function verifyPassword(password, stored) {
+  if (typeof stored !== 'string') return false;
+  const parts = stored.split(':');
+  if (parts.length !== 3 || parts[0] !== 'scrypt') return false;
+  const salt = Buffer.from(parts[1], 'hex');
+  const expected = Buffer.from(parts[2], 'hex');
+  let actual;
+  try {
+    actual = crypto.scryptSync(String(password), salt, expected.length);
+  } catch {
+    return false;
+  }
+  return actual.length === expected.length && crypto.timingSafeEqual(actual, expected);
+}
+
+function signToken(u) {
+  return jwt.sign(
+    {
+      sub: u.id,
+      email: u.email,
+      role: u.role,
+      corporation_id: u.corporation_id ?? null,
+      name: u.full_name ?? null,
+    },
+    API_JWT_SECRET,
+    { expiresIn: JWT_EXPIRES_IN },
+  );
+}
+
+// Verify the bearer token. When auth is disabled (local/demo) a synthetic admin
+// principal is injected so downstream role checks and the app still function.
+function requireAuth(req, res, next) {
+  if (!AUTH_ENABLED) {
+    req.user = { sub: 'insecure-open', role: 'systemAdmin' };
+    return next();
+  }
+  const m = /^Bearer\s+(.+)$/i.exec(req.headers.authorization || '');
+  if (!m) return res.status(401).json({ error: 'missing bearer token' });
+  try {
+    req.user = jwt.verify(m[1], API_JWT_SECRET);
+    return next();
+  } catch {
+    return res.status(401).json({ error: 'invalid or expired token' });
+  }
+}
+
+function requireRole(...roles) {
+  return (req, res, next) => {
+    if (!AUTH_ENABLED) return next();
+    if (!req.user || !roles.includes(req.user.role)) {
+      return res.status(403).json({ error: `forbidden: requires role ${roles.join('/')}` });
+    }
+    return next();
+  };
+}
+
+// Global gate: every /api route requires a valid token except the liveness/
+// readiness probes and the login endpoint itself.
+const OPEN_PATHS = new Set(['/api/health', '/api/ready', '/api/auth/login']);
+app.use((req, res, next) => {
+  if (!req.path.startsWith('/api/')) return next();
+  if (OPEN_PATHS.has(req.path)) return next();
+  return requireAuth(req, res, next);
+});
+
+// ─── Auth endpoint ─────────────────────────────────────────────────────────
+
+app.post('/api/auth/login', authLimiter, asyncRoute(async (req, res) => {
+  const { email, password } = req.body || {};
+  if (!email || !password) {
+    return res.status(400).json({ error: 'email and password are required' });
+  }
+  if (!AUTH_ENABLED) {
+    // Server is running open (no secret configured): there is no token to
+    // issue. The client treats this as "auth not enforced" and proceeds.
+    return res.status(501).json({ error: 'authentication is disabled on this server' });
+  }
+  const { data: u } = await supabase
+    .from('app_users')
+    .select('id, email, full_name, role, corporation_id, corporation_name, is_active, password_hash')
+    .eq('email', String(email).toLowerCase().trim())
+    .maybeSingle();
+  // Uniform failure for unknown user, inactive user, or bad password — no
+  // enumeration of which one it was.
+  if (!u || u.is_active === false || !verifyPassword(password, u.password_hash)) {
+    return res.status(401).json({ error: 'invalid credentials' });
+  }
+  const token = signToken(u);
+  res.json({
+    token,
+    user: {
+      id: u.id,
+      email: u.email,
+      full_name: u.full_name,
+      role: u.role,
+      corporation_id: u.corporation_id,
+      corporation_name: u.corporation_name,
+    },
+  });
+}));
 
 // ─── Health / readiness ──────────────────────────────────────────────────────
 //
@@ -742,7 +929,7 @@ app.get('/api/roster-settings', asyncRoute(async (req, res) => {
   res.json(data || []);
 }));
 
-app.patch('/api/roster-settings/:corporationId', asyncRoute(async (req, res) => {
+app.patch('/api/roster-settings/:corporationId', requireRole('systemAdmin'), asyncRoute(async (req, res) => {
   const b = req.body || {};
   const { error } = await supabase.from('roster_settings').upsert(
     {
@@ -871,8 +1058,35 @@ app.get('/api/rate-tables', asyncRoute(async (req, res) => {
   res.json((data || []).map(shapeRateTable));
 }));
 
-app.put('/api/rate-tables/:id', asyncRoute(async (req, res) => {
+// Integrity guard: statutory figures must be sane before they can drive
+// payroll. Rejects negatives, out-of-range rates, and malformed dates.
+function validateRateTable(b) {
+  const frac = ['nis_employee_rate', 'nis_employer_rate', 'paye_rate_low', 'paye_rate_high'];
+  const money = [
+    'health_surcharge_weekly_high', 'health_surcharge_weekly_low',
+    'health_surcharge_high_threshold', 'personal_allowance_annual',
+    'paye_band_threshold_annual',
+  ];
+  for (const k of frac) {
+    const v = Number(b[k]);
+    if (!Number.isFinite(v) || v < 0 || v > 1) return `${k} must be a fraction between 0 and 1`;
+  }
+  for (const k of money) {
+    const v = Number(b[k]);
+    if (!Number.isFinite(v) || v < 0) return `${k} must be a non-negative number`;
+  }
+  const p = Number(b.pay_periods_per_year);
+  if (!Number.isInteger(p) || p < 1 || p > 366) return 'pay_periods_per_year must be an integer between 1 and 366';
+  if (typeof b.effective_from !== 'string' || Number.isNaN(Date.parse(b.effective_from))) {
+    return 'effective_from must be a valid date';
+  }
+  return null;
+}
+
+app.put('/api/rate-tables/:id', requireRole('systemAdmin'), asyncRoute(async (req, res) => {
   const b = req.body || {};
+  const invalid = validateRateTable(b);
+  if (invalid) return res.status(400).json({ error: invalid });
   const eff = typeof b.effective_from === 'string' ? b.effective_from.slice(0, 10) : null;
   const { error } = await supabase.from('payroll_rate_tables').upsert(
     {
@@ -898,7 +1112,7 @@ app.put('/api/rate-tables/:id', asyncRoute(async (req, res) => {
   res.status(204).end();
 }));
 
-app.delete('/api/rate-tables/:id', asyncRoute(async (req, res) => {
+app.delete('/api/rate-tables/:id', requireRole('systemAdmin'), asyncRoute(async (req, res) => {
   const { data, error } = await supabase
     .from('payroll_rate_tables')
     .delete()
@@ -1005,16 +1219,21 @@ app.patch('/api/backpay-records/:id', asyncRoute(async (req, res) => {
 
 // ─── Error handler ───────────────────────────────────────────────────────────
 
+// eslint-disable-next-line no-unused-vars
 app.use((err, req, res, next) => {
+  // Log the full error server-side; return a generic message to the client in
+  // production so internal details (DB errors, stack traces) are never leaked.
   console.error(`[error] ${req.method} ${req.path}:`, err);
-  res.status(500).json({
-    error: err.message || 'internal error',
-    path: req.path,
-  });
+  const body = { error: 'internal error', path: req.path };
+  if (NODE_ENV !== 'production') body.detail = err.message;
+  res.status(500).json(body);
 });
 
 // ─── Boot ────────────────────────────────────────────────────────────────────
 
 app.listen(PORT, () => {
-  console.log(`workforce-api listening on :${PORT}`);
+  console.log(
+    `workforce-api listening on :${PORT} ` +
+      `(auth: ${AUTH_ENABLED ? 'enabled' : 'DISABLED'}, env: ${NODE_ENV})`,
+  );
 });

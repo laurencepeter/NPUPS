@@ -41,6 +41,14 @@ services:
       SUPABASE_URL: ${SUPABASE_URL:?set SUPABASE_URL in Coolify environment variables}
       SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY:?set SUPABASE_ANON_KEY in Coolify environment variables}
       PORT: "8080"
+      # Production is fail-secure: the API refuses to start without a strong
+      # JWT secret. Generate one with `openssl rand -base64 48` and set it in
+      # Coolify. CORS stays same-origin (nginx proxy); set CORS_ALLOWED_ORIGINS
+      # only if a separate front-end origin must call the API directly.
+      NODE_ENV: "production"
+      API_JWT_SECRET: ${API_JWT_SECRET:?set API_JWT_SECRET (32+ random chars) in Coolify environment variables}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-8h}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-}
     expose:
       - "8080"
     # node:alpine ships busybox wget. /api/health is a pure LIVENESS probe: it

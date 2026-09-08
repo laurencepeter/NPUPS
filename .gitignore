@@ -1,5 +1,6 @@
 # Build / IDE artifacts
 build/
+node_modules/
 .dart_tool/
 .flutter-plugins
 .flutter-plugins-dependencies

@@ -13,6 +13,12 @@ services:
       SUPABASE_URL: ${SUPABASE_URL:?set SUPABASE_URL to your Supabase project URL}
       SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY:?set SUPABASE_ANON_KEY to your Supabase anon key}
       PORT: "8080"
+      # Local demo runs open by default. Set API_JWT_SECRET (32+ chars) to turn
+      # on JWT auth locally; ALLOW_INSECURE_NO_AUTH keeps the open demo legal
+      # when no secret is set (dev env only — never in production).
+      NODE_ENV: "development"
+      API_JWT_SECRET: ${API_JWT_SECRET:-}
+      ALLOW_INSECURE_NO_AUTH: "true"
     ports:
       - "8080:8080"
 
