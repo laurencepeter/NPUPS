@@ -6,6 +6,7 @@
 // ──────────────────────────────────────────────────────────────────────────────
 
 import 'package:flutter/material.dart';
+import '../services/rate_table_service.dart';
 import 'payroll_deductions_model.dart';
 
 enum TimesheetStage {
@@ -175,8 +176,13 @@ class Timesheet {
 
   // Statutory deductions — gross is wage + cola (allowance is non-taxable).
   double get grossSalary => wageTotal + colaTotal;
-  DeductionBreakdown get deductions =>
-      DeductionBreakdown.compute(grossSalary: grossSalary);
+  // Rates are resolved from the admin-managed rate tables by the fortnight's
+  // start date, so each fortnight uses the statutory figures in force at the
+  // time — see RateTableService.
+  DeductionBreakdown get deductions => DeductionBreakdown.compute(
+        grossSalary: grossSalary,
+        rates: RateTableService().ratesFor(fortnightStart),
+      );
   double get paye => deductions.paye;
   double get nisEmployee => deductions.nisEmployee;
   double get nisEmployer => deductions.nisEmployer;

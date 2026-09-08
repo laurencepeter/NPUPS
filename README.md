@@ -200,6 +200,7 @@ After login, `Bootstrap.loadAll()` fans out to:
 | `GET /api/roster-settings` | `RosterService` |
 | `GET /api/rosters` | `RosterService` |
 | `GET /api/backpay-records` | `BackpayService` |
+| `GET /api/rate-tables` | `RateTableService` (admin-managed statutory rates) |
 
 Mutations round-trip through the same client. Each store performs an
 optimistic local update first, then `POST` / `PATCH` / `DELETE`s to the

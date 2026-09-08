@@ -282,10 +282,21 @@ flowchart TD
 
 ## 8. Statutory deductions & net pay
 
-Deductions are modelled in `lib/models/payroll_deductions_model.dart`. Rates
-default to Trinidad & Tobago figures and are **versioned by year**
-(`DeductionRateTable`), so historical fortnights stay auditable even after a rate
-change.
+Deductions are modelled in `lib/models/payroll_deductions_model.dart`. Every
+statutory figure is stored in **admin-managed, effective-dated rate tables**
+(`payroll_rate_tables`, served at `/api/rate-tables`, edited from the **Rates**
+tab — System Admin only). A System Admin changes a rate at runtime by adding a
+new set with a future effective date; **no code change or redeploy is needed**
+when the Budget changes the NIS rate, personal allowance, or a PAYE band.
+
+`RateTableService.ratesFor(fortnightStart)` resolves the set in force for each
+fortnight — the latest `effective_from` on or before the fortnight start — so
+already-processed fortnights keep the rates that applied when they ran, and
+historical payslips stay reproducible. When the backend has no rate tables
+(or the endpoint is unavailable), the engine falls back to the built-in
+`DeductionRateTable.defaults` so payroll always computes.
+
+The figures below are the seeded Trinidad & Tobago defaults.
 
 | Deduction | Rate (2026 default) | Basis |
 |-----------|---------------------|-------|

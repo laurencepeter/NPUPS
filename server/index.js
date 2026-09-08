@@ -836,6 +836,79 @@ app.put('/api/rosters/:rosterId/workers/:workerId/days/:dayIndex',
   })
 );
 
+// ─── Payroll rate tables (statutory rates — admin managed) ────────────────────
+//
+// Effective-dated PAYE / NIS / Health Surcharge parameters. The Flutter engine
+// resolves the applicable row for a fortnight by its effective_from date, so a
+// statutory change is a data edit rather than a code change. JSON keys mirror
+// lib/models/payroll_deductions_model.dart DeductionRateTable.fromJson.
+
+function shapeRateTable(r) {
+  return {
+    id: r.id,
+    label: r.label,
+    effective_from: r.effective_from ? new Date(r.effective_from).toISOString() : null,
+    year: r.year,
+    pay_periods_per_year: r.pay_periods_per_year,
+    nis_employee_rate: Number(r.nis_employee_rate),
+    nis_employer_rate: Number(r.nis_employer_rate),
+    health_surcharge_weekly_high: Number(r.health_surcharge_weekly_high),
+    health_surcharge_weekly_low: Number(r.health_surcharge_weekly_low),
+    health_surcharge_high_threshold: Number(r.health_surcharge_high_threshold),
+    personal_allowance_annual: Number(r.personal_allowance_annual),
+    paye_band_threshold_annual: Number(r.paye_band_threshold_annual),
+    paye_rate_low: Number(r.paye_rate_low),
+    paye_rate_high: Number(r.paye_rate_high),
+  };
+}
+
+app.get('/api/rate-tables', asyncRoute(async (req, res) => {
+  const { data, error } = await supabase
+    .from('payroll_rate_tables')
+    .select('*')
+    .order('effective_from', { ascending: true });
+  if (error) throw new Error(error.message);
+  res.json((data || []).map(shapeRateTable));
+}));
+
+app.put('/api/rate-tables/:id', asyncRoute(async (req, res) => {
+  const b = req.body || {};
+  const eff = typeof b.effective_from === 'string' ? b.effective_from.slice(0, 10) : null;
+  const { error } = await supabase.from('payroll_rate_tables').upsert(
+    {
+      id: req.params.id,
+      label: b.label ?? null,
+      effective_from: eff,
+      year: b.year ?? (eff ? parseInt(eff.slice(0, 4), 10) : new Date().getFullYear()),
+      pay_periods_per_year: b.pay_periods_per_year ?? 26,
+      nis_employee_rate: b.nis_employee_rate,
+      nis_employer_rate: b.nis_employer_rate,
+      health_surcharge_weekly_high: b.health_surcharge_weekly_high,
+      health_surcharge_weekly_low: b.health_surcharge_weekly_low,
+      health_surcharge_high_threshold: b.health_surcharge_high_threshold,
+      personal_allowance_annual: b.personal_allowance_annual,
+      paye_band_threshold_annual: b.paye_band_threshold_annual,
+      paye_rate_low: b.paye_rate_low,
+      paye_rate_high: b.paye_rate_high,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: 'id' }
+  );
+  if (error) throw new Error(error.message);
+  res.status(204).end();
+}));
+
+app.delete('/api/rate-tables/:id', asyncRoute(async (req, res) => {
+  const { data, error } = await supabase
+    .from('payroll_rate_tables')
+    .delete()
+    .eq('id', req.params.id)
+    .select()
+    .single();
+  if (error || !data) return res.status(404).json({ error: 'rate table not found' });
+  res.status(204).end();
+}));
+
 // ─── Backpay ─────────────────────────────────────────────────────────────────
 
 app.get('/api/backpay-records', asyncRoute(async (req, res) => {

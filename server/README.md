@@ -51,3 +51,6 @@ flutter run -d chrome --dart-define=API_BASE_URL=http://localhost:8080
 | GET    | `/api/backpay-records`                                     | List with line items inline                     |
 | POST   | `/api/backpay-records`                                     | Create                                          |
 | PATCH  | `/api/backpay-records/:id`                                 | Update status                                   |
+| GET    | `/api/rate-tables`                                         | List effective-dated statutory rate sets        |
+| PUT    | `/api/rate-tables/:id`                                     | Upsert a rate set (admin)                        |
+| DELETE | `/api/rate-tables/:id`                                     | Remove a rate set (admin)                        |

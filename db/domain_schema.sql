@@ -26,6 +26,7 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 -- -----------------------------------------------------------------------------
 -- Drop existing objects so the script can be re-run during development.
 -- -----------------------------------------------------------------------------
+DROP TABLE IF EXISTS payroll_rate_tables       CASCADE;
 DROP TABLE IF EXISTS backpay_line_items        CASCADE;
 DROP TABLE IF EXISTS backpay_records           CASCADE;
 DROP TABLE IF EXISTS roster_day_entries        CASCADE;
@@ -261,6 +262,48 @@ CREATE INDEX idx_timesheet_approvals_timesheet_id ON timesheet_approvals (timesh
 -- =============================================================================
 -- Rosters (mirrors lib/models/roster_model.dart)
 -- =============================================================================
+
+-- Statutory rate tables — admin-managed PAYE / NIS / Health Surcharge figures.
+-- Effective-dated: the payroll engine resolves the row with the latest
+-- effective_from on or before a fortnight's start date, so historical
+-- fortnights keep the rates in force when they were processed. All figures are
+-- user-definable at runtime by a System Admin (no code change on a Budget/rate
+-- change). Defaults below are Trinidad & Tobago 2026.
+CREATE TABLE payroll_rate_tables (
+    id                                TEXT    PRIMARY KEY,
+    label                             TEXT,
+    effective_from                    DATE    NOT NULL UNIQUE,
+    year                              INT     NOT NULL,
+    pay_periods_per_year              INT     NOT NULL DEFAULT 26,
+    -- National Insurance (fractions, e.g. 0.034 = 3.4%)
+    nis_employee_rate                 NUMERIC(6,4) NOT NULL,
+    nis_employer_rate                 NUMERIC(6,4) NOT NULL,
+    -- Health Surcharge (TTD weekly, banded by fortnightly gross)
+    health_surcharge_weekly_high      NUMERIC(10,2) NOT NULL,
+    health_surcharge_weekly_low       NUMERIC(10,2) NOT NULL,
+    health_surcharge_high_threshold   NUMERIC(14,2) NOT NULL,
+    -- PAYE income tax (annual thresholds; prorated per pay period by the engine)
+    personal_allowance_annual         NUMERIC(14,2) NOT NULL,
+    paye_band_threshold_annual        NUMERIC(14,2) NOT NULL,
+    paye_rate_low                     NUMERIC(6,4) NOT NULL,
+    paye_rate_high                    NUMERIC(6,4) NOT NULL,
+    updated_at                        TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Seed the current TT statutory set with a very early effective date so every
+-- already-seeded fortnight resolves to it. Admins add a new row (with a future
+-- effective_from) when a rate changes rather than editing this one.
+INSERT INTO payroll_rate_tables (
+    id, label, effective_from, year, pay_periods_per_year,
+    nis_employee_rate, nis_employer_rate,
+    health_surcharge_weekly_high, health_surcharge_weekly_low, health_surcharge_high_threshold,
+    personal_allowance_annual, paye_band_threshold_annual, paye_rate_low, paye_rate_high
+) VALUES (
+    'RATE-TT-BASE', 'Trinidad & Tobago — base rates', '2020-01-01', 2020, 26,
+    0.0340, 0.0650,
+    8.25, 4.80, 469.99,
+    90000.00, 1000000.00, 0.2500, 0.3000
+);
 
 CREATE TABLE roster_settings (
     corporation_id            TEXT    PRIMARY KEY REFERENCES corporations (id) ON DELETE CASCADE,

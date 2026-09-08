@@ -40,6 +40,7 @@ Pure Dart, no Flutter framework required. Run in milliseconds. Cover:
 | `user_model_test.dart` | `AppUser.initials`, role `displayName`/`description` completeness |
 | `auth_service_test.dart` | Sign-in success/failure for every demo account, rate-limiting lockout, session management, role switching |
 | `payroll_deductions_test.dart` | PAYE banding (25%/30%), personal-allowance proration by pay period, inclusion in net pay, configurable/auditable rate tables |
+| `rate_table_service_test.dart` | Effective-date resolution of admin rate sets (latest ≤ date, fallback to defaults), `DeductionRateTable` JSON round-trip, table-driven pay period |
 
 Run alone:
 ```bash
