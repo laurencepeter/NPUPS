@@ -189,7 +189,8 @@ function requireAuth(req, res, next) {
   const m = /^Bearer\s+(.+)$/i.exec(req.headers.authorization || '');
   if (!m) return res.status(401).json({ error: 'missing bearer token' });
   try {
-    req.user = jwt.verify(m[1], API_JWT_SECRET);
+    // Pin the algorithm so only our HS256-signed tokens are accepted.
+    req.user = jwt.verify(m[1], API_JWT_SECRET, { algorithms: ['HS256'] });
     return next();
   } catch {
     return res.status(401).json({ error: 'invalid or expired token' });
@@ -239,8 +240,12 @@ function scopeQuery(req, query, column = 'corporation_id') {
 // readiness probes and the login endpoint itself.
 const OPEN_PATHS = new Set(['/api/health', '/api/ready', '/api/auth/login']);
 app.use((req, res, next) => {
-  if (!req.path.startsWith('/api/')) return next();
-  if (OPEN_PATHS.has(req.path)) return next();
+  // Case-fold the path: Express routing is case-insensitive by default, so a
+  // case-sensitive gate here (e.g. accepting "/API/workers") would let a
+  // request skip auth yet still reach the lower-cased route handler.
+  const path = req.path.toLowerCase();
+  if (!path.startsWith('/api/')) return next();
+  if (OPEN_PATHS.has(path)) return next();
   return requireAuth(req, res, next);
 });
 
