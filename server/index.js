@@ -228,6 +228,67 @@ function actorFromToken(req, body = {}) {
   };
 }
 
+// ─── Role authorization (mirrors lib/models/user_model.dart UserRole) ───────
+//
+// Coarse per-endpoint role allowlists for write operations. Reads stay open to
+// any authenticated principal (already corporation-scoped). systemAdmin is
+// included in every set so it retains full access. When auth is disabled
+// (local/demo) requireRole is a no-op, so these are advisory there.
+const WORKER_EDITORS = ['systemAdmin', 'ministersDepartment'];
+const WORKER_DOC_EDITORS = ['systemAdmin', 'ministersDepartment', 'hr'];
+const REPLACEMENT_EDITORS = ['systemAdmin', 'dmcr', 'regionalCoordinator'];
+const TIMESHEET_EDITORS = ['systemAdmin', 'worker', 'regionalCoordinator'];
+const ROSTER_EDITORS = ['systemAdmin', 'dmcr', 'regionalCoordinator'];
+const BACKPAY_EDITORS = ['systemAdmin', 'subAccounts', 'mainAccounts'];
+
+// Stage-scoped authorization for the timesheet approval pipeline: only the role
+// that OWNS the current stage may advance (or reject) it. Mirrors
+// TimesheetStage.stageOwner in lib/models/timesheet_model.dart. systemAdmin may
+// act on any stage; terminal stage (chequePrinting) advances nowhere.
+const STAGE_ADVANCERS = {
+  notStarted: ['worker', 'regionalCoordinator'],
+  draft: ['worker', 'regionalCoordinator'],
+  submitted: ['regionalCoordinator'],
+  coordinatorReview: ['regionalCoordinator'],
+  hrProcessing: ['hr'],
+  accountsProcessing: ['subAccounts', 'mainAccounts'],
+  approvedForPayment: ['subAccounts', 'mainAccounts'],
+  exported: ['subAccounts', 'mainAccounts'],
+  chequePrinting: [],
+};
+
+function canAdvanceFrom(req, currentStage) {
+  if (!AUTH_ENABLED) return true;
+  const role = req.user && req.user.role;
+  if (role === 'systemAdmin') return true;
+  return (STAGE_ADVANCERS[currentStage] || []).includes(role);
+}
+
+// Server-authoritative audit hash. Byte-for-byte identical to the Dart
+// AuditService._computeHash and the SQL seed in db/domain_schema.sql, so a
+// server-written entry still verifies on the client after a reload:
+//   sha256( previousHash || id || millisSinceEpoch || userId
+//         || action || entityType || entityId || changesStr || attachStr )
+// changesStr ordered as received (persisted by sequence_no); attachStr ordered
+// by id (the order the GET endpoint re-hydrates).
+function computeAuditHash({ previousHash, id, timestamp, userId, action, entityType, entityId, fieldChanges, attachments }) {
+  const changesStr = (fieldChanges || [])
+    .map((f) => `${f.field_name}|${f.old_value ?? ''}|${f.new_value ?? ''}`)
+    .join(';');
+  const attachStr = (attachments || [])
+    .slice()
+    // Bytewise (not locale-aware) ascending, to match how the GET endpoint and
+    // the SQL seed order attachments by id when the chain is re-verified.
+    .sort((a, b) => (String(a.id) < String(b.id) ? -1 : String(a.id) > String(b.id) ? 1 : 0))
+    .map((a) => `${a.id}|${a.content_hash}|${a.size_bytes}`)
+    .join(';');
+  const millis = String(new Date(timestamp).getTime());
+  const payload = [
+    previousHash, id, millis, userId, action, entityType, entityId, changesStr, attachStr,
+  ].join('||');
+  return crypto.createHash('sha256').update(payload, 'utf8').digest('hex');
+}
+
 // ─── Tenant isolation (row-level, corporation-scoped) ───────────────────────
 //
 // A principal whose token carries a corporation_id (regional coordinator, HR,
@@ -444,7 +505,7 @@ app.get('/api/workers/:id', asyncRoute(async (req, res) => {
   res.json(w);
 }));
 
-app.post('/api/workers', asyncRoute(async (req, res) => {
+app.post('/api/workers', requireRole(...WORKER_EDITORS), asyncRoute(async (req, res) => {
   const b = req.body || {};
   // A scoped user can only create workers within their own corporation.
   if (!corpAllows(req, b.corporation_id)) {
@@ -519,7 +580,7 @@ app.post('/api/workers', asyncRoute(async (req, res) => {
   res.status(201).json(await fetchWorkerRow(b.id));
 }));
 
-app.patch('/api/workers/:id', asyncRoute(async (req, res) => {
+app.patch('/api/workers/:id', requireRole(...WORKER_EDITORS), asyncRoute(async (req, res) => {
   const b = req.body || {};
   // Tenant check: the worker must belong to the caller's corporation, and a
   // scoped user cannot reassign it into another corporation.
@@ -575,7 +636,7 @@ app.patch('/api/workers/:id', asyncRoute(async (req, res) => {
   res.json(await fetchWorkerRow(req.params.id));
 }));
 
-app.delete('/api/workers/:id', asyncRoute(async (req, res) => {
+app.delete('/api/workers/:id', requireRole('systemAdmin'), asyncRoute(async (req, res) => {
   // Tenant check before any mutation.
   const current = await fetchWorkerRow(req.params.id);
   if (!current || !corpAllows(req, current.corporation_id)) {
@@ -594,7 +655,7 @@ app.delete('/api/workers/:id', asyncRoute(async (req, res) => {
 
 // Worker allowances ----------------------------------------------------------
 
-app.post('/api/workers/:id/allowances', asyncRoute(async (req, res) => {
+app.post('/api/workers/:id/allowances', requireRole(...WORKER_EDITORS), asyncRoute(async (req, res) => {
   const a = req.body || {};
   const { data: wRow } = await supabase
     .from('workers').select('corporation_id').eq('id', req.params.id).maybeSingle();
@@ -615,7 +676,7 @@ app.post('/api/workers/:id/allowances', asyncRoute(async (req, res) => {
   res.status(201).json(a);
 }));
 
-app.patch('/api/worker-allowances/:id', asyncRoute(async (req, res) => {
+app.patch('/api/worker-allowances/:id', requireRole(...WORKER_EDITORS), asyncRoute(async (req, res) => {
   const b = req.body || {};
   const editable = {
     name: b.name,
@@ -638,7 +699,7 @@ app.patch('/api/worker-allowances/:id', asyncRoute(async (req, res) => {
   res.status(204).end();
 }));
 
-app.delete('/api/worker-allowances/:id', asyncRoute(async (req, res) => {
+app.delete('/api/worker-allowances/:id', requireRole(...WORKER_EDITORS), asyncRoute(async (req, res) => {
   const { data, error } = await supabase
     .from('worker_allowances')
     .delete()
@@ -651,7 +712,7 @@ app.delete('/api/worker-allowances/:id', asyncRoute(async (req, res) => {
 
 // Worker documents -----------------------------------------------------------
 
-app.put('/api/workers/:id/documents/:name', asyncRoute(async (req, res) => {
+app.put('/api/workers/:id/documents/:name', requireRole(...WORKER_DOC_EDITORS), asyncRoute(async (req, res) => {
   const b = req.body || {};
   // Tenant check via the parent worker.
   const { data: wRow } = await supabase
@@ -691,7 +752,7 @@ app.get('/api/worker-replacements', asyncRoute(async (req, res) => {
   })));
 }));
 
-app.post('/api/worker-replacements', asyncRoute(async (req, res) => {
+app.post('/api/worker-replacements', requireRole(...REPLACEMENT_EDITORS), asyncRoute(async (req, res) => {
   const b = req.body || {};
   const { error } = await supabase.from('worker_replacements').upsert(
     {
@@ -795,7 +856,7 @@ async function fetchTimesheet(id) {
   return shapeTimesheet(tsRow, daily || [], approvals || []);
 }
 
-app.post('/api/timesheets', asyncRoute(async (req, res) => {
+app.post('/api/timesheets', requireRole(...TIMESHEET_EDITORS), asyncRoute(async (req, res) => {
   const b = req.body || {};
   if (!corpAllows(req, b.corporation_id)) {
     return res.status(403).json({ error: 'forbidden: timesheet outside your corporation' });
@@ -847,9 +908,20 @@ app.patch('/api/timesheets/:id', asyncRoute(async (req, res) => {
   const b = req.body || {};
   // Tenant check: timesheet must belong to the caller's corporation.
   const { data: tsRow } = await supabase
-    .from('timesheets').select('corporation_id').eq('id', req.params.id).maybeSingle();
+    .from('timesheets').select('corporation_id, stage').eq('id', req.params.id).maybeSingle();
   if (!tsRow || !corpAllows(req, tsRow.corporation_id)) {
     return res.status(404).json({ error: 'timesheet not found' });
+  }
+
+  // Authorization: a stage transition is gated by who owns the current stage;
+  // a content-only edit (entries/remarks) is limited to the data-entry roles.
+  const changingStage = b.stage !== undefined && b.stage !== tsRow.stage;
+  if (changingStage) {
+    if (!canAdvanceFrom(req, tsRow.stage)) {
+      return res.status(403).json({ error: `forbidden: your role cannot change a timesheet at stage '${tsRow.stage}'` });
+    }
+  } else if (AUTH_ENABLED && req.user && !TIMESHEET_EDITORS.includes(req.user.role)) {
+    return res.status(403).json({ error: 'forbidden: your role cannot edit timesheet entries' });
   }
 
   if (b.stage || b.allowance_days !== undefined || b.remarks !== undefined) {
@@ -888,9 +960,14 @@ app.patch('/api/timesheets/:id', asyncRoute(async (req, res) => {
 app.post('/api/timesheets/:id/approvals', asyncRoute(async (req, res) => {
   const a = req.body || {};
   const { data: tsRow } = await supabase
-    .from('timesheets').select('corporation_id').eq('id', req.params.id).maybeSingle();
+    .from('timesheets').select('corporation_id, stage').eq('id', req.params.id).maybeSingle();
   if (!tsRow || !corpAllows(req, tsRow.corporation_id)) {
     return res.status(404).json({ error: 'timesheet not found' });
+  }
+  // Only the role that owns the timesheet's current stage may record an
+  // approval/rejection on it.
+  if (!canAdvanceFrom(req, tsRow.stage)) {
+    return res.status(403).json({ error: `forbidden: your role cannot review a timesheet at stage '${tsRow.stage}'` });
   }
   const { data: seqData } = await supabase
     .from('timesheet_approvals')
@@ -984,12 +1061,37 @@ app.post('/api/audit-logs', asyncRoute(async (req, res) => {
   // body claims — otherwise the audit trail is trivially forgeable.
   const who = actorFromToken(req, b);
 
+  // Server-authoritative hash chain: the client's hash/previous_hash are
+  // ignored. previous_hash is the hash of the current tail (highest
+  // sequence_no); the entry's own hash is recomputed here. This makes the
+  // chain unforgeable by any client — a tampered or fabricated entry no longer
+  // links. (Note: not concurrency-safe across simultaneous writers; a single
+  // API instance serialising audit writes, or a DB advisory lock, would close
+  // that residual gap.)
+  const { data: tail } = await supabase
+    .from('app_audit_logs')
+    .select('hash')
+    .order('sequence_no', { ascending: false })
+    .limit(1);
+  const previousHash = tail && tail.length > 0 ? tail[0].hash : '';
+  const hash = computeAuditHash({
+    previousHash,
+    id: b.id,
+    timestamp: b.timestamp,
+    userId: who.user_id ?? '',
+    action: b.action,
+    entityType: b.entity_type,
+    entityId: b.entity_id,
+    fieldChanges: b.field_changes,
+    attachments: b.attachments,
+  });
+
   const { error: lErr } = await supabase.from('app_audit_logs').insert({
     id: b.id,
     timestamp: b.timestamp,
-    user_id: who.user_id,
-    user_name: who.user_name,
-    user_role: who.user_role,
+    user_id: who.user_id ?? '',
+    user_name: who.user_name ?? '',
+    user_role: who.user_role ?? '',
     session_id: b.session_id,
     action: b.action,
     entity_type: b.entity_type,
@@ -997,8 +1099,8 @@ app.post('/api/audit-logs', asyncRoute(async (req, res) => {
     entity_display_name: b.entity_display_name,
     note: b.note,
     actor_context: b.actor_context,
-    hash: b.hash,
-    previous_hash: b.previous_hash || '',
+    hash,
+    previous_hash: previousHash,
   });
   if (lErr) throw new Error(lErr.message);
 
@@ -1028,7 +1130,14 @@ app.post('/api/audit-logs', asyncRoute(async (req, res) => {
     if (attErr) throw new Error(attErr.message);
   }
 
-  res.status(201).json({ ...b, user_id: who.user_id, user_name: who.user_name, user_role: who.user_role });
+  res.status(201).json({
+    ...b,
+    user_id: who.user_id,
+    user_name: who.user_name,
+    user_role: who.user_role,
+    hash,
+    previous_hash: previousHash,
+  });
 }));
 
 // ─── Roster settings + Rosters ───────────────────────────────────────────────
@@ -1111,6 +1220,7 @@ app.get('/api/rosters', asyncRoute(async (req, res) => {
 }));
 
 app.put('/api/rosters/:rosterId/workers/:workerId/days/:dayIndex',
+  requireRole(...ROSTER_EDITORS),
   asyncRoute(async (req, res) => {
     const b = req.body || {};
     // Tenant check: the roster must belong to the caller's corporation.
@@ -1284,7 +1394,7 @@ app.get('/api/backpay-records', asyncRoute(async (req, res) => {
   })));
 }));
 
-app.post('/api/backpay-records', asyncRoute(async (req, res) => {
+app.post('/api/backpay-records', requireRole(...BACKPAY_EDITORS), asyncRoute(async (req, res) => {
   const b = req.body || {};
   if (!corpAllows(req, b.corporation_id)) {
     return res.status(403).json({ error: 'forbidden: backpay outside your corporation' });
@@ -1327,7 +1437,7 @@ app.post('/api/backpay-records', asyncRoute(async (req, res) => {
   res.status(201).json({ ...b, calculated_by_user_id: calculatedBy });
 }));
 
-app.patch('/api/backpay-records/:id', asyncRoute(async (req, res) => {
+app.patch('/api/backpay-records/:id', requireRole(...BACKPAY_EDITORS), asyncRoute(async (req, res) => {
   const b = req.body || {};
   if (!b.status) return res.status(400).json({ error: 'status required' });
   const { data: rec } = await supabase
