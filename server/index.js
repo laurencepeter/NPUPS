@@ -207,6 +207,27 @@ function requireRole(...roles) {
   };
 }
 
+// Provenance must come from the *verified* token, never the request body: a
+// client can put any name/id/role in a payload, so trusting it lets one user
+// attribute an action (audit entry, approval, backpay) to another. When auth is
+// enabled we stamp identity from req.user (the signed JWT). In the local/demo
+// server (auth disabled) there is no token identity, so we fall back to the
+// body just to keep the demo functional — never a production path.
+function actorFromToken(req, body = {}) {
+  if (AUTH_ENABLED && req.user) {
+    return {
+      user_id: req.user.sub,
+      user_name: req.user.name ?? body.user_name ?? null,
+      user_role: req.user.role,
+    };
+  }
+  return {
+    user_id: body.user_id ?? null,
+    user_name: body.user_name ?? null,
+    user_role: body.user_role ?? null,
+  };
+}
+
 // ─── Tenant isolation (row-level, corporation-scoped) ───────────────────────
 //
 // A principal whose token carries a corporation_id (regional coordinator, HR,
@@ -878,17 +899,22 @@ app.post('/api/timesheets/:id/approvals', asyncRoute(async (req, res) => {
     .order('sequence_no', { ascending: false })
     .limit(1);
   const seq = seqData && seqData.length > 0 ? seqData[0].sequence_no + 1 : 1;
+  // Reviewer identity comes from the verified token so an approval cannot be
+  // recorded under someone else's name/role.
+  const who = actorFromToken(req, { user_name: a.reviewer_name, user_role: a.reviewer_role });
+  const reviewerName = who.user_name;
+  const reviewerRole = who.user_role;
   const { error } = await supabase.from('timesheet_approvals').insert({
     timesheet_id: req.params.id,
     sequence_no: seq,
-    reviewer_name: a.reviewer_name,
-    reviewer_role: a.reviewer_role,
+    reviewer_name: reviewerName,
+    reviewer_role: reviewerRole,
     state: a.state || 'approved',
     note: a.note,
     ts: a.ts || new Date().toISOString(),
   });
   if (error) throw new Error(error.message);
-  res.status(201).json({ ...a, sequence_no: seq });
+  res.status(201).json({ ...a, reviewer_name: reviewerName, reviewer_role: reviewerRole, sequence_no: seq });
 }));
 
 // ─── Audit log ───────────────────────────────────────────────────────────────
@@ -954,13 +980,16 @@ app.get('/api/audit-logs', asyncRoute(async (req, res) => {
 
 app.post('/api/audit-logs', asyncRoute(async (req, res) => {
   const b = req.body || {};
+  // Attribute the entry to the authenticated principal, not to whatever the
+  // body claims — otherwise the audit trail is trivially forgeable.
+  const who = actorFromToken(req, b);
 
   const { error: lErr } = await supabase.from('app_audit_logs').insert({
     id: b.id,
     timestamp: b.timestamp,
-    user_id: b.user_id,
-    user_name: b.user_name,
-    user_role: b.user_role,
+    user_id: who.user_id,
+    user_name: who.user_name,
+    user_role: who.user_role,
     session_id: b.session_id,
     action: b.action,
     entity_type: b.entity_type,
@@ -999,7 +1028,7 @@ app.post('/api/audit-logs', asyncRoute(async (req, res) => {
     if (attErr) throw new Error(attErr.message);
   }
 
-  res.status(201).json(b);
+  res.status(201).json({ ...b, user_id: who.user_id, user_name: who.user_name, user_role: who.user_role });
 }));
 
 // ─── Roster settings + Rosters ───────────────────────────────────────────────
@@ -1261,6 +1290,8 @@ app.post('/api/backpay-records', asyncRoute(async (req, res) => {
     return res.status(403).json({ error: 'forbidden: backpay outside your corporation' });
   }
 
+  // Stamp the calculating user from the verified token, not the request body.
+  const calculatedBy = AUTH_ENABLED && req.user ? req.user.sub : (b.calculated_by_user_id ?? null);
   const { error: bErr } = await supabase.from('backpay_records').insert({
     id: b.id,
     worker_id: b.worker_id,
@@ -1275,7 +1306,7 @@ app.post('/api/backpay-records', asyncRoute(async (req, res) => {
     status: b.status || 'calculated',
     note: b.note,
     calculated_at: b.calculated_at,
-    calculated_by_user_id: b.calculated_by_user_id,
+    calculated_by_user_id: calculatedBy,
   });
   if (bErr) throw new Error(bErr.message);
 
@@ -1293,7 +1324,7 @@ app.post('/api/backpay-records', asyncRoute(async (req, res) => {
     if (lErr) throw new Error(lErr.message);
   }
 
-  res.status(201).json(b);
+  res.status(201).json({ ...b, calculated_by_user_id: calculatedBy });
 }));
 
 app.patch('/api/backpay-records/:id', asyncRoute(async (req, res) => {
