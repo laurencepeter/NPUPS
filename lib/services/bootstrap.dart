@@ -10,6 +10,7 @@
 
 import 'audit_service.dart';
 import 'backpay_service.dart';
+import 'rate_table_service.dart';
 import 'roster_service.dart';
 import 'timesheet_data_store.dart';
 import 'worker_data_store.dart';
@@ -24,6 +25,8 @@ class Bootstrap {
       AuditService().loadFromBackend(force: force),
       RosterService().loadFromBackend(force: force),
       BackpayService().loadFromBackend(force: force),
+      // Statutory rates must be loaded before any payslip/net-pay renders.
+      RateTableService().loadFromBackend(force: force),
     ]);
   }
 }

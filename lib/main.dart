@@ -27,6 +27,7 @@ import 'screens/employee_import_screen.dart';
 import 'screens/hr_management_screen.dart';
 import 'screens/payroll_breakdown_screen.dart';
 import 'screens/backpay_screen.dart';
+import 'screens/rate_settings_screen.dart';
 
 // ──────────────────────────────────────────────────────────────────────────────
 // WorkForce — Digital HR & Payroll System
@@ -433,6 +434,10 @@ class _AuthenticatedShellState extends State<_AuthenticatedShell> {
               Icons.history_edu,
               () => BackpayScreen(
                   key: const ValueKey('backpay'), currentUser: _user),
+              category: _TabCategory.payroll),
+          _TabConfig('Rates', Icons.tune_outlined, Icons.tune,
+              () => RateSettingsScreen(
+                  key: const ValueKey('rate-settings'), currentUser: _user),
               category: _TabCategory.payroll),
           _TabConfig('Audit Log', Icons.fact_check_outlined,
               Icons.fact_check,

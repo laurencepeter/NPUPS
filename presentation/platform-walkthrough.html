@@ -491,6 +491,7 @@
           <div class="lrow gross"><span class="l">Gross salary<small>wage + COLA · basis for deductions</small></span><span class="v" id="grossT">$1,980.00</span></div>
           <div class="lrow sub"><span class="l">NIS — employee<small>3.4% of gross</small></span><span class="v" id="nisT">−$67.32</span></div>
           <div class="lrow sub"><span class="l">Health surcharge<small id="hsCalc">$8.25/wk × 2</small></span><span class="v" id="hsT">−$16.50</span></div>
+          <div class="lrow sub"><span class="l">PAYE income tax<small id="payeCalc">gross ≤ allowance · $0.00</small></span><span class="v" id="payeT">−$0.00</span></div>
           <div class="lrow total"><span class="l">Net pay</span><span class="v" id="netT">$2,021.18</span></div>
         </div>
       </div>
@@ -671,6 +672,8 @@
   var ALLOW_RATE = 25;                 // illustrative allowance rate / day
   var NIS_EMP = 0.034, NIS_ER = 0.065; // DeductionRateTable defaults
   var HS_HIGH = 8.25, HS_LOW = 4.80, HS_THRESH = 469.99;
+  // PAYE (TT) — annual thresholds prorated over 26 fortnights
+  var PA_ANNUAL = 90000, BAND_ANNUAL = 1000000, PAYE_LOW = 0.25, PAYE_HIGH = 0.30, FN = 26;
   var els = {
     days: document.getElementById("days"), wage: document.getElementById("wage"),
     cola: document.getElementById("cola"), aldays: document.getElementById("aldays")
@@ -689,7 +692,11 @@
     var nisEmp = r2(gross * NIS_EMP), nisEr = r2(gross * NIS_ER);
     var hsWeekly = gross > HS_THRESH ? HS_HIGH : HS_LOW;
     var hs = r2(hsWeekly * 2);
-    var net = grand - nisEmp - hs;
+    var pa = PA_ANNUAL / FN, bandCeil = BAND_ANNUAL / FN;
+    var chargeable = Math.max(0, gross - pa);
+    var lowBand = Math.min(chargeable, bandCeil), highBand = Math.max(0, chargeable - bandCeil);
+    var paye = r2(lowBand * PAYE_LOW + highBand * PAYE_HIGH);
+    var net = grand - nisEmp - hs - paye;
 
     set("daysV", d); set("wageV", money(w)); set("colaV", money(c));
     set("aldaysV", ad); set("alrateLbl", money(ALLOW_RATE)); set("stmtDays", d + (d === 1 ? " day" : " days"));
@@ -697,6 +704,10 @@
     set("hsCalc", money(hsWeekly) + "/wk × 2  ·  gross " + (gross > HS_THRESH ? ">" : "≤") + " " + money(HS_THRESH));
     set("wageT", money(wageT)); set("colaT", money(colaT)); set("alT", money(alT));
     set("grossT", money(gross)); set("nisT", "−" + money(nisEmp)); set("hsT", "−" + money(hs));
+    set("payeT", "−" + money(paye));
+    set("payeCalc", chargeable > 0
+      ? "chargeable " + money(chargeable) + " @ 25%" + (highBand > 0 ? "/30%" : "")
+      : "gross ≤ allowance · $0.00");
     set("netT", money(net)); set("nisEr", money(nisEr));
   }
   Object.keys(els).forEach(function (k) { els[k].addEventListener("input", recompute); });

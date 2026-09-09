@@ -7,8 +7,12 @@
 //   PORT=8080 node index.js
 // ─────────────────────────────────────────────────────────────────────────────
 
+const crypto = require('crypto');
 const express = require('express');
 const cors = require('cors');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
+const jwt = require('jsonwebtoken');
 const { createClient } = require('@supabase/supabase-js');
 
 const PORT = parseInt(process.env.PORT || '8080', 10);
@@ -16,6 +20,22 @@ const PORT = parseInt(process.env.PORT || '8080', 10);
 // valid value into a "fails to parse as URL" crash that's hard to spot.
 const SUPABASE_URL = (process.env.SUPABASE_URL || '').trim();
 const SUPABASE_ANON_KEY = (process.env.SUPABASE_ANON_KEY || '').trim();
+
+// ─── Auth / transport config ──────────────────────────────────────────────
+const NODE_ENV = process.env.NODE_ENV || 'development';
+const API_JWT_SECRET = (process.env.API_JWT_SECRET || '').trim();
+const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '8h';
+// Explicit, logged opt-out for running WITHOUT auth (local demo / CI only).
+const ALLOW_INSECURE_NO_AUTH = process.env.ALLOW_INSECURE_NO_AUTH === 'true';
+// Cross-origin allowlist. Empty ⇒ CORS disabled (same-origin only), which is
+// correct for the nginx same-origin proxy the web app uses.
+const CORS_ALLOWED_ORIGINS = (process.env.CORS_ALLOWED_ORIGINS || '')
+  .split(',')
+  .map((s) => s.trim())
+  .filter(Boolean);
+// Auth is ON whenever a secret is configured. It is the required posture in
+// production; see the fail-secure check below.
+const AUTH_ENABLED = API_JWT_SECRET.length > 0;
 
 // Fail fast WITH a specific reason. A bare crash here just shows up in Coolify
 // as "no containers running"; naming the exact missing/invalid var is the
@@ -42,6 +62,31 @@ try {
   process.exit(1);
 }
 
+// Fail secure: the API is the only path to the database, so it must not run
+// unauthenticated in production. Require a strong JWT secret; allow an explicit,
+// loudly-logged opt-out only for local/demo use.
+if (AUTH_ENABLED && API_JWT_SECRET.length < 32) {
+  console.error(
+    'FATAL: API_JWT_SECRET is too short. Use at least 32 random characters ' +
+      '(e.g. `openssl rand -base64 48`).',
+  );
+  process.exit(1);
+}
+if (!AUTH_ENABLED) {
+  if (NODE_ENV === 'production' && !ALLOW_INSECURE_NO_AUTH) {
+    console.error(
+      'FATAL: API_JWT_SECRET is not set. Refusing to start unauthenticated in ' +
+        'production. Set API_JWT_SECRET, or set ALLOW_INSECURE_NO_AUTH=true to ' +
+        'explicitly run open (NEVER in production).',
+    );
+    process.exit(1);
+  }
+  console.warn(
+    '⚠  API_JWT_SECRET not set — authentication is DISABLED and every /api ' +
+      'route is open. Acceptable only for local demo / CI. Do NOT deploy like this.',
+  );
+}
+
 let supabase;
 try {
   supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -51,8 +96,42 @@ try {
 }
 
 const app = express();
-app.use(cors());
+// Behind the nginx proxy: trust the first hop so req.ip / rate-limit key use
+// the real client IP from X-Forwarded-For rather than the proxy's address.
+app.set('trust proxy', 1);
+
+// Security headers (HSTS, nosniff, frame-deny, referrer policy, etc.). The API
+// returns JSON only, so the HTML-oriented CSP is not needed here.
+app.use(helmet({ contentSecurityPolicy: false }));
+
+// CORS: only the configured origins may make cross-origin calls. Empty list ⇒
+// no Access-Control-Allow-Origin emitted, so browsers block cross-origin use —
+// the correct default for the same-origin nginx proxy.
+app.use(
+  cors({
+    origin: CORS_ALLOWED_ORIGINS.length ? CORS_ALLOWED_ORIGINS : false,
+    credentials: true,
+  }),
+);
+
 app.use(express.json({ limit: '5mb' }));
+
+// Rate limiting — a broad ceiling on the whole API plus a tight limit on the
+// auth endpoint to blunt credential brute-forcing.
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 1000,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'too many login attempts, try again later' },
+});
+app.use('/api/', apiLimiter);
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -63,6 +142,148 @@ function asyncRoute(fn) {
 function isoOrNull(v) {
   return v == null ? null : new Date(v).toISOString();
 }
+
+// ─── Authentication & RBAC ────────────────────────────────────────────────
+//
+// Passwords are verified against a scrypt hash ("scrypt:<saltHex>:<hashHex>")
+// using Node's built-in crypto — no native/bcrypt dependency to build in the
+// image, and a constant-time comparison. On success the API issues a short-
+// lived HS256 JWT that the client returns as `Authorization: Bearer <token>`.
+
+function verifyPassword(password, stored) {
+  if (typeof stored !== 'string') return false;
+  const parts = stored.split(':');
+  if (parts.length !== 3 || parts[0] !== 'scrypt') return false;
+  const salt = Buffer.from(parts[1], 'hex');
+  const expected = Buffer.from(parts[2], 'hex');
+  let actual;
+  try {
+    actual = crypto.scryptSync(String(password), salt, expected.length);
+  } catch {
+    return false;
+  }
+  return actual.length === expected.length && crypto.timingSafeEqual(actual, expected);
+}
+
+function signToken(u) {
+  return jwt.sign(
+    {
+      sub: u.id,
+      email: u.email,
+      role: u.role,
+      corporation_id: u.corporation_id ?? null,
+      name: u.full_name ?? null,
+    },
+    API_JWT_SECRET,
+    { expiresIn: JWT_EXPIRES_IN },
+  );
+}
+
+// Verify the bearer token. When auth is disabled (local/demo) a synthetic admin
+// principal is injected so downstream role checks and the app still function.
+function requireAuth(req, res, next) {
+  if (!AUTH_ENABLED) {
+    req.user = { sub: 'insecure-open', role: 'systemAdmin' };
+    return next();
+  }
+  const m = /^Bearer\s+(.+)$/i.exec(req.headers.authorization || '');
+  if (!m) return res.status(401).json({ error: 'missing bearer token' });
+  try {
+    // Pin the algorithm so only our HS256-signed tokens are accepted.
+    req.user = jwt.verify(m[1], API_JWT_SECRET, { algorithms: ['HS256'] });
+    return next();
+  } catch {
+    return res.status(401).json({ error: 'invalid or expired token' });
+  }
+}
+
+function requireRole(...roles) {
+  return (req, res, next) => {
+    if (!AUTH_ENABLED) return next();
+    if (!req.user || !roles.includes(req.user.role)) {
+      return res.status(403).json({ error: `forbidden: requires role ${roles.join('/')}` });
+    }
+    return next();
+  };
+}
+
+// ─── Tenant isolation (row-level, corporation-scoped) ───────────────────────
+//
+// A principal whose token carries a corporation_id (regional coordinator, HR,
+// worker) is confined to that corporation. Global roles (systemAdmin, ps,
+// subAccounts, mainAccounts, dmcr, ministersDepartment) have a null
+// corporation_id and see every corporation. Enforced server-side so the API —
+// the only path to the DB — never returns another tenant's rows.
+
+/// The corporation a request is confined to, or null when it may see all
+/// corporations (global role, or auth disabled in the local/demo server).
+function scopeCorporation(req) {
+  if (!AUTH_ENABLED) return null;
+  const c = req.user && req.user.corporation_id;
+  return c ? String(c) : null;
+}
+
+/// True when the request may touch a row belonging to [corporationId].
+function corpAllows(req, corporationId) {
+  const scope = scopeCorporation(req);
+  return scope === null || String(corporationId) === scope;
+}
+
+/// Applies the corporation filter to a Supabase query when the request is
+/// scoped; a no-op for global roles. `column` defaults to corporation_id.
+function scopeQuery(req, query, column = 'corporation_id') {
+  const scope = scopeCorporation(req);
+  return scope === null ? query : query.eq(column, scope);
+}
+
+// Global gate: every /api route requires a valid token except the liveness/
+// readiness probes and the login endpoint itself.
+const OPEN_PATHS = new Set(['/api/health', '/api/ready', '/api/auth/login']);
+app.use((req, res, next) => {
+  // Case-fold the path: Express routing is case-insensitive by default, so a
+  // case-sensitive gate here (e.g. accepting "/API/workers") would let a
+  // request skip auth yet still reach the lower-cased route handler.
+  const path = req.path.toLowerCase();
+  if (!path.startsWith('/api/')) return next();
+  if (OPEN_PATHS.has(path)) return next();
+  return requireAuth(req, res, next);
+});
+
+// ─── Auth endpoint ─────────────────────────────────────────────────────────
+
+app.post('/api/auth/login', authLimiter, asyncRoute(async (req, res) => {
+  const { email, password } = req.body || {};
+  if (!email || !password) {
+    return res.status(400).json({ error: 'email and password are required' });
+  }
+  if (!AUTH_ENABLED) {
+    // Server is running open (no secret configured): there is no token to
+    // issue. The client treats this as "auth not enforced" and proceeds.
+    return res.status(501).json({ error: 'authentication is disabled on this server' });
+  }
+  const { data: u } = await supabase
+    .from('app_users')
+    .select('id, email, full_name, role, corporation_id, corporation_name, is_active, password_hash')
+    .eq('email', String(email).toLowerCase().trim())
+    .maybeSingle();
+  // Uniform failure for unknown user, inactive user, or bad password — no
+  // enumeration of which one it was.
+  if (!u || u.is_active === false || !verifyPassword(password, u.password_hash)) {
+    return res.status(401).json({ error: 'invalid credentials' });
+  }
+  const token = signToken(u);
+  res.json({
+    token,
+    user: {
+      id: u.id,
+      email: u.email,
+      full_name: u.full_name,
+      role: u.role,
+      corporation_id: u.corporation_id,
+      corporation_name: u.corporation_name,
+    },
+  });
+}));
 
 // ─── Health / readiness ──────────────────────────────────────────────────────
 //
@@ -168,7 +389,8 @@ function shapeWorker(row, docs, allowances) {
 }
 
 app.get('/api/workers', asyncRoute(async (req, res) => {
-  const { data: wRows, error: wErr } = await supabase.from('workers').select('*').order('id');
+  const { data: wRows, error: wErr } =
+    await scopeQuery(req, supabase.from('workers').select('*').order('id'));
   if (wErr) throw new Error(wErr.message);
   const { data: docs } = await supabase
     .from('worker_documents')
@@ -193,12 +415,20 @@ app.get('/api/workers', asyncRoute(async (req, res) => {
 
 app.get('/api/workers/:id', asyncRoute(async (req, res) => {
   const w = await fetchWorkerRow(req.params.id);
-  if (!w) return res.status(404).json({ error: 'worker not found' });
+  // Return 404 (not 403) for a worker outside the caller's corporation so the
+  // response can't be used to probe which worker ids exist in other tenants.
+  if (!w || !corpAllows(req, w.corporation_id)) {
+    return res.status(404).json({ error: 'worker not found' });
+  }
   res.json(w);
 }));
 
 app.post('/api/workers', asyncRoute(async (req, res) => {
   const b = req.body || {};
+  // A scoped user can only create workers within their own corporation.
+  if (!corpAllows(req, b.corporation_id)) {
+    return res.status(403).json({ error: 'forbidden: worker outside your corporation' });
+  }
 
   const { error: wErr } = await supabase.from('workers').insert({
     id: b.id,
@@ -270,6 +500,15 @@ app.post('/api/workers', asyncRoute(async (req, res) => {
 
 app.patch('/api/workers/:id', asyncRoute(async (req, res) => {
   const b = req.body || {};
+  // Tenant check: the worker must belong to the caller's corporation, and a
+  // scoped user cannot reassign it into another corporation.
+  const current = await fetchWorkerRow(req.params.id);
+  if (!current || !corpAllows(req, current.corporation_id)) {
+    return res.status(404).json({ error: 'worker not found' });
+  }
+  if (b.corporation_id !== undefined && !corpAllows(req, b.corporation_id)) {
+    return res.status(403).json({ error: 'forbidden: cannot reassign worker to another corporation' });
+  }
   // Only update columns the caller actually included.
   const editable = {
     full_name: b.full_name,
@@ -316,6 +555,11 @@ app.patch('/api/workers/:id', asyncRoute(async (req, res) => {
 }));
 
 app.delete('/api/workers/:id', asyncRoute(async (req, res) => {
+  // Tenant check before any mutation.
+  const current = await fetchWorkerRow(req.params.id);
+  if (!current || !corpAllows(req, current.corporation_id)) {
+    return res.status(404).json({ error: 'worker not found' });
+  }
   // Soft-delete by deactivating; preserves all FKs (timesheets, audit, etc).
   const { data, error } = await supabase
     .from('workers')
@@ -331,6 +575,11 @@ app.delete('/api/workers/:id', asyncRoute(async (req, res) => {
 
 app.post('/api/workers/:id/allowances', asyncRoute(async (req, res) => {
   const a = req.body || {};
+  const { data: wRow } = await supabase
+    .from('workers').select('corporation_id').eq('id', req.params.id).maybeSingle();
+  if (!wRow || !corpAllows(req, wRow.corporation_id)) {
+    return res.status(404).json({ error: 'worker not found' });
+  }
   const { error } = await supabase.from('worker_allowances').insert({
     id: a.id,
     worker_id: req.params.id,
@@ -383,6 +632,12 @@ app.delete('/api/worker-allowances/:id', asyncRoute(async (req, res) => {
 
 app.put('/api/workers/:id/documents/:name', asyncRoute(async (req, res) => {
   const b = req.body || {};
+  // Tenant check via the parent worker.
+  const { data: wRow } = await supabase
+    .from('workers').select('corporation_id').eq('id', req.params.id).maybeSingle();
+  if (!wRow || !corpAllows(req, wRow.corporation_id)) {
+    return res.status(404).json({ error: 'worker not found' });
+  }
   const { error } = await supabase.from('worker_documents').upsert(
     {
       worker_id: req.params.id,
@@ -478,7 +733,8 @@ function shapeTimesheet(row, dailyRows, approvalRows) {
 }
 
 app.get('/api/timesheets', asyncRoute(async (req, res) => {
-  const { data: tsRows, error: tsErr } = await supabase.from('timesheets').select('*').order('id');
+  const { data: tsRows, error: tsErr } =
+    await scopeQuery(req, supabase.from('timesheets').select('*').order('id'));
   if (tsErr) throw new Error(tsErr.message);
   const { data: daily } = await supabase
     .from('timesheet_daily_entries')
@@ -520,6 +776,9 @@ async function fetchTimesheet(id) {
 
 app.post('/api/timesheets', asyncRoute(async (req, res) => {
   const b = req.body || {};
+  if (!corpAllows(req, b.corporation_id)) {
+    return res.status(403).json({ error: 'forbidden: timesheet outside your corporation' });
+  }
 
   const { error: tsErr } = await supabase.from('timesheets').insert({
     id: b.id,
@@ -565,6 +824,12 @@ app.post('/api/timesheets', asyncRoute(async (req, res) => {
 
 app.patch('/api/timesheets/:id', asyncRoute(async (req, res) => {
   const b = req.body || {};
+  // Tenant check: timesheet must belong to the caller's corporation.
+  const { data: tsRow } = await supabase
+    .from('timesheets').select('corporation_id').eq('id', req.params.id).maybeSingle();
+  if (!tsRow || !corpAllows(req, tsRow.corporation_id)) {
+    return res.status(404).json({ error: 'timesheet not found' });
+  }
 
   if (b.stage || b.allowance_days !== undefined || b.remarks !== undefined) {
     const updateObj = { updated_at: new Date().toISOString() };
@@ -601,6 +866,11 @@ app.patch('/api/timesheets/:id', asyncRoute(async (req, res) => {
 
 app.post('/api/timesheets/:id/approvals', asyncRoute(async (req, res) => {
   const a = req.body || {};
+  const { data: tsRow } = await supabase
+    .from('timesheets').select('corporation_id').eq('id', req.params.id).maybeSingle();
+  if (!tsRow || !corpAllows(req, tsRow.corporation_id)) {
+    return res.status(404).json({ error: 'timesheet not found' });
+  }
   const { data: seqData } = await supabase
     .from('timesheet_approvals')
     .select('sequence_no')
@@ -735,14 +1005,14 @@ app.post('/api/audit-logs', asyncRoute(async (req, res) => {
 // ─── Roster settings + Rosters ───────────────────────────────────────────────
 
 app.get('/api/roster-settings', asyncRoute(async (req, res) => {
-  const { data, error } = await supabase
+  const { data, error } = await scopeQuery(req, supabase
     .from('roster_settings')
-    .select('corporation_id, max_days_per_fortnight, allow_weekend_work, allow_max_days_override, data_entry_can_override');
+    .select('corporation_id, max_days_per_fortnight, allow_weekend_work, allow_max_days_override, data_entry_can_override'));
   if (error) throw new Error(error.message);
   res.json(data || []);
 }));
 
-app.patch('/api/roster-settings/:corporationId', asyncRoute(async (req, res) => {
+app.patch('/api/roster-settings/:corporationId', requireRole('systemAdmin'), asyncRoute(async (req, res) => {
   const b = req.body || {};
   const { error } = await supabase.from('roster_settings').upsert(
     {
@@ -760,10 +1030,10 @@ app.patch('/api/roster-settings/:corporationId', asyncRoute(async (req, res) => 
 }));
 
 app.get('/api/rosters', asyncRoute(async (req, res) => {
-  const { data: rosters, error: rErr } = await supabase
+  const { data: rosters, error: rErr } = await scopeQuery(req, supabase
     .from('rosters')
     .select('*')
-    .order('fortnight_start', { ascending: false })
+    .order('fortnight_start', { ascending: false }))
     .order('corporation_id');
   if (rErr) throw new Error(rErr.message);
   const { data: recs } = await supabase
@@ -814,6 +1084,12 @@ app.get('/api/rosters', asyncRoute(async (req, res) => {
 app.put('/api/rosters/:rosterId/workers/:workerId/days/:dayIndex',
   asyncRoute(async (req, res) => {
     const b = req.body || {};
+    // Tenant check: the roster must belong to the caller's corporation.
+    const { data: rosterRow } = await supabase
+      .from('rosters').select('corporation_id').eq('id', req.params.rosterId).maybeSingle();
+    if (!rosterRow || !corpAllows(req, rosterRow.corporation_id)) {
+      return res.status(404).json({ error: 'roster not found' });
+    }
     const { error: deErr } = await supabase
       .from('roster_day_entries')
       .update({
@@ -836,13 +1112,113 @@ app.put('/api/rosters/:rosterId/workers/:workerId/days/:dayIndex',
   })
 );
 
+// ─── Payroll rate tables (statutory rates — admin managed) ────────────────────
+//
+// Effective-dated PAYE / NIS / Health Surcharge parameters. The Flutter engine
+// resolves the applicable row for a fortnight by its effective_from date, so a
+// statutory change is a data edit rather than a code change. JSON keys mirror
+// lib/models/payroll_deductions_model.dart DeductionRateTable.fromJson.
+
+function shapeRateTable(r) {
+  return {
+    id: r.id,
+    label: r.label,
+    effective_from: r.effective_from ? new Date(r.effective_from).toISOString() : null,
+    year: r.year,
+    pay_periods_per_year: r.pay_periods_per_year,
+    nis_employee_rate: Number(r.nis_employee_rate),
+    nis_employer_rate: Number(r.nis_employer_rate),
+    health_surcharge_weekly_high: Number(r.health_surcharge_weekly_high),
+    health_surcharge_weekly_low: Number(r.health_surcharge_weekly_low),
+    health_surcharge_high_threshold: Number(r.health_surcharge_high_threshold),
+    personal_allowance_annual: Number(r.personal_allowance_annual),
+    paye_band_threshold_annual: Number(r.paye_band_threshold_annual),
+    paye_rate_low: Number(r.paye_rate_low),
+    paye_rate_high: Number(r.paye_rate_high),
+  };
+}
+
+app.get('/api/rate-tables', asyncRoute(async (req, res) => {
+  const { data, error } = await supabase
+    .from('payroll_rate_tables')
+    .select('*')
+    .order('effective_from', { ascending: true });
+  if (error) throw new Error(error.message);
+  res.json((data || []).map(shapeRateTable));
+}));
+
+// Integrity guard: statutory figures must be sane before they can drive
+// payroll. Rejects negatives, out-of-range rates, and malformed dates.
+function validateRateTable(b) {
+  const frac = ['nis_employee_rate', 'nis_employer_rate', 'paye_rate_low', 'paye_rate_high'];
+  const money = [
+    'health_surcharge_weekly_high', 'health_surcharge_weekly_low',
+    'health_surcharge_high_threshold', 'personal_allowance_annual',
+    'paye_band_threshold_annual',
+  ];
+  for (const k of frac) {
+    const v = Number(b[k]);
+    if (!Number.isFinite(v) || v < 0 || v > 1) return `${k} must be a fraction between 0 and 1`;
+  }
+  for (const k of money) {
+    const v = Number(b[k]);
+    if (!Number.isFinite(v) || v < 0) return `${k} must be a non-negative number`;
+  }
+  const p = Number(b.pay_periods_per_year);
+  if (!Number.isInteger(p) || p < 1 || p > 366) return 'pay_periods_per_year must be an integer between 1 and 366';
+  if (typeof b.effective_from !== 'string' || Number.isNaN(Date.parse(b.effective_from))) {
+    return 'effective_from must be a valid date';
+  }
+  return null;
+}
+
+app.put('/api/rate-tables/:id', requireRole('systemAdmin'), asyncRoute(async (req, res) => {
+  const b = req.body || {};
+  const invalid = validateRateTable(b);
+  if (invalid) return res.status(400).json({ error: invalid });
+  const eff = typeof b.effective_from === 'string' ? b.effective_from.slice(0, 10) : null;
+  const { error } = await supabase.from('payroll_rate_tables').upsert(
+    {
+      id: req.params.id,
+      label: b.label ?? null,
+      effective_from: eff,
+      year: b.year ?? (eff ? parseInt(eff.slice(0, 4), 10) : new Date().getFullYear()),
+      pay_periods_per_year: b.pay_periods_per_year ?? 26,
+      nis_employee_rate: b.nis_employee_rate,
+      nis_employer_rate: b.nis_employer_rate,
+      health_surcharge_weekly_high: b.health_surcharge_weekly_high,
+      health_surcharge_weekly_low: b.health_surcharge_weekly_low,
+      health_surcharge_high_threshold: b.health_surcharge_high_threshold,
+      personal_allowance_annual: b.personal_allowance_annual,
+      paye_band_threshold_annual: b.paye_band_threshold_annual,
+      paye_rate_low: b.paye_rate_low,
+      paye_rate_high: b.paye_rate_high,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: 'id' }
+  );
+  if (error) throw new Error(error.message);
+  res.status(204).end();
+}));
+
+app.delete('/api/rate-tables/:id', requireRole('systemAdmin'), asyncRoute(async (req, res) => {
+  const { data, error } = await supabase
+    .from('payroll_rate_tables')
+    .delete()
+    .eq('id', req.params.id)
+    .select()
+    .single();
+  if (error || !data) return res.status(404).json({ error: 'rate table not found' });
+  res.status(204).end();
+}));
+
 // ─── Backpay ─────────────────────────────────────────────────────────────────
 
 app.get('/api/backpay-records', asyncRoute(async (req, res) => {
-  const { data: recs, error: rErr } = await supabase
+  const { data: recs, error: rErr } = await scopeQuery(req, supabase
     .from('backpay_records')
     .select('*')
-    .order('calculated_at', { ascending: false });
+    .order('calculated_at', { ascending: false }));
   if (rErr) throw new Error(rErr.message);
   const { data: lines } = await supabase
     .from('backpay_line_items')
@@ -881,6 +1257,9 @@ app.get('/api/backpay-records', asyncRoute(async (req, res) => {
 
 app.post('/api/backpay-records', asyncRoute(async (req, res) => {
   const b = req.body || {};
+  if (!corpAllows(req, b.corporation_id)) {
+    return res.status(403).json({ error: 'forbidden: backpay outside your corporation' });
+  }
 
   const { error: bErr } = await supabase.from('backpay_records').insert({
     id: b.id,
@@ -920,6 +1299,11 @@ app.post('/api/backpay-records', asyncRoute(async (req, res) => {
 app.patch('/api/backpay-records/:id', asyncRoute(async (req, res) => {
   const b = req.body || {};
   if (!b.status) return res.status(400).json({ error: 'status required' });
+  const { data: rec } = await supabase
+    .from('backpay_records').select('corporation_id').eq('id', req.params.id).maybeSingle();
+  if (!rec || !corpAllows(req, rec.corporation_id)) {
+    return res.status(404).json({ error: 'backpay record not found' });
+  }
   const { data, error } = await supabase
     .from('backpay_records')
     .update({ status: b.status })
@@ -932,16 +1316,21 @@ app.patch('/api/backpay-records/:id', asyncRoute(async (req, res) => {
 
 // ─── Error handler ───────────────────────────────────────────────────────────
 
+// eslint-disable-next-line no-unused-vars
 app.use((err, req, res, next) => {
+  // Log the full error server-side; return a generic message to the client in
+  // production so internal details (DB errors, stack traces) are never leaked.
   console.error(`[error] ${req.method} ${req.path}:`, err);
-  res.status(500).json({
-    error: err.message || 'internal error',
-    path: req.path,
-  });
+  const body = { error: 'internal error', path: req.path };
+  if (NODE_ENV !== 'production') body.detail = err.message;
+  res.status(500).json(body);
 });
 
 // ─── Boot ────────────────────────────────────────────────────────────────────
 
 app.listen(PORT, () => {
-  console.log(`workforce-api listening on :${PORT}`);
+  console.log(
+    `workforce-api listening on :${PORT} ` +
+      `(auth: ${AUTH_ENABLED ? 'enabled' : 'DISABLED'}, env: ${NODE_ENV})`,
+  );
 });

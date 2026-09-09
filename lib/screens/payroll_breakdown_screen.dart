@@ -154,6 +154,7 @@ class _PayrollBreakdownScreenState extends State<PayrollBreakdownScreen> {
           children: [
             _kpi('Salaries', _money.format(t.salaries),
                 color: AppColors.success),
+            _kpi('PAYE', _money.format(t.paye), color: AppColors.error),
             _kpi('NIS (Worker)', _money.format(t.nisEmployee),
                 color: AppColors.info),
             _kpi('NIS (Employer)', _money.format(t.nisEmployer),
@@ -242,6 +243,8 @@ class _PayrollBreakdownScreenState extends State<PayrollBreakdownScreen> {
                     runSpacing: 4,
                     children: [
                       _miniStat('Salaries', g.totals.salaries),
+                      _miniStat('PAYE', g.totals.paye,
+                          color: AppColors.error),
                       _miniStat('NIS Worker', g.totals.nisEmployee,
                           color: AppColors.info),
                       _miniStat('NIS Employer', g.totals.nisEmployer,
@@ -297,6 +300,7 @@ class _PayrollBreakdownScreenState extends State<PayrollBreakdownScreen> {
             DataColumn(label: Text('Fortnight')),
             DataColumn(label: Text('Days')),
             DataColumn(label: Text('Salary'), numeric: true),
+            DataColumn(label: Text('PAYE'), numeric: true),
             DataColumn(label: Text('NIS Wkr'), numeric: true),
             DataColumn(label: Text('NIS Emp'), numeric: true),
             DataColumn(label: Text('Health Surch.'), numeric: true),
@@ -312,6 +316,9 @@ class _PayrollBreakdownScreenState extends State<PayrollBreakdownScreen> {
                   style: const TextStyle(fontSize: 11))),
               DataCell(Text(_money.format(t.grossSalary),
                   style: const TextStyle(fontSize: 11))),
+              DataCell(Text(_money.format(t.paye),
+                  style: const TextStyle(
+                      fontSize: 11, color: AppColors.error))),
               DataCell(Text(_money.format(t.nisEmployee),
                   style: const TextStyle(
                       fontSize: 11, color: AppColors.info))),
@@ -400,6 +407,7 @@ class _PayrollBreakdownScreenState extends State<PayrollBreakdownScreen> {
 
   _Totals _totals(List<Timesheet> ts) {
     double salaries = 0,
+        paye = 0,
         nisEmp = 0,
         nisEr = 0,
         hs = 0,
@@ -407,6 +415,7 @@ class _PayrollBreakdownScreenState extends State<PayrollBreakdownScreen> {
         cost = 0;
     for (final t in ts) {
       salaries += t.grossSalary;
+      paye += t.paye;
       nisEmp += t.nisEmployee;
       nisEr += t.nisEmployer;
       hs += t.healthSurcharge;
@@ -415,6 +424,7 @@ class _PayrollBreakdownScreenState extends State<PayrollBreakdownScreen> {
     }
     return _Totals(
         salaries: salaries,
+        paye: paye,
         nisEmployee: nisEmp,
         nisEmployer: nisEr,
         healthSurcharge: hs,
@@ -430,9 +440,10 @@ class _Group {
   _Group({required this.key, required this.label, required this.timesheets});
 
   _Totals get totals {
-    double s = 0, ne = 0, er = 0, h = 0, n = 0, c = 0;
+    double s = 0, p = 0, ne = 0, er = 0, h = 0, n = 0, c = 0;
     for (final t in timesheets) {
       s += t.grossSalary;
+      p += t.paye;
       ne += t.nisEmployee;
       er += t.nisEmployer;
       h += t.healthSurcharge;
@@ -441,6 +452,7 @@ class _Group {
     }
     return _Totals(
         salaries: s,
+        paye: p,
         nisEmployee: ne,
         nisEmployer: er,
         healthSurcharge: h,
@@ -451,6 +463,7 @@ class _Group {
 
 class _Totals {
   final double salaries;
+  final double paye;
   final double nisEmployee;
   final double nisEmployer;
   final double healthSurcharge;
@@ -458,6 +471,7 @@ class _Totals {
   final double totalEmployerCost;
   _Totals({
     required this.salaries,
+    required this.paye,
     required this.nisEmployee,
     required this.nisEmployer,
     required this.healthSurcharge,

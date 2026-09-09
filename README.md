@@ -81,6 +81,15 @@ The Flutter app talks to a small Node.js + Express + `pg` API in `server/`
 process that touches PostgreSQL — the browser does not connect to it
 directly.
 
+**Authentication:** the API enforces auth server-side and is fail-secure — in
+production it refuses to start without `API_JWT_SECRET`, and every route except
+health/readiness and login requires a valid JWT (obtained from
+`POST /api/auth/login`, verified against a scrypt password hash). Admin-only
+writes (statutory rates, roster settings) require the `systemAdmin` role, and
+**tenant isolation** confines corporation-scoped roles (coordinator, HR, worker)
+to their own corporation's rows while global roles see all. See
+`server/README.md` → *Authentication & authorization* and `server/.env.example`.
+
 The browser calls `/api/*` on the **same origin** it was served from; nginx
 forwards those requests to the API (`API_UPSTREAM`, default `http://api:8080`).
 This means no backend URL is baked into the web build, the deployed bundle
@@ -200,6 +209,7 @@ After login, `Bootstrap.loadAll()` fans out to:
 | `GET /api/roster-settings` | `RosterService` |
 | `GET /api/rosters` | `RosterService` |
 | `GET /api/backpay-records` | `BackpayService` |
+| `GET /api/rate-tables` | `RateTableService` (admin-managed statutory rates) |
 
 Mutations round-trip through the same client. Each store performs an
 optimistic local update first, then `POST` / `PATCH` / `DELETE`s to the
